@@ -1,0 +1,86 @@
+import type { StudentGroupListItem } from '../types/student-group'
+
+export const studentGroupListPlaceholder: StudentGroupListItem[] = [
+  {
+    id: 'g1',
+    groupName: 'SAT Intensive A',
+    members: [
+      { pin: 'STU-1001', fullName: 'Edward Habel' },
+      { pin: 'STU-1002', fullName: 'Thalia Aeris' },
+      { pin: 'STU-1009', fullName: 'Arthabella Elizabeth' },
+    ],
+    status: 'active',
+    createdAt: '2026-01-10T09:15:00',
+    updatedAt: '2026-03-12T14:20:00',
+    createdBy: 'Clara Wijaya',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'g2',
+    groupName: 'Elementary Bundle 1',
+    members: [
+      { pin: 'STU-1003', fullName: 'Michael Ari Satria' },
+      { pin: 'STU-1008', fullName: 'Louis Theo' },
+    ],
+    status: 'active',
+    createdAt: '2026-02-02T11:00:00',
+    updatedAt: '2026-04-01T10:45:00',
+    createdBy: 'Kevin Pratama',
+    branch: 'West Branch',
+  },
+  {
+    id: 'g3',
+    groupName: 'Pre Intermediate Girls',
+    members: [
+      { pin: 'STU-1004', fullName: 'Grace Priscilia' },
+      { pin: 'STU-1006', fullName: 'Lisa Vanessa' },
+      { pin: 'STU-1010', fullName: 'Ervina Putri' },
+    ],
+    status: 'active',
+    createdAt: '2026-02-18T08:30:00',
+    updatedAt: '2026-04-10T16:10:00',
+    createdBy: 'Nadine Siregar',
+    branch: 'South Branch',
+  },
+  {
+    id: 'g4',
+    groupName: 'B Writing Squad',
+    members: [
+      { pin: 'STU-1002', fullName: 'Thalia Aeris' },
+      { pin: 'STU-1007', fullName: 'Rafha Charlene' },
+    ],
+    status: 'inactive',
+    createdAt: '2025-11-20T13:00:00',
+    updatedAt: '2026-01-05T09:00:00',
+    createdBy: 'Daniel Lim',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'g5',
+    groupName: 'Conversation Club',
+    members: [
+      { pin: 'STU-1005', fullName: 'Aufa Qutby Sidabutar' },
+      { pin: 'STU-1011', fullName: 'Joyce Amanda' },
+      { pin: 'STU-1013', fullName: 'Claire Nadine' },
+      { pin: 'STU-1014', fullName: 'Aurelne Putri' },
+    ],
+    status: 'active',
+    createdAt: '2026-03-01T15:40:00',
+    updatedAt: '2026-04-18T11:25:00',
+    createdBy: 'Clara Wijaya',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'g6',
+    groupName: 'IELTS Pair Practice',
+    members: [
+      { pin: 'STU-1013', fullName: 'Claire Nadine' },
+      { pin: 'STU-1015', fullName: 'Habell Edward' },
+    ],
+    status: 'active',
+    createdAt: '2026-03-22T10:00:00',
+    updatedAt: '2026-04-20T12:00:00',
+    createdBy: 'Kevin Pratama',
+    branch: 'West Branch',
+  },
+]

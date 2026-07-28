@@ -1,0 +1,68 @@
+import type { ClassroomListItem } from '../types/classroom'
+
+export const classroomListPlaceholder: ClassroomListItem[] = [
+  {
+    id: 'cls1',
+    code: 'RM-101',
+    className: 'Blue Room',
+    isActive: true,
+    createdAt: '2026-01-12T09:00:00',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'cls2',
+    code: 'RM-102',
+    className: 'Green Room',
+    isActive: true,
+    createdAt: '2026-01-12T09:05:00',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'cls3',
+    code: 'RM-201',
+    className: 'Discussion Hall',
+    isActive: true,
+    createdAt: '2026-02-03T10:20:00',
+    branch: 'West Branch',
+  },
+  {
+    id: 'cls4',
+    code: 'RM-202',
+    className: 'Listening Lab',
+    isActive: false,
+    createdAt: '2026-02-03T10:25:00',
+    branch: 'West Branch',
+  },
+  {
+    id: 'cls5',
+    code: 'RM-301',
+    className: 'SAT Studio',
+    isActive: true,
+    createdAt: '2026-03-08T14:10:00',
+    branch: 'South Branch',
+  },
+  {
+    id: 'cls6',
+    code: 'RM-302',
+    className: 'Speaking Corner',
+    isActive: true,
+    createdAt: '2026-03-08T14:15:00',
+    branch: 'South Branch',
+  },
+  {
+    id: 'cls7',
+    code: 'RM-A1',
+    className: 'Kids Play Class',
+    isActive: true,
+    createdAt: '2026-03-20T08:40:00',
+    branch: 'Main Branch',
+  },
+  {
+    id: 'cls8',
+    code: 'RM-B2',
+    className: 'Private Tutoring Suite',
+    isActive: false,
+    createdAt: '2026-04-01T11:30:00',
+    branch: 'West Branch',
+  },
+]

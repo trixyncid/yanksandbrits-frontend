@@ -1,0 +1,96 @@
+import { Plus, RefreshCw } from 'lucide-react'
+
+import { DataTable } from '../../../shared/components/data-table'
+import { Button } from '../../../shared/components/ui/button'
+import { notify } from '../../../shared/lib/notify'
+import { AdminShell } from '../../admin/components/admin-shell'
+import { tutorListColumns } from '../components/tutor-list-columns'
+import {
+  TutorListErrorState,
+  TutorListLoadingState,
+} from '../components/tutor-list-states'
+import { useTutorsQuery } from '../hooks/use-tutors-query'
+import type { TutorListItem } from '../types/tutor'
+
+function filterTutor(row: TutorListItem, search: string) {
+  const haystack = [
+    row.pin,
+    row.fullName,
+    row.email,
+    row.phone,
+    row.gender,
+    row.isActive ? 'active' : 'inactive',
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(search)
+}
+
+export default function TutorListPage() {
+  const tutorsQuery = useTutorsQuery()
+
+  return (
+    <AdminShell>
+      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
+        {tutorsQuery.isLoading ? <TutorListLoadingState /> : null}
+
+        {tutorsQuery.isError ? (
+          <TutorListErrorState onRetry={() => void tutorsQuery.refetch()} />
+        ) : null}
+
+        {tutorsQuery.isSuccess ? (
+          <DataTable
+            title="Tutor List"
+            description={
+              tutorsQuery.data.meta.source === 'placeholder'
+                ? 'Manage tutor profiles and working schedules. Currently using placeholder data until the API is connected.'
+                : 'Manage tutor profiles and working schedules.'
+            }
+            totalLabel="tutors"
+            columns={tutorListColumns}
+            data={tutorsQuery.data.data}
+            searchPlaceholder="Search by pin, name, email, phone..."
+            globalFilterFn={filterTutor}
+            initialPageSize={10}
+            pageSizeOptions={[10, 20, 50]}
+            emptyMessage="No tutors found"
+            toolbarActions={
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={tutorsQuery.isFetching}
+                  onClick={() => {
+                    void tutorsQuery.refetch().then(() => {
+                      notify('success', {
+                        title: 'Tutor list refreshed',
+                        description: 'Latest placeholder data has been loaded.',
+                      })
+                    })
+                  }}
+                >
+                  <RefreshCw
+                    className={`size-4 ${tutorsQuery.isFetching ? 'animate-spin' : ''}`}
+                  />
+                  Refresh
+                </Button>
+                <Button
+                  onClick={() =>
+                    notify('info', {
+                      title: 'Add tutor placeholder',
+                      description:
+                        'The create tutor form will be added later.',
+                    })
+                  }
+                >
+                  <Plus className="size-4" />
+                  Add New Tutor
+                </Button>
+              </>
+            }
+          />
+        ) : null}
+      </div>
+    </AdminShell>
+  )
+}
