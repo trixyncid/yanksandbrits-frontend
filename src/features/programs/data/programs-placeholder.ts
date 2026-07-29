@@ -1,4 +1,4 @@
-import type { ProgramListItem } from '../types/program'
+import type { ProgramFormValues, ProgramListItem } from '../types/program'
 
 export const programListPlaceholder: ProgramListItem[] = [
   {
@@ -9,6 +9,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#4274B9',
     textColor: '#FFFFFF',
+    createdAt: '2025-01-10T09:00:00',
+    updatedAt: '2026-04-01T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg2',
@@ -18,6 +21,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#1D4ED8',
     textColor: '#FFFFFF',
+    createdAt: '2025-02-12T09:00:00',
+    updatedAt: '2026-04-02T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg3',
@@ -27,6 +33,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#0F766E',
     textColor: '#FFFFFF',
+    createdAt: '2025-03-05T09:00:00',
+    updatedAt: '2026-04-03T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg4',
@@ -36,6 +45,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#B45309',
     textColor: '#FFFFFF',
+    createdAt: '2025-04-18T09:00:00',
+    updatedAt: '2026-04-04T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg5',
@@ -45,6 +57,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: false,
     backgroundColor: '#6B7280',
     textColor: '#FFFFFF',
+    createdAt: '2025-05-20T09:00:00',
+    updatedAt: '2026-04-05T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg6',
@@ -54,6 +69,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#DB2777',
     textColor: '#FFFFFF',
+    createdAt: '2025-06-01T09:00:00',
+    updatedAt: '2026-04-06T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg7',
@@ -63,6 +81,9 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: true,
     backgroundColor: '#7C3AED',
     textColor: '#FFFFFF',
+    createdAt: '2025-07-14T09:00:00',
+    updatedAt: '2026-04-07T10:00:00',
+    createdBy: 'Admin YNB',
   },
   {
     id: 'prg8',
@@ -72,5 +93,30 @@ export const programListPlaceholder: ProgramListItem[] = [
     isActive: false,
     backgroundColor: '#334155',
     textColor: '#F8FAFC',
+    createdAt: '2025-08-22T09:00:00',
+    updatedAt: '2026-04-08T10:00:00',
+    createdBy: 'Admin YNB',
   },
 ]
+
+export const emptyProgramFormValues: ProgramFormValues = {
+  code: '',
+  title: '',
+  description: '',
+  isActive: true,
+  backgroundColor: '#4274B9',
+  textColor: '#FFFFFF',
+}
+
+export function programToFormValues(
+  program: ProgramListItem,
+): ProgramFormValues {
+  return {
+    code: program.code,
+    title: program.title,
+    description: program.description,
+    isActive: program.isActive,
+    backgroundColor: program.backgroundColor,
+    textColor: program.textColor,
+  }
+}

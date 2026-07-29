@@ -1,12 +1,11 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { notify } from '../../../shared/lib/notify'
 import type { StudentListItem } from '../types/student'
+import { StudentActionsCell } from './student-actions-cell'
 
 function formatEnrollmentDate(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -104,7 +103,7 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
   {
     id: 'actions',
     enableSorting: false,
-    size: 120,
+    size: 148,
     meta: {
       sticky: 'right',
     },
@@ -113,35 +112,6 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View ${row.original.fullName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View student placeholder',
-              description: `${row.original.pin} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete ${row.original.fullName}`}
-          onClick={() =>
-            notify('warning', {
-              title: 'Delete student placeholder',
-              description: `${row.original.pin} delete confirmation will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <StudentActionsCell student={row.original} />,
   },
 ]

@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { classroomListPlaceholder } from '../data/classrooms-placeholder'
+import { useClassroomsStore } from '../store/classrooms-store'
 import type { ClassroomListItem } from '../types/classroom'
 import type { ClassroomListFilters } from './classroom-query-keys'
 
@@ -74,7 +74,10 @@ async function fetchClassroomsPlaceholder(
 ): Promise<ClassroomListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderClassrooms(classroomListPlaceholder, filters)
+  const data = filterPlaceholderClassrooms(
+    useClassroomsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

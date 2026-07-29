@@ -1,4 +1,16 @@
-import type { StudentPaymentListItem } from '../types/student-payment'
+import { studentDetailsPlaceholder } from '../../students/data/students-placeholder'
+import type {
+  StudentPaymentFormValues,
+  StudentPaymentListItem,
+} from '../types/student-payment'
+
+export const studentPaymentStudentOptions = studentDetailsPlaceholder.map(
+  (student) => ({
+    pin: student.pin,
+    fullName: student.fullName,
+    branch: student.branch,
+  }),
+)
 
 export const studentPaymentListPlaceholder: StudentPaymentListItem[] = [
   {
@@ -132,3 +144,31 @@ export const studentPaymentListPlaceholder: StudentPaymentListItem[] = [
     branch: 'South Branch',
   },
 ]
+
+export const emptyStudentPaymentFormValues: StudentPaymentFormValues = {
+  studentPin: '',
+  title: '',
+  description: '',
+  amount: '',
+  status: 'pending',
+  hasPaymentProof: false,
+  transactionDate: new Date().toISOString().slice(0, 10),
+}
+
+export function studentPaymentToFormValues(
+  payment: StudentPaymentListItem,
+): StudentPaymentFormValues {
+  return {
+    studentPin: payment.studentPin,
+    title: payment.title,
+    description: payment.description,
+    amount: String(payment.amount),
+    status: payment.status,
+    hasPaymentProof: payment.hasPaymentProof,
+    transactionDate: payment.transactionDate.slice(0, 10),
+  }
+}
+
+export function resolveStudentFromPin(pin: string) {
+  return studentPaymentStudentOptions.find((option) => option.pin === pin)
+}

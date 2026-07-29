@@ -20,17 +20,35 @@ import {
 export type AppPath =
   | '/dashboard'
   | '/students'
+  | '/students/new'
   | '/student-responses'
+  | '/student-responses/new'
   | '/student-groups'
+  | '/student-groups/new'
   | '/student-payments'
+  | '/student-payments/new'
   | '/new-students'
+  | '/new-students/new'
   | '/prediction-tests'
+  | '/prediction-tests/new'
   | '/programs'
+  | '/programs/new'
   | '/classrooms'
+  | '/classrooms/new'
   | '/full-schedule'
   | '/staff'
   | '/tutors'
   | '/marketings'
+  | '/staff-permissions'
+  | '/paid-leaves'
+  | '/branches'
+  | '/student-report'
+  | '/bookkeeping'
+  | '/tutor-report'
+  | '/marketing-report'
+  | '/appointment-by-tutor'
+  | '/profile'
+  | '/notifications'
 
 export type NavigationLeafItem = {
   id: string
@@ -72,7 +90,6 @@ export const adminNavigation: NavigationItem[] = [
         icon: ClipboardList,
         to: '/students',
       },
-      { id: 'student-report', label: 'Student Report', icon: PieChart },
       {
         id: 'student-group',
         label: 'Student Group',
@@ -160,7 +177,12 @@ export const adminNavigation: NavigationItem[] = [
         icon: Megaphone,
         to: '/marketings',
       },
-      { id: 'staff-permission', label: 'Staff Permission', icon: ShieldCheck },
+      {
+        id: 'staff-permission',
+        label: 'Staff Permission',
+        icon: ShieldCheck,
+        to: '/staff-permissions',
+      },
     ],
   },
   {
@@ -168,24 +190,48 @@ export const adminNavigation: NavigationItem[] = [
     label: 'Report',
     icon: Receipt,
     children: [
-      { id: 'bookkeeping', label: 'Bookkeeping', icon: Receipt },
-      { id: 'tutor-report', label: 'Tutor Report', icon: PieChart },
-      { id: 'marketing-report', label: 'Marketing Report', icon: PieChart },
+      {
+        id: 'student-report',
+        label: 'Student Report',
+        icon: PieChart,
+        to: '/student-report',
+      },
+      {
+        id: 'bookkeeping',
+        label: 'Bookkeeping',
+        icon: Receipt,
+        to: '/bookkeeping',
+      },
+      {
+        id: 'tutor-report',
+        label: 'Tutor Report',
+        icon: PieChart,
+        to: '/tutor-report',
+      },
+      {
+        id: 'marketing-report',
+        label: 'Marketing Report',
+        icon: PieChart,
+        to: '/marketing-report',
+      },
     ],
   },
   {
     id: 'appointment-by-tutor',
     label: 'Appointment By Tutor',
     icon: CalendarDays,
+    to: '/appointment-by-tutor',
   },
   {
     id: 'paid-leave',
     label: 'Paid Leave',
     icon: ClipboardList,
+    to: '/paid-leaves',
   },
   {
     id: 'branch',
     label: 'Branch',
     icon: School,
+    to: '/branches',
   },
 ]

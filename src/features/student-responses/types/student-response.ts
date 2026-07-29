@@ -15,3 +15,15 @@ export type StudentResponseListItem = {
   createdAt: string
   status: StudentResponseStatus
 }
+
+export type StudentResponseFormValues = {
+  studentPin: string
+  tutorPin: string
+  title: string
+  description: string
+  status: StudentResponseStatus
+}
+
+export type StudentResponseFormErrors = Partial<
+  Record<keyof StudentResponseFormValues, string>
+>

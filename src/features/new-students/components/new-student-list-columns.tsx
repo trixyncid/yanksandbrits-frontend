@@ -1,15 +1,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { notify } from '../../../shared/lib/notify'
 import type {
   NewStudentListItem,
   NewStudentStatus,
 } from '../types/new-student'
+import { NewStudentActionsCell } from './new-student-actions-cell'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -168,35 +167,6 @@ export const newStudentListColumns: ColumnDef<NewStudentListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View new student ${row.original.fullName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View new student placeholder',
-              description: `${row.original.fullName} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete new student ${row.original.fullName}`}
-          onClick={() =>
-            notify('warning', {
-              title: 'Delete new student placeholder',
-              description: `${row.original.fullName} delete confirmation will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <NewStudentActionsCell student={row.original} />,
   },
 ]

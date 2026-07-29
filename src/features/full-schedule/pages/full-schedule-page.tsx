@@ -99,6 +99,7 @@ export default function FullSchedulePage() {
                       setSelectedDate(startOfDay(date))
                     }
                   }}
+                  title="Schedule date"
                 />
 
                 <Button

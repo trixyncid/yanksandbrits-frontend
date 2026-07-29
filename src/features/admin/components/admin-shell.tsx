@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 
+import { DeleteConfirmDialog } from '../../../shared/components/delete-confirm-dialog'
 import { AdminSidebar } from './admin-sidebar'
 import { AdminTopbar } from './admin-topbar'
 
@@ -21,6 +22,8 @@ export function AdminShell({ children }: AdminShellProps) {
         <AdminTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />
         <main className="px-4 py-5 sm:px-6 sm:py-6">{children}</main>
       </div>
+
+      <DeleteConfirmDialog />
     </div>
   )
 }

@@ -17,5 +17,21 @@ export type NewStudentListItem = {
   status: NewStudentStatus
   educationCounsellor: string
   createdAt: string
+  updatedAt: string
   branch: string
 }
+
+export type NewStudentFormValues = {
+  fullName: string
+  email: string
+  phone: string
+  gender: NewStudentGender | ''
+  course: string
+  status: NewStudentStatus
+  educationCounsellor: string
+  branch: string
+}
+
+export type NewStudentFormErrors = Partial<
+  Record<keyof NewStudentFormValues, string>
+>

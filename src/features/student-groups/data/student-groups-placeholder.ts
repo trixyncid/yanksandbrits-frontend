@@ -1,4 +1,16 @@
-import type { StudentGroupListItem } from '../types/student-group'
+import { studentDetailsPlaceholder } from '../../students/data/students-placeholder'
+import type {
+  StudentGroupFormValues,
+  StudentGroupListItem,
+  StudentGroupMemberOption,
+} from '../types/student-group'
+
+export const studentGroupMemberOptions: StudentGroupMemberOption[] =
+  studentDetailsPlaceholder.map((student) => ({
+    pin: student.pin,
+    fullName: student.fullName,
+    branch: student.branch,
+  }))
 
 export const studentGroupListPlaceholder: StudentGroupListItem[] = [
   {
@@ -84,3 +96,36 @@ export const studentGroupListPlaceholder: StudentGroupListItem[] = [
     branch: 'West Branch',
   },
 ]
+
+export const emptyStudentGroupFormValues: StudentGroupFormValues = {
+  groupName: '',
+  memberPins: [],
+  status: 'active',
+}
+
+export function studentGroupToFormValues(
+  group: StudentGroupListItem,
+): StudentGroupFormValues {
+  return {
+    groupName: group.groupName,
+    memberPins: group.members.map((member) => member.pin),
+    status: group.status,
+  }
+}
+
+export function resolveMembersFromPins(pins: string[]) {
+  return pins
+    .map((pin) => studentGroupMemberOptions.find((option) => option.pin === pin))
+    .filter((option): option is StudentGroupMemberOption => Boolean(option))
+    .map((option) => ({
+      pin: option.pin,
+      fullName: option.fullName,
+    }))
+}
+
+export function resolveBranchFromPins(pins: string[]) {
+  const first = studentGroupMemberOptions.find((option) =>
+    pins.includes(option.pin),
+  )
+  return first?.branch ?? 'Main Branch'
+}

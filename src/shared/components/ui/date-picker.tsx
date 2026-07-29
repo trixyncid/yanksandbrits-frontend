@@ -14,6 +14,7 @@ type DatePickerProps = {
   disabled?: boolean
   className?: string
   align?: 'start' | 'center' | 'end'
+  title?: string
 }
 
 export function DatePicker({
@@ -23,6 +24,7 @@ export function DatePicker({
   disabled = false,
   className,
   align = 'end',
+  title = 'Select date',
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
 
@@ -46,7 +48,7 @@ export function DatePicker({
       <PopoverContent align={align} className="w-auto p-0">
         <div className="border-b border-slate-100 px-4 py-3">
           <p className="text-xs font-semibold tracking-[0.14em] text-[#4274B9] uppercase">
-            Schedule date
+            {title}
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-800">
             {value ? format(value, 'EEEE, MMM d') : 'Select a day'}

@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { studentGroupListPlaceholder } from '../data/student-groups-placeholder'
+import { useStudentGroupsStore } from '../store/student-groups-store'
 import type { StudentGroupListItem } from '../types/student-group'
 import type { StudentGroupListFilters } from './student-group-query-keys'
 
@@ -26,7 +26,11 @@ function filterPlaceholderGroups(
   const search = filters.search?.trim().toLowerCase()
 
   return groups.filter((group) => {
-    if (filters.status && filters.status !== 'all' && group.status !== filters.status) {
+    if (
+      filters.status &&
+      filters.status !== 'all' &&
+      group.status !== filters.status
+    ) {
       return false
     }
 
@@ -71,7 +75,10 @@ async function fetchStudentGroupsPlaceholder(
 ): Promise<StudentGroupListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderGroups(studentGroupListPlaceholder, filters)
+  const data = filterPlaceholderGroups(
+    useStudentGroupsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

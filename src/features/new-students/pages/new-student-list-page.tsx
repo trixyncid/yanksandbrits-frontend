@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -30,6 +31,7 @@ function filterNewStudent(row: NewStudentListItem, search: string) {
 }
 
 export default function NewStudentListPage() {
+  const navigate = useNavigate()
   const studentsQuery = useNewStudentsQuery()
 
   return (
@@ -79,13 +81,7 @@ export default function NewStudentListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add new student placeholder',
-                      description:
-                        'The create new student form will be added later.',
-                    })
-                  }
+                  onClick={() => void navigate({ to: '/new-students/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Student

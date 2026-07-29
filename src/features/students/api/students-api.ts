@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { studentListPlaceholder } from '../data/students-placeholder'
+import { useStudentsStore } from '../store/students-store'
 import type { StudentListItem } from '../types/student'
 import type { StudentListFilters } from './student-query-keys'
 
@@ -26,11 +26,18 @@ function filterPlaceholderStudents(
   const search = filters.search?.trim().toLowerCase()
 
   return students.filter((student) => {
-    if (filters.status && filters.status !== 'all' && student.status !== filters.status) {
+    if (
+      filters.status &&
+      filters.status !== 'all' &&
+      student.status !== filters.status
+    ) {
       return false
     }
 
-    if (filters.branchId && student.branch.toLowerCase() !== filters.branchId.toLowerCase()) {
+    if (
+      filters.branchId &&
+      student.branch.toLowerCase() !== filters.branchId.toLowerCase()
+    ) {
       return false
     }
 
@@ -70,7 +77,10 @@ async function fetchStudentsPlaceholder(
 ): Promise<StudentListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderStudents(studentListPlaceholder, filters)
+  const data = filterPlaceholderStudents(
+    useStudentsStore.getState().list(),
+    filters,
+  )
 
   return {
     data,
@@ -95,7 +105,6 @@ export async function fetchStudents(
     try {
       return await fetchStudentsFromApi(filters)
     } catch {
-      // Keep UI usable during migration if API is not ready yet.
       return fetchStudentsPlaceholder(filters)
     }
   }

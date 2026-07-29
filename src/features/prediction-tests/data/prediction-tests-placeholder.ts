@@ -1,8 +1,12 @@
-import type { PredictionTestListItem } from '../types/prediction-test'
+import type {
+  PredictionTestFormValues,
+  PredictionTestListItem,
+} from '../types/prediction-test'
 
 export const predictionTestListPlaceholder: PredictionTestListItem[] = [
   {
     id: 'pt1',
+    studentId: 'ns1',
     studentName: 'Andrea Putri',
     studentEmail: 'andrea.putri@email.com',
     studentPhone: '081211122233',
@@ -11,11 +15,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 350000,
     status: 'approved',
     educationCounsellor: 'Clara Wijaya',
+    hasPaymentProof: true,
     createdAt: '2026-04-02T10:00:00',
+    updatedAt: '2026-04-02T10:00:00',
     branch: 'Main Branch',
   },
   {
     id: 'pt2',
+    studentId: 'ns2',
     studentName: 'Bagas Pratama',
     studentEmail: 'bagas.pratama@email.com',
     studentPhone: '081233344455',
@@ -24,11 +31,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 400000,
     status: 'pending',
     educationCounsellor: 'Kevin Pratama',
+    hasPaymentProof: false,
     createdAt: '2026-04-04T11:30:00',
+    updatedAt: '2026-04-04T11:30:00',
     branch: 'Main Branch',
   },
   {
     id: 'pt3',
+    studentId: 'ns3',
     studentName: 'Cindy Aurelia',
     studentEmail: 'cindy.aurelia@email.com',
     studentPhone: '081255566677',
@@ -37,11 +47,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 250000,
     status: 'approved',
     educationCounsellor: 'Nadine Siregar',
+    hasPaymentProof: true,
     createdAt: '2026-04-06T14:45:00',
+    updatedAt: '2026-04-06T14:45:00',
     branch: 'West Branch',
   },
   {
     id: 'pt4',
+    studentId: 'ns4',
     studentName: 'Doni Saputra',
     studentEmail: 'doni.saputra@email.com',
     studentPhone: '081277788899',
@@ -50,11 +63,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 375000,
     status: 'approved',
     educationCounsellor: 'Clara Wijaya',
+    hasPaymentProof: true,
     createdAt: '2026-04-08T09:20:00',
+    updatedAt: '2026-04-08T09:20:00',
     branch: 'South Branch',
   },
   {
     id: 'pt5',
+    studentId: 'ns5',
     studentName: 'Elena Marissa',
     studentEmail: 'elena.marissa@email.com',
     studentPhone: '081299900011',
@@ -63,11 +79,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 350000,
     status: 'void',
     educationCounsellor: 'Daniel Lim',
+    hasPaymentProof: false,
     createdAt: '2026-04-10T16:10:00',
+    updatedAt: '2026-04-10T16:10:00',
     branch: 'West Branch',
   },
   {
     id: 'pt6',
+    studentId: 'ns6',
     studentName: 'Farhan Rizky',
     studentEmail: 'farhan.rizky@email.com',
     studentPhone: '081212131415',
@@ -76,11 +95,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 350000,
     status: 'approved',
     educationCounsellor: 'Kevin Pratama',
+    hasPaymentProof: true,
     createdAt: '2026-04-12T13:55:00',
+    updatedAt: '2026-04-12T13:55:00',
     branch: 'Main Branch',
   },
   {
     id: 'pt7',
+    studentId: 'ns7',
     studentName: 'Gita Maharani',
     studentEmail: 'gita.maharani@email.com',
     studentPhone: '081216171819',
@@ -89,11 +111,14 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 200000,
     status: 'pending',
     educationCounsellor: 'Nadine Siregar',
+    hasPaymentProof: false,
     createdAt: '2026-04-14T08:40:00',
+    updatedAt: '2026-04-14T08:40:00',
     branch: 'West Branch',
   },
   {
     id: 'pt8',
+    studentId: 'ns9',
     studentName: 'Irene Felicia',
     studentEmail: 'irene.felicia@email.com',
     studentPhone: '081224252627',
@@ -102,7 +127,31 @@ export const predictionTestListPlaceholder: PredictionTestListItem[] = [
     amount: 400000,
     status: 'approved',
     educationCounsellor: 'Clara Wijaya',
+    hasPaymentProof: true,
     createdAt: '2026-04-16T15:25:00',
+    updatedAt: '2026-04-16T15:25:00',
     branch: 'South Branch',
   },
 ]
+
+export const emptyPredictionTestFormValues: PredictionTestFormValues = {
+  studentId: '',
+  score: '',
+  description: '',
+  amount: '',
+  status: 'pending',
+  hasPaymentProof: false,
+}
+
+export function predictionTestToFormValues(
+  test: PredictionTestListItem,
+): PredictionTestFormValues {
+  return {
+    studentId: test.studentId,
+    score: test.score == null ? '' : String(test.score),
+    description: test.description,
+    amount: String(test.amount),
+    status: test.status,
+    hasPaymentProof: test.hasPaymentProof,
+  }
+}

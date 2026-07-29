@@ -1,4 +1,27 @@
-import type { StudentResponseListItem } from '../types/student-response'
+import { studentDetailsPlaceholder } from '../../students/data/students-placeholder'
+import { tutorListPlaceholder } from '../../tutors/data/tutors-placeholder'
+import type {
+  StudentResponseFormValues,
+  StudentResponseListItem,
+} from '../types/student-response'
+
+export const studentResponseStudentOptions = studentDetailsPlaceholder.map(
+  (student) => ({
+    pin: student.pin,
+    fullName: student.fullName,
+    email: student.email,
+    phone: student.mobilePhone,
+  }),
+)
+
+export const studentResponseTutorOptions = tutorListPlaceholder
+  .filter((tutor) => tutor.isActive)
+  .map((tutor) => ({
+    pin: tutor.pin,
+    fullName: tutor.fullName,
+    email: tutor.email,
+    phone: tutor.phone,
+  }))
 
 export const studentResponseListPlaceholder: StudentResponseListItem[] = [
   {
@@ -8,11 +31,12 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'edward.habel@email.com',
     studentPhone: '081234567890',
     title: 'Homework Feedback - Week 3',
-    tutorPin: 'TUT-12',
+    tutorPin: 'TUT-012',
     tutorName: 'Sarah Johnson',
     tutorEmail: 'sarah.johnson@ynb.com',
     tutorPhone: '08111222333',
-    description: 'Student submitted reading comprehension worksheet with strong accuracy.',
+    description:
+      'Student submitted reading comprehension worksheet with strong accuracy.',
     createdAt: '2026-04-02T09:15:00',
     status: 'approved',
   },
@@ -23,11 +47,12 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'thalia.aeris@email.com',
     studentPhone: '081298765432',
     title: 'Speaking Practice Notes',
-    tutorPin: 'TUT-08',
+    tutorPin: 'TUT-008',
     tutorName: 'James Whitfield',
     tutorEmail: 'james.whitfield@ynb.com',
     tutorPhone: '08122334455',
-    description: 'Needs more fluency drills before next mock speaking session.',
+    description:
+      'Needs more fluency drills before next mock speaking session.',
     createdAt: '2026-04-04T14:40:00',
     status: 'pending',
   },
@@ -38,11 +63,12 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'michael.ari@email.com',
     studentPhone: '081345678901',
     title: 'Grammar Review Response',
-    tutorPin: 'TUT-15',
+    tutorPin: 'TUT-015',
     tutorName: 'Emily Chen',
     tutorEmail: 'emily.chen@ynb.com',
     tutorPhone: '08133445566',
-    description: 'Completed tense conversion exercises with minor article errors.',
+    description:
+      'Completed tense conversion exercises with minor article errors.',
     createdAt: '2026-04-06T11:05:00',
     status: 'approved',
   },
@@ -53,7 +79,7 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'grace.priscilia@email.com',
     studentPhone: '081456789012',
     title: 'Vocabulary Quiz Result',
-    tutorPin: 'TUT-12',
+    tutorPin: 'TUT-012',
     tutorName: 'Sarah Johnson',
     tutorEmail: 'sarah.johnson@ynb.com',
     tutorPhone: '08111222333',
@@ -68,7 +94,7 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'lisa.vanessa@email.com',
     studentPhone: '081567890123',
     title: 'Essay Draft Feedback',
-    tutorPin: 'TUT-21',
+    tutorPin: 'TUT-021',
     tutorName: 'Daniel Park',
     tutorEmail: 'daniel.park@ynb.com',
     tutorPhone: '08144556677',
@@ -83,7 +109,7 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'rafha.charlene@email.com',
     studentPhone: '081678901234',
     title: 'Listening Drill Summary',
-    tutorPin: 'TUT-08',
+    tutorPin: 'TUT-008',
     tutorName: 'James Whitfield',
     tutorEmail: 'james.whitfield@ynb.com',
     tutorPhone: '08122334455',
@@ -98,11 +124,12 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'ervina.putri@email.com',
     studentPhone: '081789012345',
     title: 'Mock Test Reflection',
-    tutorPin: 'TUT-15',
+    tutorPin: 'TUT-015',
     tutorName: 'Emily Chen',
     tutorEmail: 'emily.chen@ynb.com',
     tutorPhone: '08133445566',
-    description: 'Improved timing on reading section compared to last attempt.',
+    description:
+      'Improved timing on reading section compared to last attempt.',
     createdAt: '2026-04-15T08:35:00',
     status: 'approved',
   },
@@ -113,7 +140,7 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     studentEmail: 'claire.nadine@email.com',
     studentPhone: '081890123456',
     title: 'Pronunciation Checkpoint',
-    tutorPin: 'TUT-21',
+    tutorPin: 'TUT-021',
     tutorName: 'Daniel Park',
     tutorEmail: 'daniel.park@ynb.com',
     tutorPhone: '08144556677',
@@ -122,3 +149,31 @@ export const studentResponseListPlaceholder: StudentResponseListItem[] = [
     status: 'pending',
   },
 ]
+
+export const emptyStudentResponseFormValues: StudentResponseFormValues = {
+  studentPin: '',
+  tutorPin: '',
+  title: '',
+  description: '',
+  status: 'pending',
+}
+
+export function studentResponseToFormValues(
+  response: StudentResponseListItem,
+): StudentResponseFormValues {
+  return {
+    studentPin: response.studentPin,
+    tutorPin: response.tutorPin,
+    title: response.title,
+    description: response.description,
+    status: response.status,
+  }
+}
+
+export function resolveStudentOption(pin: string) {
+  return studentResponseStudentOptions.find((option) => option.pin === pin)
+}
+
+export function resolveTutorOption(pin: string) {
+  return studentResponseTutorOptions.find((option) => option.pin === pin)
+}

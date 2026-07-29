@@ -1,15 +1,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { notify } from '../../../shared/lib/notify'
 import type {
   PredictionTestListItem,
   PredictionTestStatus,
 } from '../types/prediction-test'
+import { PredictionTestActionsCell } from './prediction-test-actions-cell'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -178,35 +177,6 @@ export const predictionTestListColumns: ColumnDef<PredictionTestListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View prediction test for ${row.original.studentName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View prediction test placeholder',
-              description: `${row.original.studentName} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete prediction test for ${row.original.studentName}`}
-          onClick={() =>
-            notify('warning', {
-              title: 'Delete prediction test placeholder',
-              description: `${row.original.studentName} delete confirmation will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <PredictionTestActionsCell test={row.original} />,
   },
 ]

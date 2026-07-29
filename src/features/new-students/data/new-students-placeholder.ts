@@ -1,4 +1,33 @@
-import type { NewStudentListItem } from '../types/new-student'
+import { marketingListPlaceholder } from '../../marketings/data/marketings-placeholder'
+import { branchListPlaceholder } from '../../branches/data/branches-placeholder'
+import type {
+  NewStudentFormValues,
+  NewStudentListItem,
+} from '../types/new-student'
+
+export const newStudentCourseOptions = [
+  'TOEFL Preparation',
+  'General English',
+  'IELTS Preparation',
+  'SAT Intensive',
+  'HSK Preparation',
+  'Business English',
+  'Kids English',
+  'Other',
+] as const
+
+export const newStudentCounsellorOptions = marketingListPlaceholder
+  .filter((item) => item.isActive)
+  .map((item) => ({
+    id: item.id,
+    fullName: item.fullName,
+    branch: item.branch,
+  }))
+
+export const newStudentBranchOptions = branchListPlaceholder.map((branch) => ({
+  id: branch.id,
+  name: branch.name,
+}))
 
 export const newStudentListPlaceholder: NewStudentListItem[] = [
   {
@@ -11,6 +40,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'waiting',
     educationCounsellor: 'Clara Wijaya',
     createdAt: '2026-04-01T09:00:00',
+    updatedAt: '2026-04-01T09:00:00',
     branch: 'Main Branch',
   },
   {
@@ -23,6 +53,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'follow_up',
     educationCounsellor: 'Kevin Pratama',
     createdAt: '2026-04-03T11:20:00',
+    updatedAt: '2026-04-03T11:20:00',
     branch: 'Main Branch',
   },
   {
@@ -35,6 +66,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'consult',
     educationCounsellor: 'Nadine Siregar',
     createdAt: '2026-04-05T14:15:00',
+    updatedAt: '2026-04-05T14:15:00',
     branch: 'West Branch',
   },
   {
@@ -47,6 +79,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'prediction_test',
     educationCounsellor: 'Clara Wijaya',
     createdAt: '2026-04-07T10:40:00',
+    updatedAt: '2026-04-07T10:40:00',
     branch: 'South Branch',
   },
   {
@@ -59,6 +92,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'cancelled',
     educationCounsellor: 'Daniel Lim',
     createdAt: '2026-04-09T16:05:00',
+    updatedAt: '2026-04-09T16:05:00',
     branch: 'West Branch',
   },
   {
@@ -71,6 +105,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'follow_up',
     educationCounsellor: 'Kevin Pratama',
     createdAt: '2026-04-11T09:50:00',
+    updatedAt: '2026-04-11T09:50:00',
     branch: 'Main Branch',
   },
   {
@@ -83,6 +118,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'waiting',
     educationCounsellor: 'Nadine Siregar',
     createdAt: '2026-04-13T13:25:00',
+    updatedAt: '2026-04-13T13:25:00',
     branch: 'West Branch',
   },
   {
@@ -95,6 +131,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'consult',
     educationCounsellor: 'Daniel Lim',
     createdAt: '2026-04-15T15:10:00',
+    updatedAt: '2026-04-15T15:10:00',
     branch: 'Main Branch',
   },
   {
@@ -107,6 +144,7 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'prediction_test',
     educationCounsellor: 'Clara Wijaya',
     createdAt: '2026-04-17T08:45:00',
+    updatedAt: '2026-04-17T08:45:00',
     branch: 'South Branch',
   },
   {
@@ -119,6 +157,33 @@ export const newStudentListPlaceholder: NewStudentListItem[] = [
     status: 'waiting',
     educationCounsellor: 'Kevin Pratama',
     createdAt: '2026-04-19T12:00:00',
+    updatedAt: '2026-04-19T12:00:00',
     branch: 'Main Branch',
   },
 ]
+
+export const emptyNewStudentFormValues: NewStudentFormValues = {
+  fullName: '',
+  email: '',
+  phone: '',
+  gender: '',
+  course: '',
+  status: 'waiting',
+  educationCounsellor: '',
+  branch: 'Main Branch',
+}
+
+export function newStudentToFormValues(
+  student: NewStudentListItem,
+): NewStudentFormValues {
+  return {
+    fullName: student.fullName,
+    email: student.email,
+    phone: student.phone,
+    gender: student.gender,
+    course: student.course,
+    status: student.status,
+    educationCounsellor: student.educationCounsellor,
+    branch: student.branch,
+  }
+}

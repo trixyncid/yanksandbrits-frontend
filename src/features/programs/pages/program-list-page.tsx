@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -26,6 +27,7 @@ function filterProgram(row: ProgramListItem, search: string) {
 }
 
 export default function ProgramListPage() {
+  const navigate = useNavigate()
   const programsQuery = useProgramsQuery()
 
   return (
@@ -74,15 +76,7 @@ export default function ProgramListPage() {
                   />
                   Refresh
                 </Button>
-                <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add program placeholder',
-                      description:
-                        'The create program form will be added later.',
-                    })
-                  }
-                >
+                <Button onClick={() => void navigate({ to: '/programs/new' })}>
                   <Plus className="size-4" />
                   Add New Program
                 </Button>

@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -31,6 +32,7 @@ function filterStudentResponse(row: StudentResponseListItem, search: string) {
 }
 
 export default function StudentResponseListPage() {
+  const navigate = useNavigate()
   const responsesQuery = useStudentResponsesQuery()
 
   return (
@@ -81,11 +83,7 @@ export default function StudentResponseListPage() {
                 </Button>
                 <Button
                   onClick={() =>
-                    notify('info', {
-                      title: 'Add response placeholder',
-                      description:
-                        'The create student response form will be added later.',
-                    })
+                    void navigate({ to: '/student-responses/new' })
                   }
                 >
                   <Plus className="size-4" />

@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -30,6 +31,7 @@ function filterStudentPayment(row: StudentPaymentListItem, search: string) {
 }
 
 export default function StudentPaymentListPage() {
+  const navigate = useNavigate()
   const paymentsQuery = useStudentPaymentsQuery()
 
   return (
@@ -80,11 +82,7 @@ export default function StudentPaymentListPage() {
                 </Button>
                 <Button
                   onClick={() =>
-                    notify('info', {
-                      title: 'Record payment placeholder',
-                      description:
-                        'The create payment form will be added later.',
-                    })
+                    void navigate({ to: '/student-payments/new' })
                   }
                 >
                   <Plus className="size-4" />

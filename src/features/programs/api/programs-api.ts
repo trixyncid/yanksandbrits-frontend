@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { programListPlaceholder } from '../data/programs-placeholder'
+import { useProgramsStore } from '../store/programs-store'
 import type { ProgramListItem } from '../types/program'
 import type { ProgramListFilters } from './program-query-keys'
 
@@ -66,7 +66,10 @@ async function fetchProgramsPlaceholder(
 ): Promise<ProgramListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderPrograms(programListPlaceholder, filters)
+  const data = filterPlaceholderPrograms(
+    useProgramsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

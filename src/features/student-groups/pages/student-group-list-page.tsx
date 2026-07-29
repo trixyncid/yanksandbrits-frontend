@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -27,6 +28,7 @@ function filterStudentGroup(row: StudentGroupListItem, search: string) {
 }
 
 export default function StudentGroupListPage() {
+  const navigate = useNavigate()
   const groupsQuery = useStudentGroupsQuery()
 
   return (
@@ -77,11 +79,7 @@ export default function StudentGroupListPage() {
                 </Button>
                 <Button
                   onClick={() =>
-                    notify('info', {
-                      title: 'Add student group placeholder',
-                      description:
-                        'The create student group form will be added later.',
-                    })
+                    void navigate({ to: '/student-groups/new' })
                   }
                 >
                   <Plus className="size-4" />

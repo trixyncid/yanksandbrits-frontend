@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { studentResponseListPlaceholder } from '../data/student-responses-placeholder'
+import { useStudentResponsesStore } from '../store/student-responses-store'
 import type { StudentResponseListItem } from '../types/student-response'
 import type { StudentResponseListFilters } from './student-response-query-keys'
 
@@ -73,7 +73,7 @@ async function fetchStudentResponsesPlaceholder(
   await delay(PLACEHOLDER_DELAY_MS)
 
   const data = filterPlaceholderResponses(
-    studentResponseListPlaceholder,
+    useStudentResponsesStore.getState().items,
     filters,
   )
 

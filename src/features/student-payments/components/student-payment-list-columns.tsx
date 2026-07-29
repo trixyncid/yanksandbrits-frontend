@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, FileImage, Trash2 } from 'lucide-react'
+import { FileImage } from 'lucide-react'
 
 import {
   DataTableBadge,
@@ -10,6 +10,7 @@ import type {
   StudentPaymentListItem,
   StudentPaymentStatus,
 } from '../types/student-payment'
+import { StudentPaymentActionsCell } from './student-payment-actions-cell'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -199,35 +200,6 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View payment ${row.original.title}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View payment placeholder',
-              description: `${row.original.title} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete payment ${row.original.title}`}
-          onClick={() =>
-            notify('warning', {
-              title: 'Delete payment placeholder',
-              description: `${row.original.title} delete confirmation will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <StudentPaymentActionsCell payment={row.original} />,
   },
 ]

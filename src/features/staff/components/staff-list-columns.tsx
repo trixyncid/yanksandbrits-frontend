@@ -5,6 +5,7 @@ import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
+import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import type { StaffListItem, StaffPosition } from '../types/staff'
 
@@ -196,9 +197,14 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
           type="button"
           aria-label={`Delete staff ${row.original.fullName}`}
           onClick={() =>
-            notify('warning', {
-              title: 'Delete staff placeholder',
-              description: `${row.original.fullName} delete confirmation will be added later.`,
+            requestDeleteConfirm({
+              title: 'Delete staff?',
+              description: `This will permanently remove ${row.original.fullName}. This action cannot be undone.`,
+              onConfirm: () =>
+                notify('success', {
+                  title: 'Staff deleted',
+                  description: `${row.original.fullName} has been removed (placeholder).`,
+                }),
             })
           }
           className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"

@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { predictionTestListPlaceholder } from '../data/prediction-tests-placeholder'
+import { usePredictionTestsStore } from '../store/prediction-tests-store'
 import type { PredictionTestListItem } from '../types/prediction-test'
 import type { PredictionTestListFilters } from './prediction-test-query-keys'
 
@@ -79,7 +79,10 @@ async function fetchPredictionTestsPlaceholder(
 ): Promise<PredictionTestListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderTests(predictionTestListPlaceholder, filters)
+  const data = filterPlaceholderTests(
+    usePredictionTestsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

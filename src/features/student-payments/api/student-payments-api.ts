@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { studentPaymentListPlaceholder } from '../data/student-payments-placeholder'
+import { useStudentPaymentsStore } from '../store/student-payments-store'
 import type { StudentPaymentListItem } from '../types/student-payment'
 import type { StudentPaymentListFilters } from './student-payment-query-keys'
 
@@ -78,7 +78,10 @@ async function fetchStudentPaymentsPlaceholder(
 ): Promise<StudentPaymentListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderPayments(studentPaymentListPlaceholder, filters)
+  const data = filterPlaceholderPayments(
+    useStudentPaymentsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

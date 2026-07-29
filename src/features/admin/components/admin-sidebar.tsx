@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react'
 
 import ynbLogo from '../../../assets/branding/ynb-logo.png'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { cn } from '../../../shared/lib/cn'
+import { notify } from '../../../shared/lib/notify'
+import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
 import {
   adminNavigation,
   isNavigationGroup,
@@ -158,6 +159,7 @@ function SidebarGroup({
 }
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
+  const { requestLogout, logoutDialog } = useLogoutConfirm()
   const pathname = useLocation({
     select: (location) => location.pathname,
   })
@@ -275,12 +277,10 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div className="mt-5 border-t border-slate-200 pt-4">
           <button
             type="button"
-            onClick={() =>
-              notify('warning', {
-                title: 'Logout placeholder',
-                description: 'Sign-out flow will be connected later.',
-              })
-            }
+            onClick={() => {
+              onClose()
+              requestLogout()
+            }}
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
           >
             <span className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-rose-500">
@@ -290,6 +290,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           </button>
         </div>
       </aside>
+      {logoutDialog}
     </>
   )
 }

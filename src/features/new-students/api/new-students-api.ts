@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { newStudentListPlaceholder } from '../data/new-students-placeholder'
+import { useNewStudentsStore } from '../store/new-students-store'
 import type { NewStudentListItem } from '../types/new-student'
 import type { NewStudentListFilters } from './new-student-query-keys'
 
@@ -26,6 +26,11 @@ function filterPlaceholderStudents(
   const search = filters.search?.trim().toLowerCase()
 
   return students.filter((student) => {
+    // Match Django list: exclude leads already moved to prediction test.
+    if (student.status === 'prediction_test') {
+      return false
+    }
+
     if (
       filters.status &&
       filters.status !== 'all' &&
@@ -78,7 +83,10 @@ async function fetchNewStudentsPlaceholder(
 ): Promise<NewStudentListResponse> {
   await delay(PLACEHOLDER_DELAY_MS)
 
-  const data = filterPlaceholderStudents(newStudentListPlaceholder, filters)
+  const data = filterPlaceholderStudents(
+    useNewStudentsStore.getState().items,
+    filters,
+  )
 
   return {
     data,

@@ -16,7 +16,7 @@ export function Select({
   return (
     <div
       className={cn(
-        'relative inline-flex w-full min-w-44 sm:w-auto',
+        'relative flex w-full min-w-44 sm:w-auto',
         containerClassName,
       )}
     >

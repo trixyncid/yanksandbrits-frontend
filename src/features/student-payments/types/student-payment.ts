@@ -13,3 +13,17 @@ export type StudentPaymentListItem = {
   hasPaymentProof: boolean
   branch: string
 }
+
+export type StudentPaymentFormValues = {
+  studentPin: string
+  title: string
+  description: string
+  amount: string
+  status: StudentPaymentStatus
+  hasPaymentProof: boolean
+  transactionDate: string
+}
+
+export type StudentPaymentFormErrors = Partial<
+  Record<keyof StudentPaymentFormValues, string>
+>

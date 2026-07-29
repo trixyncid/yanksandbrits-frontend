@@ -1,4 +1,5 @@
-import { RefreshCw } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
@@ -31,6 +32,7 @@ function filterPredictionTest(row: PredictionTestListItem, search: string) {
 }
 
 export default function PredictionTestListPage() {
+  const navigate = useNavigate()
   const testsQuery = usePredictionTestsQuery()
 
   return (
@@ -61,23 +63,31 @@ export default function PredictionTestListPage() {
             pageSizeOptions={[10, 20, 50]}
             emptyMessage="No prediction tests found"
             toolbarActions={
-              <Button
-                variant="secondary"
-                disabled={testsQuery.isFetching}
-                onClick={() => {
-                  void testsQuery.refetch().then(() => {
-                    notify('success', {
-                      title: 'Prediction tests refreshed',
-                      description: 'Latest placeholder data has been loaded.',
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={testsQuery.isFetching}
+                  onClick={() => {
+                    void testsQuery.refetch().then(() => {
+                      notify('success', {
+                        title: 'Prediction tests refreshed',
+                        description: 'Latest placeholder data has been loaded.',
+                      })
                     })
-                  })
-                }}
-              >
-                <RefreshCw
-                  className={`size-4 ${testsQuery.isFetching ? 'animate-spin' : ''}`}
-                />
-                Refresh
-              </Button>
+                  }}
+                >
+                  <RefreshCw
+                    className={`size-4 ${testsQuery.isFetching ? 'animate-spin' : ''}`}
+                  />
+                  Refresh
+                </Button>
+                <Button
+                  onClick={() => void navigate({ to: '/prediction-tests/new' })}
+                >
+                  <Plus className="size-4" />
+                  Add Prediction Test
+                </Button>
+              </>
             }
           />
         ) : null}

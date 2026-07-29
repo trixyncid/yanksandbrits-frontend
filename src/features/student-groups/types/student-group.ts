@@ -15,3 +15,19 @@ export type StudentGroupListItem = {
   createdBy: string
   branch: string
 }
+
+export type StudentGroupFormValues = {
+  groupName: string
+  memberPins: string[]
+  status: StudentGroupStatus
+}
+
+export type StudentGroupFormErrors = Partial<
+  Record<'groupName' | 'memberPins' | 'status', string>
+>
+
+export type StudentGroupMemberOption = {
+  pin: string
+  fullName: string
+  branch: string
+}
