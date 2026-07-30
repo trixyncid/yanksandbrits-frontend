@@ -1,6 +1,7 @@
 export type StudentGroupStatus = 'active' | 'inactive'
 
 export type StudentGroupMember = {
+  id: string
   pin: string
   fullName: string
 }
@@ -18,15 +19,16 @@ export type StudentGroupListItem = {
 
 export type StudentGroupFormValues = {
   groupName: string
-  memberPins: string[]
+  memberIds: string[]
   status: StudentGroupStatus
 }
 
 export type StudentGroupFormErrors = Partial<
-  Record<'groupName' | 'memberPins' | 'status', string>
+  Record<'groupName' | 'memberIds' | 'status', string>
 >
 
 export type StudentGroupMemberOption = {
+  id: string
   pin: string
   fullName: string
   branch: string

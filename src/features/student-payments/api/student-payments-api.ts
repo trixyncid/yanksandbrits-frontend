@@ -1,109 +1,167 @@
+import {
+  mapApprovalStatusFromApi,
+  mapApprovalStatusToApi,
+} from '../../../shared/api/choices'
 import { httpClient } from '../../../shared/api/http-client'
-import { useStudentPaymentsStore } from '../store/student-payments-store'
-import type { StudentPaymentListItem } from '../types/student-payment'
+import { fetchAllPages } from '../../../shared/api/pagination'
+import type { ApiSuccessEnvelope } from '../../../shared/api/types'
+import { parseCurrencyValue } from '../../../shared/lib/currency'
+import { fetchStudents } from '../../students/api/students-api'
+import type { StudentListItem } from '../../students/types/student'
+import type {
+  StudentPaymentFormValues,
+  StudentPaymentListItem,
+} from '../types/student-payment'
 import type { StudentPaymentListFilters } from './student-payment-query-keys'
 
 export type StudentPaymentListResponse = {
   data: StudentPaymentListItem[]
   meta: {
     total: number
-    source: 'api' | 'placeholder'
   }
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+type StudentPaymentDto = {
+  id: number
+  student: number
+  student_name?: string | null
+  title: string | null
+  description: string | null
+  amount: number
+  status: string
+  payment_proof: string | null
+  created_at: string
+  updated_at: string
+  created_by: number | null
+  updated_by: number | null
 }
 
-function filterPlaceholderPayments(
-  payments: StudentPaymentListItem[],
-  filters: StudentPaymentListFilters,
-) {
-  const search = filters.search?.trim().toLowerCase()
-
-  return payments.filter((payment) => {
-    if (
-      filters.status &&
-      filters.status !== 'all' &&
-      payment.status !== filters.status
-    ) {
-      return false
-    }
-
-    if (
-      filters.branchId &&
-      payment.branch.toLowerCase() !== filters.branchId.toLowerCase()
-    ) {
-      return false
-    }
-
-    if (!search) {
-      return true
-    }
-
-    const haystack = [
-      payment.studentPin,
-      payment.studentName,
-      payment.title,
-      payment.description,
-      payment.createdBy,
-      payment.branch,
-      payment.status,
-      String(payment.amount),
-    ]
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
-}
-
-async function fetchStudentPaymentsFromApi(
-  filters: StudentPaymentListFilters,
-): Promise<StudentPaymentListResponse> {
-  const { data } = await httpClient.get<StudentPaymentListResponse>(
-    '/api/student-payments',
-    { params: filters },
-  )
-
-  return data
-}
-
-async function fetchStudentPaymentsPlaceholder(
-  filters: StudentPaymentListFilters,
-): Promise<StudentPaymentListResponse> {
-  await delay(PLACEHOLDER_DELAY_MS)
-
-  const data = filterPlaceholderPayments(
-    useStudentPaymentsStore.getState().items,
-    filters,
-  )
+function mapPayment(
+  dto: StudentPaymentDto,
+  studentsById: Map<string, StudentListItem>,
+): StudentPaymentListItem {
+  const studentId = String(dto.student)
+  const student = studentsById.get(studentId)
 
   return {
-    data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-    },
+    id: String(dto.id),
+    studentId,
+    studentPin: student?.pin ?? '',
+    studentName: dto.student_name ?? student?.fullName ?? '—',
+    title: dto.title ?? '',
+    description: dto.description ?? '',
+    amount: dto.amount ?? 0,
+    transactionDate: dto.created_at,
+    status: mapApprovalStatusFromApi(dto.status),
+    createdBy: dto.created_by == null ? '—' : String(dto.created_by),
+    hasPaymentProof: Boolean(dto.payment_proof),
+    paymentProofUrl: dto.payment_proof || null,
+    branch: student?.branch ?? '—',
   }
+}
+
+function toWritePayload(values: StudentPaymentFormValues) {
+  return {
+    student: Number(values.studentId),
+    title: values.title.trim(),
+    description: values.description.trim() || null,
+    amount: parseCurrencyValue(values.amount),
+    status: mapApprovalStatusToApi(values.status),
+  }
+}
+
+async function loadStudentLookup() {
+  const { data } = await fetchStudents()
+  return new Map(data.map((student) => [student.id, student]))
 }
 
 export async function fetchStudentPayments(
   filters: StudentPaymentListFilters = {},
 ): Promise<StudentPaymentListResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
-
-  if (hasApiBaseUrl) {
-    try {
-      return await fetchStudentPaymentsFromApi(filters)
-    } catch {
-      return fetchStudentPaymentsPlaceholder(filters)
-    }
+  const params: Record<string, unknown> = {
+    search: filters.search?.trim() || undefined,
   }
 
-  return fetchStudentPaymentsPlaceholder(filters)
+  if (filters.status && filters.status !== 'all') {
+    params.status = mapApprovalStatusToApi(filters.status)
+  }
+
+  const [{ items, total }, studentsById] = await Promise.all([
+    fetchAllPages<StudentPaymentDto>({
+      client: httpClient,
+      path: '/payments',
+      params,
+    }),
+    loadStudentLookup(),
+  ])
+
+  let data = items.map((dto) => mapPayment(dto, studentsById))
+
+  if (filters.branchId) {
+    const branchId = filters.branchId.toLowerCase()
+    data = data.filter((payment) => payment.branch.toLowerCase() === branchId)
+  }
+
+  return {
+    data,
+    meta: { total: filters.branchId ? data.length : total },
+  }
+}
+
+export async function fetchStudentPayment(
+  id: string,
+): Promise<StudentPaymentListItem> {
+  const [{ data }, studentsById] = await Promise.all([
+    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(`/payments/${id}`),
+    loadStudentLookup(),
+  ])
+  return mapPayment(data.data, studentsById)
+}
+
+export async function createStudentPayment(
+  values: StudentPaymentFormValues,
+): Promise<StudentPaymentListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
+    '/payments',
+    toWritePayload(values),
+  )
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function updateStudentPayment(
+  id: string,
+  values: StudentPaymentFormValues,
+): Promise<StudentPaymentListItem> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<StudentPaymentDto>
+  >(`/payments/${id}`, toWritePayload(values))
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function deleteStudentPayment(id: string): Promise<void> {
+  await httpClient.delete(`/payments/${id}`)
+}
+
+export function studentPaymentToFormValues(
+  payment: StudentPaymentListItem,
+): StudentPaymentFormValues {
+  return {
+    studentId: payment.studentId,
+    title: payment.title,
+    description: payment.description,
+    amount: String(payment.amount),
+    status: payment.status,
+    hasPaymentProof: payment.hasPaymentProof,
+  }
+}
+
+export const emptyStudentPaymentFormValues: StudentPaymentFormValues = {
+  studentId: '',
+  title: '',
+  description: '',
+  amount: '',
+  status: 'pending',
+  hasPaymentProof: false,
 }

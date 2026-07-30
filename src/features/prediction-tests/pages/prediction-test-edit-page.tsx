@@ -2,22 +2,37 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  deletePredictionTest,
+  predictionTestToFormValues,
+} from '../api/prediction-tests-api'
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
 import { PredictionTestForm } from '../components/prediction-test-form'
-import { predictionTestToFormValues } from '../data/prediction-tests-placeholder'
 import { usePredictionTestForm } from '../hooks/use-prediction-test-form'
-import { usePredictionTestsStore } from '../store/prediction-tests-store'
+import { usePredictionTestQuery } from '../hooks/use-prediction-test-query'
+import type { PredictionTestFormValues } from '../types/prediction-test'
 
 export default function PredictionTestEditPage() {
   const navigate = useNavigate()
   const { testId } = useParams({ strict: false }) as { testId: string }
-  const test = usePredictionTestsStore((state) => state.getById(testId))
+  const testQuery = usePredictionTestQuery(testId)
 
-  if (!test) {
+  if (testQuery.isLoading) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center text-sm text-slate-500">
+          Loading prediction test...
+        </div>
+      </AdminShell>
+    )
+  }
+
+  if (testQuery.isError || !testQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -41,6 +56,8 @@ export default function PredictionTestEditPage() {
     )
   }
 
+  const test = testQuery.data
+
   return (
     <PredictionTestEditForm
       testId={test.id}
@@ -52,6 +69,7 @@ export default function PredictionTestEditPage() {
         studentName: test.studentName,
         branch: test.branch,
         educationCounsellor: test.educationCounsellor,
+        paymentProofUrl: test.paymentProofUrl,
       }}
     />
   )
@@ -65,18 +83,18 @@ function PredictionTestEditForm({
 }: {
   testId: string
   studentName: string
-  initialValues: ReturnType<typeof predictionTestToFormValues>
+  initialValues: PredictionTestFormValues
   meta: {
     createdAt: string
     updatedAt: string
     studentName: string
     branch: string
     educationCounsellor: string
+    paymentProofUrl: string
   }
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeTest = usePredictionTestsStore((state) => state.remove)
   const form = usePredictionTestForm({
     mode: 'edit',
     testId,
@@ -88,15 +106,23 @@ function PredictionTestEditForm({
       title: 'Delete prediction test?',
       description: `This will permanently remove ${studentName}. This action cannot be undone.`,
       onConfirm: () => {
-        removeTest(testId)
-        void queryClient.invalidateQueries({
-          queryKey: predictionTestQueryKeys.all,
-        })
-        notify('success', {
-          title: 'Prediction test deleted',
-          description: `${studentName} has been removed.`,
-        })
-        void navigate({ to: '/prediction-tests' })
+        void deletePredictionTest(testId)
+          .then(async () => {
+            await queryClient.invalidateQueries({
+              queryKey: predictionTestQueryKeys.all,
+            })
+            notify('success', {
+              title: 'Prediction test deleted',
+              description: `${studentName} has been removed.`,
+            })
+            void navigate({ to: '/prediction-tests' })
+          })
+          .catch((error) => {
+            notify('error', {
+              title: 'Unable to delete prediction test',
+              description: getApiErrorMessage(error),
+            })
+          })
       },
     })
   }

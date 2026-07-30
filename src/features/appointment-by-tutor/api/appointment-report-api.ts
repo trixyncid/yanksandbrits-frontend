@@ -1,95 +1,34 @@
+import { downloadBlob } from '../../../shared/api/download'
 import { httpClient } from '../../../shared/api/http-client'
-import {
-  appointmentReportPlaceholderRows,
-  appointmentTutorOptions,
-} from '../data/appointment-placeholder'
-import type { AppointmentReportRow } from '../types/appointment-report'
 import type { AppointmentReportFilters } from './appointment-report-query-keys'
 
-export type AppointmentReportResponse = {
-  data: AppointmentReportRow[]
-  meta: {
-    total: number
-    source: 'api' | 'placeholder'
-    tutorLabel: string
-    branchLabel: string
-    startDate: string
-    endDate: string
-  }
+function dateRangeParam(filters: AppointmentReportFilters) {
+  return `${filters.startDate} to ${filters.endDate}`
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-const branchLabels: Record<string, string> = {
-  all: 'All Branch',
-  main: 'Main Branch',
-  west: 'West Branch',
-  south: 'South Branch',
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
-}
-
-function filterPlaceholder(
-  rows: AppointmentReportRow[],
+export async function downloadAppointmentByTutorPdf(
   filters: AppointmentReportFilters,
-) {
-  const start = new Date(filters.startDate)
-  const end = new Date(`${filters.endDate}T23:59:59`)
-
-  return rows.filter((row) => {
-    if (row.tutorId !== filters.tutorId) {
-      return false
-    }
-
-    if (
-      filters.branchId !== 'all' &&
-      row.branch.toLowerCase() !==
-        (branchLabels[filters.branchId] ?? '').toLowerCase()
-    ) {
-      return false
-    }
-
-    const appointmentDate = new Date(row.appointmentTime)
-    return appointmentDate >= start && appointmentDate <= end
-  })
-}
-
-export async function fetchAppointmentReport(
-  filters: AppointmentReportFilters,
-): Promise<AppointmentReportResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
-
-  if (hasApiBaseUrl) {
-    try {
-      const { data } = await httpClient.get<AppointmentReportResponse>(
-        '/api/reports/appointments',
-        { params: filters },
-      )
-      return data
-    } catch {
-      // fall through
-    }
+): Promise<void> {
+  const params: Record<string, string | number> = {
+    date_range: dateRangeParam(filters),
+    tutor: Number(filters.tutorId),
   }
 
-  await delay(PLACEHOLDER_DELAY_MS)
-  const data = filterPlaceholder(appointmentReportPlaceholderRows, filters)
-  const tutor = appointmentTutorOptions.find(
-    (option) => option.value === filters.tutorId,
+  if (filters.branchId && filters.branchId !== 'all') {
+    params.branch = Number(filters.branchId)
+  }
+
+  const { data } = await httpClient.get<Blob>(
+    '/reports/appointments-by-tutor',
+    {
+      params,
+      responseType: 'blob',
+      timeout: 60000,
+    },
   )
 
-  return {
+  await downloadBlob(
     data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-      tutorLabel: tutor?.label ?? filters.tutorId,
-      branchLabel: branchLabels[filters.branchId] ?? filters.branchId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-    },
-  }
+    `appointments-by-tutor-${filters.startDate}_${filters.endDate}.pdf`,
+  )
 }

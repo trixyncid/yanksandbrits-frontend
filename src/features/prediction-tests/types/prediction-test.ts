@@ -12,6 +12,7 @@ export type PredictionTestListItem = {
   status: PredictionTestStatus
   educationCounsellor: string
   hasPaymentProof: boolean
+  paymentProofUrl: string
   createdAt: string
   updatedAt: string
   branch: string
@@ -23,7 +24,7 @@ export type PredictionTestFormValues = {
   description: string
   amount: string
   status: PredictionTestStatus
-  hasPaymentProof: boolean
+  paymentProofFile: File | null
 }
 
 export type PredictionTestFormErrors = Partial<

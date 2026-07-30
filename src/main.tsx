@@ -4,6 +4,7 @@ import { RouterProvider } from '@tanstack/react-router'
 
 import { AppProviders } from './app/providers/app-providers'
 import { router } from './app/router'
+import { useAuthStore } from './features/auth/store/auth-store'
 import { AppToaster } from './shared/components/ui/sonner'
 import './styles/globals.css'
 
@@ -12,6 +13,8 @@ declare module '@tanstack/react-router' {
     router: typeof router
   }
 }
+
+useAuthStore.getState().hydrate()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

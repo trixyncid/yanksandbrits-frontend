@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteNewStudent } from '../api/new-students-api'
 import { newStudentQueryKeys } from '../api/new-student-query-keys'
-import { useNewStudentsStore } from '../store/new-students-store'
 import type { NewStudentListItem } from '../types/new-student'
 
 export function NewStudentActionsCell({
@@ -15,7 +16,6 @@ export function NewStudentActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeStudent = useNewStudentsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,22 @@ export function NewStudentActionsCell({
             title: 'Delete new student?',
             description: `This will permanently remove ${student.fullName}. This action cannot be undone.`,
             onConfirm: () => {
-              removeStudent(student.id)
-              void queryClient.invalidateQueries({
-                queryKey: newStudentQueryKeys.all,
-              })
-              notify('success', {
-                title: 'New student deleted',
-                description: `${student.fullName} has been removed.`,
-              })
+              void deleteNewStudent(student.id)
+                .then(async () => {
+                  await queryClient.invalidateQueries({
+                    queryKey: newStudentQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'New student deleted',
+                    description: `${student.fullName} has been removed.`,
+                  })
+                })
+                .catch((error) => {
+                  notify('error', {
+                    title: 'Unable to delete new student',
+                    description: getApiErrorMessage(error),
+                  })
+                })
             },
           })
         }

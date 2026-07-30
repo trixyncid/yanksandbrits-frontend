@@ -66,13 +66,14 @@ export const classroomListColumns: ColumnDef<ClassroomListItem>[] = [
     ),
   },
   {
-    accessorKey: 'branch',
+    id: 'branch',
+    accessorFn: (row) => row.branchName ?? '',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Branch" align="center" />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.branch}
+        {row.original.branchName || '-'}
       </p>
     ),
   },

@@ -1,16 +1,19 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
-import { notify } from '../../../shared/lib/notify'
 import type { StaffListItem, StaffPosition } from '../types/staff'
+import { StaffActionsCell } from './staff-actions-cell'
 
 function formatDateTime(value: string | null) {
   if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
     return '-'
   }
 
@@ -20,7 +23,7 @@ function formatDateTime(value: string | null) {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(date)
 }
 
 function positionTone(position: StaffPosition) {
@@ -178,40 +181,6 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`Edit staff ${row.original.fullName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'Edit staff placeholder',
-              description: `${row.original.fullName} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete staff ${row.original.fullName}`}
-          onClick={() =>
-            requestDeleteConfirm({
-              title: 'Delete staff?',
-              description: `This will permanently remove ${row.original.fullName}. This action cannot be undone.`,
-              onConfirm: () =>
-                notify('success', {
-                  title: 'Staff deleted',
-                  description: `${row.original.fullName} has been removed (placeholder).`,
-                }),
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <StaffActionsCell staff={row.original} />,
   },
 ]

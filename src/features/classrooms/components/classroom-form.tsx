@@ -4,8 +4,8 @@ import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
-import { classroomBranchOptions } from '../data/classrooms-placeholder'
 import type {
+  ClassroomBranchOption,
   ClassroomFormErrors,
   ClassroomFormValues,
   ClassroomListItem,
@@ -57,6 +57,8 @@ type ClassroomFormProps = {
   values: ClassroomFormValues
   errors: ClassroomFormErrors
   isSubmitting: boolean
+  branchOptions: ClassroomBranchOption[]
+  branchesLoading?: boolean
   meta?: Pick<ClassroomListItem, 'createdAt' | 'updatedAt' | 'createdBy'>
   onChange: <K extends keyof ClassroomFormValues>(
     field: K,
@@ -72,6 +74,8 @@ export function ClassroomForm({
   values,
   errors,
   isSubmitting,
+  branchOptions,
+  branchesLoading = false,
   meta,
   onChange,
   onSubmit,
@@ -139,18 +143,20 @@ export function ClassroomForm({
 
         <Field
           label="Branch"
-          htmlFor="branch"
-          error={errors.branch}
+          htmlFor="branchId"
+          error={errors.branchId}
           hint="Select the branch where this classroom is located."
         >
           <Select
-            id="branch"
+            id="branchId"
             containerClassName="w-full sm:w-full"
-            value={values.branch}
-            onChange={(event) => onChange('branch', event.target.value)}
+            value={values.branchId}
+            disabled={branchesLoading}
+            onChange={(event) => onChange('branchId', event.target.value)}
           >
-            {classroomBranchOptions.map((branch) => (
-              <option key={branch.id} value={branch.name}>
+            <option value="">Select a branch</option>
+            {branchOptions.map((branch) => (
+              <option key={branch.id} value={branch.id}>
                 {branch.name}
               </option>
             ))}

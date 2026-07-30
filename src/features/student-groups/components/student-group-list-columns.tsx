@@ -39,8 +39,8 @@ export const studentGroupListColumns: ColumnDef<StudentGroupListItem>[] = [
     cell: ({ row }) => (
       <ul className="space-y-1 text-xs text-slate-600">
         {row.original.members.map((member) => (
-          <li key={member.pin}>
-            {member.fullName} ({member.pin})
+          <li key={member.id}>
+            {member.fullName} ({member.pin || member.id})
           </li>
         ))}
       </ul>

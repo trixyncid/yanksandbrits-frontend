@@ -2,24 +2,42 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  deleteStudentResponse,
+  studentResponseToFormValues,
+} from '../api/student-responses-api'
 import { studentResponseQueryKeys } from '../api/student-response-query-keys'
 import { StudentResponseForm } from '../components/student-response-form'
-import { studentResponseToFormValues } from '../data/student-responses-placeholder'
+import {
+  StudentResponseListErrorState,
+  StudentResponseListLoadingState,
+} from '../components/student-response-list-states'
 import { useStudentResponseForm } from '../hooks/use-student-response-form'
-import { useStudentResponsesStore } from '../store/student-responses-store'
+import { useStudentResponseQuery } from '../hooks/use-student-response-query'
+import type {
+  StudentResponseFormValues,
+  StudentResponseListItem,
+} from '../types/student-response'
 
 export default function StudentResponseEditPage() {
   const navigate = useNavigate()
   const { responseId } = useParams({ strict: false }) as { responseId: string }
-  const response = useStudentResponsesStore((state) =>
-    state.getById(responseId),
-  )
+  const responseQuery = useStudentResponseQuery(responseId)
 
-  if (!response) {
+  if (responseQuery.isLoading) {
+    return (
+      <AdminShell>
+        <StudentResponseListLoadingState />
+      </AdminShell>
+    )
+  }
+
+  if (responseQuery.isError || !responseQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -29,15 +47,28 @@ export default function StudentResponseEditPage() {
           <p className="mt-2 text-sm text-slate-500">
             This response may have been removed or the link is invalid.
           </p>
-          <Button
-            className="mt-6"
-            variant="secondary"
-            size="sm"
-            onClick={() => void navigate({ to: '/student-responses' })}
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to responses
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void navigate({ to: '/student-responses' })}
+            >
+              <ArrowLeft className="size-3.5" />
+              Back to responses
+            </Button>
+            {responseQuery.isError ? (
+              <Button size="sm" onClick={() => void responseQuery.refetch()}>
+                Retry
+              </Button>
+            ) : null}
+          </div>
+          {responseQuery.isError ? (
+            <div className="mt-8 w-full">
+              <StudentResponseListErrorState
+                onRetry={() => void responseQuery.refetch()}
+              />
+            </div>
+          ) : null}
         </div>
       </AdminShell>
     )
@@ -45,48 +76,50 @@ export default function StudentResponseEditPage() {
 
   return (
     <StudentResponseEditForm
-      responseId={response.id}
-      title={response.title}
-      initialValues={studentResponseToFormValues(response)}
-      meta={{ createdAt: response.createdAt }}
+      response={responseQuery.data}
+      initialValues={studentResponseToFormValues(responseQuery.data)}
     />
   )
 }
 
 function StudentResponseEditForm({
-  responseId,
-  title,
+  response,
   initialValues,
-  meta,
 }: {
-  responseId: string
-  title: string
-  initialValues: ReturnType<typeof studentResponseToFormValues>
-  meta: { createdAt: string }
+  response: StudentResponseListItem
+  initialValues: StudentResponseFormValues
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeResponse = useStudentResponsesStore((state) => state.remove)
   const form = useStudentResponseForm({
     mode: 'edit',
-    responseId,
+    responseId: response.id,
     initialValues,
   })
 
   function handleDelete() {
     requestDeleteConfirm({
       title: 'Delete response?',
-      description: `This will permanently remove ${title}. This action cannot be undone.`,
+      description: `This will permanently remove ${response.title}. This action cannot be undone.`,
       onConfirm: () => {
-        removeResponse(responseId)
-        void queryClient.invalidateQueries({
-          queryKey: studentResponseQueryKeys.all,
-        })
-        notify('success', {
-          title: 'Response deleted',
-          description: `${title} has been removed.`,
-        })
-        void navigate({ to: '/student-responses' })
+        void (async () => {
+          try {
+            await deleteStudentResponse(response.id)
+            await queryClient.invalidateQueries({
+              queryKey: studentResponseQueryKeys.all,
+            })
+            notify('success', {
+              title: 'Response deleted',
+              description: `${response.title} has been removed.`,
+            })
+            void navigate({ to: '/student-responses' })
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to delete response',
+              description: getApiErrorMessage(error),
+            })
+          }
+        })()
       },
     })
   }
@@ -107,7 +140,7 @@ function StudentResponseEditForm({
               Update Student Response
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Edit details for {title}.
+              Edit details for {response.title}.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
@@ -121,7 +154,7 @@ function StudentResponseEditForm({
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
-            meta={meta}
+            meta={{ createdAt: response.createdAt }}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -15,6 +16,7 @@ import type { BranchListItem } from '../types/branch'
 function filterBranch(row: BranchListItem, search: string) {
   const haystack = [
     row.name,
+    row.brandName ?? '',
     row.phone,
     row.address,
     String(row.totalStudent),
@@ -26,6 +28,7 @@ function filterBranch(row: BranchListItem, search: string) {
 }
 
 export default function BranchListPage() {
+  const navigate = useNavigate()
   const branchesQuery = useBranchesQuery()
 
   return (
@@ -42,11 +45,7 @@ export default function BranchListPage() {
         {branchesQuery.isSuccess ? (
           <DataTable
             title="Branch List"
-            description={
-              branchesQuery.data.meta.source === 'placeholder'
-                ? 'Manage branch locations and student counts. Currently using placeholder data until the API is connected.'
-                : 'Manage branch locations and student counts.'
-            }
+            description="Manage branch locations and student counts."
             totalLabel="branches"
             columns={branchListColumns}
             data={branchesQuery.data.data}
@@ -64,7 +63,7 @@ export default function BranchListPage() {
                     void branchesQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Branches refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest branch data has been loaded.',
                       })
                     })
                   }}
@@ -75,13 +74,7 @@ export default function BranchListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add branch placeholder',
-                      description:
-                        'The create branch form will be added later.',
-                    })
-                  }
+                  onClick={() => void navigate({ to: '/branches/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Branch

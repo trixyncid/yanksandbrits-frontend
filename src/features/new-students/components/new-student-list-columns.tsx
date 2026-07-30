@@ -4,6 +4,7 @@ import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
+import { courseLabel } from '../api/new-students-api'
 import type {
   NewStudentListItem,
   NewStudentStatus,
@@ -86,9 +87,13 @@ export const newStudentListColumns: ColumnDef<NewStudentListItem>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-center">
-        <DataTableBadge tone="info">
-          {row.original.gender === 'male' ? 'Male' : 'Female'}
-        </DataTableBadge>
+        {row.original.gender ? (
+          <DataTableBadge tone="info">
+            {row.original.gender === 'male' ? 'Male' : 'Female'}
+          </DataTableBadge>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
       </div>
     ),
   },
@@ -99,7 +104,7 @@ export const newStudentListColumns: ColumnDef<NewStudentListItem>[] = [
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.course || '-'}
+        {courseLabel(row.original.course) || '-'}
       </p>
     ),
   },

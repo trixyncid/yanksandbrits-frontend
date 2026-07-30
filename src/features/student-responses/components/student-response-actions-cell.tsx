@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteStudentResponse } from '../api/student-responses-api'
 import { studentResponseQueryKeys } from '../api/student-response-query-keys'
-import { useStudentResponsesStore } from '../store/student-responses-store'
 import type { StudentResponseListItem } from '../types/student-response'
 
 export function StudentResponseActionsCell({
@@ -15,7 +16,6 @@ export function StudentResponseActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeResponse = useStudentResponsesStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,23 @@ export function StudentResponseActionsCell({
             title: 'Delete response?',
             description: `This will permanently remove ${response.title}. This action cannot be undone.`,
             onConfirm: () => {
-              removeResponse(response.id)
-              void queryClient.invalidateQueries({
-                queryKey: studentResponseQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Response deleted',
-                description: `${response.title} has been removed.`,
-              })
+              void (async () => {
+                try {
+                  await deleteStudentResponse(response.id)
+                  await queryClient.invalidateQueries({
+                    queryKey: studentResponseQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Response deleted',
+                    description: `${response.title} has been removed.`,
+                  })
+                } catch (error) {
+                  notify('error', {
+                    title: 'Unable to delete response',
+                    description: getApiErrorMessage(error),
+                  })
+                }
+              })()
             },
           })
         }

@@ -1,3 +1,5 @@
+import type { CourseCode } from '../../../shared/api/choices'
+
 export type NewStudentStatus =
   | 'waiting'
   | 'follow_up'
@@ -12,13 +14,16 @@ export type NewStudentListItem = {
   fullName: string
   email: string
   phone: string
-  gender: NewStudentGender
-  course: string
+  gender: NewStudentGender | null
+  course: CourseCode | string
   status: NewStudentStatus
   educationCounsellor: string
+  marketingId: string | null
   createdAt: string
   updatedAt: string
   branch: string
+  branchId: string | null
+  isStudent: boolean
 }
 
 export type NewStudentFormValues = {
@@ -26,10 +31,10 @@ export type NewStudentFormValues = {
   email: string
   phone: string
   gender: NewStudentGender | ''
-  course: string
+  course: CourseCode | ''
   status: NewStudentStatus
-  educationCounsellor: string
-  branch: string
+  marketingId: string
+  branchId: string
 }
 
 export type NewStudentFormErrors = Partial<

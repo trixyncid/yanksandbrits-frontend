@@ -34,10 +34,25 @@ export function groupEventsByColumn(events: TimetableEvent[]) {
   }, {})
 }
 
+/** Status-driven tones keep the same meaning across days and classrooms. */
 export const timetableToneClasses: Record<TimetableTone, string> = {
-  blue: 'border-[#59C3D4] bg-[#66CBDC] text-[#0E3E4A]',
-  green: 'border-[#74D858] bg-[#87ED64] text-[#235313]',
-  amber: 'border-[#E8C36A] bg-[#F4D58F] text-[#6E4A00]',
-  violet: 'border-[#A892F0] bg-[#B9A4FA] text-[#38225E]',
-  rose: 'border-[#F2A0B0] bg-[#F8B4C0] text-[#7A2435]',
+  blue: 'border-[#4274B9]/45 bg-[#EDF4FF] text-[#1E3A5F]',
+  green: 'border-[#3D9B6E]/45 bg-[#E8F7EF] text-[#1F5A3D]',
+  amber: 'border-[#C9952A]/45 bg-[#FBF3E0] text-[#6B4E12]',
+  violet: 'border-[#5B6FA8]/40 bg-[#EEF1F8] text-[#2F3A66]',
+  rose: 'border-[#C45B6E]/45 bg-[#FCEEF1] text-[#6E2433]',
+}
+
+export const timetableStatusBadgeClasses: Record<TimetableTone, string> = {
+  blue: 'bg-[#4274B9] text-white',
+  green: 'bg-[#3D9B6E] text-white',
+  amber: 'bg-[#C9952A] text-white',
+  violet: 'bg-[#5B6FA8] text-white',
+  rose: 'bg-[#C45B6E] text-white',
+}
+
+export function toneFromScheduleStatus(status: string | null | undefined): TimetableTone {
+  if (status === '2_FN' || status === 'FINISHED') return 'green'
+  if (status === '3_CN' || status === 'CANCELLED') return 'rose'
+  return 'blue'
 }

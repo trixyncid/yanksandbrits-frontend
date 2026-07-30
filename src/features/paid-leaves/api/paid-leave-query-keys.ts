@@ -9,4 +9,6 @@ export const paidLeaveQueryKeys = {
   lists: () => [...paidLeaveQueryKeys.all, 'list'] as const,
   list: (filters: PaidLeaveListFilters = {}) =>
     [...paidLeaveQueryKeys.lists(), filters] as const,
+  details: () => [...paidLeaveQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...paidLeaveQueryKeys.details(), id] as const,
 }

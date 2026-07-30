@@ -2,22 +2,37 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  deleteNewStudent,
+  newStudentToFormValues,
+} from '../api/new-students-api'
 import { newStudentQueryKeys } from '../api/new-student-query-keys'
 import { NewStudentForm } from '../components/new-student-form'
-import { newStudentToFormValues } from '../data/new-students-placeholder'
 import { useNewStudentForm } from '../hooks/use-new-student-form'
-import { useNewStudentsStore } from '../store/new-students-store'
+import { useNewStudentQuery } from '../hooks/use-new-student-query'
+import type { NewStudentFormValues } from '../types/new-student'
 
 export default function NewStudentEditPage() {
   const navigate = useNavigate()
   const { studentId } = useParams({ strict: false }) as { studentId: string }
-  const student = useNewStudentsStore((state) => state.getById(studentId))
+  const studentQuery = useNewStudentQuery(studentId)
 
-  if (!student) {
+  if (studentQuery.isLoading) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center text-sm text-slate-500">
+          Loading new student...
+        </div>
+      </AdminShell>
+    )
+  }
+
+  if (studentQuery.isError || !studentQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -41,6 +56,8 @@ export default function NewStudentEditPage() {
     )
   }
 
+  const student = studentQuery.data
+
   return (
     <NewStudentEditForm
       studentId={student.id}
@@ -59,12 +76,11 @@ function NewStudentEditForm({
 }: {
   studentId: string
   fullName: string
-  initialValues: ReturnType<typeof newStudentToFormValues>
+  initialValues: NewStudentFormValues
   meta: { createdAt: string; updatedAt: string }
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeStudent = useNewStudentsStore((state) => state.remove)
   const form = useNewStudentForm({
     mode: 'edit',
     studentId,
@@ -76,15 +92,23 @@ function NewStudentEditForm({
       title: 'Delete new student?',
       description: `This will permanently remove ${fullName}. This action cannot be undone.`,
       onConfirm: () => {
-        removeStudent(studentId)
-        void queryClient.invalidateQueries({
-          queryKey: newStudentQueryKeys.all,
-        })
-        notify('success', {
-          title: 'New student deleted',
-          description: `${fullName} has been removed.`,
-        })
-        void navigate({ to: '/new-students' })
+        void deleteNewStudent(studentId)
+          .then(async () => {
+            await queryClient.invalidateQueries({
+              queryKey: newStudentQueryKeys.all,
+            })
+            notify('success', {
+              title: 'New student deleted',
+              description: `${fullName} has been removed.`,
+            })
+            void navigate({ to: '/new-students' })
+          })
+          .catch((error) => {
+            notify('error', {
+              title: 'Unable to delete new student',
+              description: getApiErrorMessage(error),
+            })
+          })
       },
     })
   }

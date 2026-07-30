@@ -2,22 +2,42 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  deleteStudentPayment,
+  studentPaymentToFormValues,
+} from '../api/student-payments-api'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
 import { StudentPaymentForm } from '../components/student-payment-form'
-import { studentPaymentToFormValues } from '../data/student-payments-placeholder'
+import {
+  StudentPaymentListErrorState,
+  StudentPaymentListLoadingState,
+} from '../components/student-payment-list-states'
 import { useStudentPaymentForm } from '../hooks/use-student-payment-form'
-import { useStudentPaymentsStore } from '../store/student-payments-store'
+import { useStudentPaymentQuery } from '../hooks/use-student-payment-query'
+import type {
+  StudentPaymentFormValues,
+  StudentPaymentListItem,
+} from '../types/student-payment'
 
 export default function StudentPaymentEditPage() {
   const navigate = useNavigate()
   const { paymentId } = useParams({ strict: false }) as { paymentId: string }
-  const payment = useStudentPaymentsStore((state) => state.getById(paymentId))
+  const paymentQuery = useStudentPaymentQuery(paymentId)
 
-  if (!payment) {
+  if (paymentQuery.isLoading) {
+    return (
+      <AdminShell>
+        <StudentPaymentListLoadingState />
+      </AdminShell>
+    )
+  }
+
+  if (paymentQuery.isError || !paymentQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -27,15 +47,28 @@ export default function StudentPaymentEditPage() {
           <p className="mt-2 text-sm text-slate-500">
             This payment may have been removed or the link is invalid.
           </p>
-          <Button
-            className="mt-6"
-            variant="secondary"
-            size="sm"
-            onClick={() => void navigate({ to: '/student-payments' })}
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to payments
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void navigate({ to: '/student-payments' })}
+            >
+              <ArrowLeft className="size-3.5" />
+              Back to payments
+            </Button>
+            {paymentQuery.isError ? (
+              <Button size="sm" onClick={() => void paymentQuery.refetch()}>
+                Retry
+              </Button>
+            ) : null}
+          </div>
+          {paymentQuery.isError ? (
+            <div className="mt-8 w-full">
+              <StudentPaymentListErrorState
+                onRetry={() => void paymentQuery.refetch()}
+              />
+            </div>
+          ) : null}
         </div>
       </AdminShell>
     )
@@ -43,54 +76,50 @@ export default function StudentPaymentEditPage() {
 
   return (
     <StudentPaymentEditForm
-      paymentId={payment.id}
-      title={payment.title}
-      initialValues={studentPaymentToFormValues(payment)}
-      meta={{
-        createdBy: payment.createdBy,
-        branch: payment.branch,
-      }}
+      payment={paymentQuery.data}
+      initialValues={studentPaymentToFormValues(paymentQuery.data)}
     />
   )
 }
 
 function StudentPaymentEditForm({
-  paymentId,
-  title,
+  payment,
   initialValues,
-  meta,
 }: {
-  paymentId: string
-  title: string
-  initialValues: ReturnType<typeof studentPaymentToFormValues>
-  meta: {
-    createdBy: string
-    branch: string
-  }
+  payment: StudentPaymentListItem
+  initialValues: StudentPaymentFormValues
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removePayment = useStudentPaymentsStore((state) => state.remove)
   const form = useStudentPaymentForm({
     mode: 'edit',
-    paymentId,
+    paymentId: payment.id,
     initialValues,
   })
 
   function handleDelete() {
     requestDeleteConfirm({
       title: 'Delete payment?',
-      description: `This will permanently remove ${title}. This action cannot be undone.`,
+      description: `This will permanently remove ${payment.title}. This action cannot be undone.`,
       onConfirm: () => {
-        removePayment(paymentId)
-        void queryClient.invalidateQueries({
-          queryKey: studentPaymentQueryKeys.all,
-        })
-        notify('success', {
-          title: 'Payment deleted',
-          description: `${title} has been removed.`,
-        })
-        void navigate({ to: '/student-payments' })
+        void (async () => {
+          try {
+            await deleteStudentPayment(payment.id)
+            await queryClient.invalidateQueries({
+              queryKey: studentPaymentQueryKeys.all,
+            })
+            notify('success', {
+              title: 'Payment deleted',
+              description: `${payment.title} has been removed.`,
+            })
+            void navigate({ to: '/student-payments' })
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to delete payment',
+              description: getApiErrorMessage(error),
+            })
+          }
+        })()
       },
     })
   }
@@ -111,7 +140,7 @@ function StudentPaymentEditForm({
               Update Payment
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Edit transaction details for {title}.
+              Edit transaction details for {payment.title}.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
@@ -125,7 +154,11 @@ function StudentPaymentEditForm({
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
-            meta={meta}
+            meta={{
+              createdBy: payment.createdBy,
+              branch: payment.branch,
+              transactionDate: payment.transactionDate,
+            }}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

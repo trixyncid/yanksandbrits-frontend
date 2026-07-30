@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createStudentPayment,
+  emptyStudentPaymentFormValues,
+  updateStudentPayment,
+} from '../api/student-payments-api'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
-import { emptyStudentPaymentFormValues } from '../data/student-payments-placeholder'
 import { studentPaymentFormSchema } from '../schema/student-payment-form-schema'
-import { useStudentPaymentsStore } from '../store/student-payments-store'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentFormValues,
@@ -25,8 +29,6 @@ export function useStudentPaymentForm({
 }: UseStudentPaymentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addPayment = useStudentPaymentsStore((state) => state.add)
-  const updatePayment = useStudentPaymentsStore((state) => state.update)
   const [values, setValues] = useState<StudentPaymentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentPaymentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,10 +80,8 @@ export function useStudentPaymentForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addPayment(values)
+        const created = await createStudentPayment(values)
         await queryClient.invalidateQueries({
           queryKey: studentPaymentQueryKeys.all,
         })
@@ -97,16 +97,7 @@ export function useStudentPaymentForm({
         return
       }
 
-      const updated = updatePayment(paymentId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Payment not found',
-          description: 'This payment could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updateStudentPayment(paymentId, values)
       await queryClient.invalidateQueries({
         queryKey: studentPaymentQueryKeys.all,
       })
@@ -115,6 +106,14 @@ export function useStudentPaymentForm({
         description: `${updated.title} has been saved.`,
       })
       void navigate({ to: '/student-payments' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to record payment'
+            : 'Unable to update payment',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

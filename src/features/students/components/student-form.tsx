@@ -7,11 +7,12 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import {
-  studentBranchOptions,
-  studentCounsellorOptions,
-  studentOccupationOptions,
-} from '../data/students-placeholder'
+  useInstitutionOptionsQuery,
+  useOccupationOptionsQuery,
+} from '../../lookups/hooks/use-lookup-options'
+import { useCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
   StudentFormErrors,
   StudentFormValues,
@@ -93,6 +94,11 @@ export function StudentForm({
   onSubmit,
   onCancel,
 }: StudentFormProps) {
+  const branchesQuery = useBranchesQuery()
+  const occupationsQuery = useOccupationOptionsQuery()
+  const institutionsQuery = useInstitutionOptionsQuery()
+  const counsellorsQuery = useCounsellorOptionsQuery()
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -113,29 +119,36 @@ export function StudentForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Education Counsellor"
-            htmlFor="counsellor"
-            error={errors.counsellor}
-            hint="Counsellor initials help generate the student PIN."
+            htmlFor="counsellorId"
+            error={errors.counsellorId}
+            hint="Counsellor helps generate the student PIN."
           >
             <Select
-              id="counsellor"
+              id="counsellorId"
               containerClassName="w-full sm:w-full"
-              value={values.counsellor}
-              onChange={(event) => onChange('counsellor', event.target.value)}
+              value={values.counsellorId}
+              onChange={(event) => onChange('counsellorId', event.target.value)}
             >
-              {studentCounsellorOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              <option value="">Select counsellor</option>
+              {(counsellorsQuery.data ?? []).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.pin} | {option.fullName}
                 </option>
               ))}
             </Select>
           </Field>
 
-          <Field label="Referral" htmlFor="referral" error={errors.referral}>
+          <Field
+            label="Referral"
+            htmlFor="referralMarketing"
+            error={errors.referralMarketing}
+          >
             <Input
-              id="referral"
-              value={values.referral}
-              onChange={(event) => onChange('referral', event.target.value)}
+              id="referralMarketing"
+              value={values.referralMarketing}
+              onChange={(event) =>
+                onChange('referralMarketing', event.target.value)
+              }
               placeholder="Optional referral name"
             />
           </Field>
@@ -163,11 +176,7 @@ export function StudentForm({
             />
           </Field>
 
-          <Field
-            label="Full Name"
-            htmlFor="fullName"
-            error={errors.fullName}
-          >
+          <Field label="Full Name" htmlFor="fullName" error={errors.fullName}>
             <Input
               id="fullName"
               value={values.fullName}
@@ -306,33 +315,43 @@ export function StudentForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Occupation"
-            htmlFor="occupation"
-            error={errors.occupation}
+            htmlFor="occupationId"
+            error={errors.occupationId}
           >
             <Select
-              id="occupation"
+              id="occupationId"
               containerClassName="w-full sm:w-full"
-              value={values.occupation}
-              onChange={(event) => onChange('occupation', event.target.value)}
+              value={values.occupationId}
+              onChange={(event) => onChange('occupationId', event.target.value)}
             >
-              {studentOccupationOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              <option value="">Select occupation</option>
+              {(occupationsQuery.data ?? []).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
                 </option>
               ))}
             </Select>
           </Field>
           <Field
             label="Institution"
-            htmlFor="institution"
-            error={errors.institution}
+            htmlFor="institutionId"
+            error={errors.institutionId}
           >
-            <Input
-              id="institution"
-              value={values.institution}
-              onChange={(event) => onChange('institution', event.target.value)}
-              placeholder="School or company name"
-            />
+            <Select
+              id="institutionId"
+              containerClassName="w-full sm:w-full"
+              value={values.institutionId}
+              onChange={(event) =>
+                onChange('institutionId', event.target.value)
+              }
+            >
+              <option value="">Select institution</option>
+              {(institutionsQuery.data ?? []).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
       </section>
@@ -367,16 +386,17 @@ export function StudentForm({
             />
           </Field>
 
-          <Field label="Branch" htmlFor="branch" error={errors.branch}>
+          <Field label="Branch" htmlFor="branchId" error={errors.branchId}>
             <Select
-              id="branch"
+              id="branchId"
               containerClassName="w-full sm:w-full"
-              value={values.branch}
-              onChange={(event) => onChange('branch', event.target.value)}
+              value={values.branchId}
+              onChange={(event) => onChange('branchId', event.target.value)}
             >
-              {studentBranchOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              <option value="">Select branch</option>
+              {(branchesQuery.data?.data ?? []).map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
                 </option>
               ))}
             </Select>

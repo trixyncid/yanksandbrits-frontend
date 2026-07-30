@@ -5,10 +5,8 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
-import {
-  studentResponseStudentOptions,
-  studentResponseTutorOptions,
-} from '../data/student-responses-placeholder'
+import { useStudentsQuery } from '../../students/hooks/use-students-query'
+import { useTutorOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
   StudentResponseFormErrors,
   StudentResponseFormValues,
@@ -82,6 +80,11 @@ export function StudentResponseForm({
   onCancel,
   onDelete,
 }: StudentResponseFormProps) {
+  const studentsQuery = useStudentsQuery({ status: 'active' })
+  const tutorsQuery = useTutorOptionsQuery()
+  const students = studentsQuery.data?.data ?? []
+  const tutors = tutorsQuery.data ?? []
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -102,19 +105,20 @@ export function StudentResponseForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Student"
-            htmlFor="studentPin"
-            error={errors.studentPin}
+            htmlFor="studentId"
+            error={errors.studentId}
             hint="Select the student for this response."
           >
             <Select
-              id="studentPin"
+              id="studentId"
               containerClassName="w-full sm:w-full"
-              value={values.studentPin}
-              onChange={(event) => onChange('studentPin', event.target.value)}
+              value={values.studentId}
+              onChange={(event) => onChange('studentId', event.target.value)}
+              disabled={studentsQuery.isLoading}
             >
               <option value="">Select student...</option>
-              {studentResponseStudentOptions.map((option) => (
-                <option key={option.pin} value={option.pin}>
+              {students.map((option) => (
+                <option key={option.id} value={option.id}>
                   {option.pin} | {option.fullName}
                 </option>
               ))}
@@ -123,19 +127,20 @@ export function StudentResponseForm({
 
           <Field
             label="Tutor"
-            htmlFor="tutorPin"
-            error={errors.tutorPin}
+            htmlFor="tutorId"
+            error={errors.tutorId}
             hint="Select the tutor responsible for this response."
           >
             <Select
-              id="tutorPin"
+              id="tutorId"
               containerClassName="w-full sm:w-full"
-              value={values.tutorPin}
-              onChange={(event) => onChange('tutorPin', event.target.value)}
+              value={values.tutorId}
+              onChange={(event) => onChange('tutorId', event.target.value)}
+              disabled={tutorsQuery.isLoading}
             >
               <option value="">Select tutor...</option>
-              {studentResponseTutorOptions.map((option) => (
-                <option key={option.pin} value={option.pin}>
+              {tutors.map((option) => (
+                <option key={option.id} value={option.id}>
                   {option.pin} | {option.fullName}
                 </option>
               ))}
@@ -151,11 +156,7 @@ export function StudentResponseForm({
             />
           </Field>
 
-          <Field
-            label="Status"
-            htmlFor="status"
-            error={errors.status}
-          >
+          <Field label="Status" htmlFor="status" error={errors.status}>
             <Select
               id="status"
               containerClassName="w-full sm:w-full"

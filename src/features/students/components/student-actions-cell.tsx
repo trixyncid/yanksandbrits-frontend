@@ -2,16 +2,16 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteStudent } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
-import { useStudentsStore } from '../store/students-store'
 import type { StudentListItem } from '../types/student'
 
 export function StudentActionsCell({ student }: { student: StudentListItem }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeStudent = useStudentsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -49,14 +49,22 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
             title: 'Delete student?',
             description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
             onConfirm: () => {
-              removeStudent(student.id)
-              void queryClient.invalidateQueries({
-                queryKey: studentQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Student deleted',
-                description: `${student.pin} has been removed.`,
-              })
+              void deleteStudent(student.id)
+                .then(async () => {
+                  await queryClient.invalidateQueries({
+                    queryKey: studentQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Student deleted',
+                    description: `${student.pin} has been removed.`,
+                  })
+                })
+                .catch((error) => {
+                  notify('error', {
+                    title: 'Unable to delete student',
+                    description: getApiErrorMessage(error),
+                  })
+                })
             },
           })
         }

@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteClassroom } from '../api/classrooms-api'
 import { classroomQueryKeys } from '../api/classroom-query-keys'
-import { useClassroomsStore } from '../store/classrooms-store'
 import type { ClassroomListItem } from '../types/classroom'
 
 export function ClassroomActionsCell({
@@ -15,7 +16,6 @@ export function ClassroomActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeClassroom = useClassroomsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,23 @@ export function ClassroomActionsCell({
             title: 'Delete classroom?',
             description: `This will permanently remove ${classroom.className}. This action cannot be undone.`,
             onConfirm: () => {
-              removeClassroom(classroom.id)
-              void queryClient.invalidateQueries({
-                queryKey: classroomQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Classroom deleted',
-                description: `${classroom.className} has been removed.`,
-              })
+              void (async () => {
+                try {
+                  await deleteClassroom(classroom.id)
+                  await queryClient.invalidateQueries({
+                    queryKey: classroomQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Classroom deleted',
+                    description: `${classroom.className} has been removed.`,
+                  })
+                } catch (error) {
+                  notify('error', {
+                    title: 'Unable to delete classroom',
+                    description: getApiErrorMessage(error),
+                  })
+                }
+              })()
             },
           })
         }

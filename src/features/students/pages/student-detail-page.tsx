@@ -10,14 +10,15 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { deleteStudent, getStudentInitials } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
-import { getStudentInitials } from '../data/students-placeholder'
-import { useStudentsStore } from '../store/students-store'
+import { useStudentQuery } from '../hooks/use-student-query'
 import type { StudentProgramItem } from '../types/student'
 
 type DetailTab = 'programs' | 'payments'
@@ -57,11 +58,14 @@ function DetailItem({
   )
 }
 
-function ProgramStatusBadge({ status }: { status: StudentProgramItem['status'] }) {
+function ProgramStatusBadge({
+  status,
+}: {
+  status: StudentProgramItem['status']
+}) {
   const styles = {
     ongoing: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
     completed: 'bg-[#EDF4FF] text-[#2F5A94] ring-[#BED2F2]',
-    pending: 'bg-amber-50 text-amber-700 ring-amber-100',
   }
 
   return (
@@ -80,31 +84,20 @@ export default function StudentDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { studentId } = useParams({ strict: false }) as { studentId: string }
-  const student = useStudentsStore((state) => state.getById(studentId))
-  const removeStudent = useStudentsStore((state) => state.remove)
+  const studentQuery = useStudentQuery(studentId)
   const [tab, setTab] = useState<DetailTab>('programs')
 
-  function handleDelete() {
-    if (!student) {
-      return
-    }
-
-    requestDeleteConfirm({
-      title: 'Delete student?',
-      description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
-      onConfirm: () => {
-        removeStudent(student.id)
-        void queryClient.invalidateQueries({ queryKey: studentQueryKeys.all })
-        notify('success', {
-          title: 'Student deleted',
-          description: `${student.pin} has been removed.`,
-        })
-        void navigate({ to: '/students' })
-      },
-    })
+  if (studentQuery.isLoading) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center text-sm text-slate-500">
+          Loading student...
+        </div>
+      </AdminShell>
+    )
   }
 
-  if (!student) {
+  if (studentQuery.isError || !studentQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -129,6 +122,34 @@ export default function StudentDetailPage() {
         </div>
       </AdminShell>
     )
+  }
+
+  const student = studentQuery.data
+
+  function handleDelete() {
+    requestDeleteConfirm({
+      title: 'Delete student?',
+      description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
+      onConfirm: () => {
+        void deleteStudent(student.id)
+          .then(async () => {
+            await queryClient.invalidateQueries({
+              queryKey: studentQueryKeys.all,
+            })
+            notify('success', {
+              title: 'Student deleted',
+              description: `${student.pin} has been removed.`,
+            })
+            void navigate({ to: '/students' })
+          })
+          .catch((error) => {
+            notify('error', {
+              title: 'Unable to delete student',
+              description: getApiErrorMessage(error),
+            })
+          })
+      },
+    })
   }
 
   return (
@@ -169,18 +190,20 @@ export default function StudentDetailPage() {
                   >
                     {student.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
-                  <span
-                    className={cn(
-                      'rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1',
-                      student.paymentStatus === 'paid'
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
-                        : 'bg-amber-50 text-amber-700 ring-amber-100',
-                    )}
-                  >
-                    {student.paymentStatus === 'paid'
-                      ? 'Paid'
-                      : 'Pending Payment'}
-                  </span>
+                  {student.hasAccount ? (
+                    <span
+                      className={cn(
+                        'rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1',
+                        student.accountActive
+                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                          : 'bg-amber-50 text-amber-700 ring-amber-100',
+                      )}
+                    >
+                      {student.accountActive
+                        ? 'Portal Active'
+                        : 'Portal Inactive'}
+                    </span>
+                  ) : null}
                 </div>
                 <h2 className="mt-3 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                   {student.fullName}
@@ -260,8 +283,14 @@ export default function StudentDetailPage() {
               <DetailItem label="Phone (Mobile)" value={student.mobilePhone} />
               <DetailItem label="Phone (Home)" value={student.homePhone} />
               <DetailItem label="Phone (Others)" value={student.othersPhone} />
-              <DetailItem label="Occupation" value={student.occupation} />
-              <DetailItem label="Institution" value={student.institution} />
+              <DetailItem
+                label="Occupation"
+                value={student.occupationName}
+              />
+              <DetailItem
+                label="Institution"
+                value={student.institutionName}
+              />
             </dl>
           </section>
 
@@ -285,7 +314,10 @@ export default function StudentDetailPage() {
                 label="Education counsellor"
                 value={student.counsellor}
               />
-              <DetailItem label="Referral" value={student.referral} />
+              <DetailItem
+                label="Referral"
+                value={student.referralMarketing}
+              />
               <DetailItem label="Guest number" value={student.grn} />
               <DetailItem
                 label="Enrollment date"
@@ -328,33 +360,15 @@ export default function StudentDetailPage() {
                 <p className="mt-1 text-sm text-slate-500">
                   {tab === 'programs'
                     ? 'Programs enrolled for this student.'
-                    : 'Payment records linked to this student.'}
+                    : 'Manage payments from the Student Payments page.'}
                 </p>
               </div>
-              {tab === 'programs' ? (
+              {tab === 'programs' ? null : (
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() =>
-                    notify('info', {
-                      title: 'Add programs placeholder',
-                      description:
-                        'Student program enrollment will be added later.',
-                    })
-                  }
-                >
-                  Add Programs
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add payment placeholder',
-                      description:
-                        'Creating payments from student detail will be added later.',
-                    })
+                    void navigate({ to: '/student-payments/new' })
                   }
                 >
                   Add Payment
@@ -375,8 +389,6 @@ export default function StudentDetailPage() {
                         <th className="px-6 py-3">Program</th>
                         <th className="px-4 py-3">Period</th>
                         <th className="px-4 py-3 text-center">Sessions</th>
-                        <th className="px-4 py-3 text-center">Used</th>
-                        <th className="px-4 py-3">Progress</th>
                         <th className="px-4 py-3">Status</th>
                       </tr>
                     </thead>
@@ -388,10 +400,10 @@ export default function StudentDetailPage() {
                         >
                           <td className="px-6 py-4">
                             <p className="font-semibold text-slate-900">
-                              {program.code}
+                              {program.title}
                             </p>
                             <p className="text-xs text-slate-500">
-                              {program.title}
+                              {program.description || '—'}
                             </p>
                           </td>
                           <td className="px-4 py-4 text-slate-600">
@@ -399,22 +411,6 @@ export default function StudentDetailPage() {
                           </td>
                           <td className="px-4 py-4 text-center text-slate-600">
                             {program.sessions}
-                          </td>
-                          <td className="px-4 py-4 text-center text-slate-600">
-                            {program.sessionsUsed}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex min-w-28 items-center gap-2">
-                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                  className="h-full rounded-full bg-[#4274B9]"
-                                  style={{ width: `${program.progress}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-semibold text-slate-500">
-                                {program.progress}%
-                              </span>
-                            </div>
                           </td>
                           <td className="px-4 py-4">
                             <ProgramStatusBadge status={program.status} />
@@ -427,8 +423,8 @@ export default function StudentDetailPage() {
               )
             ) : (
               <div className="px-6 py-12 text-center text-sm text-slate-500">
-                Payment history placeholder. Connect student payments here in a
-                later step.
+                Open Student Payments to view and manage payment records for
+                this student.
               </div>
             )}
           </div>

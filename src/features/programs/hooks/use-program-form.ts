@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createProgram,
+  emptyProgramFormValues,
+  updateProgram,
+} from '../api/programs-api'
 import { programQueryKeys } from '../api/program-query-keys'
-import { emptyProgramFormValues } from '../data/programs-placeholder'
 import { programFormSchema } from '../schema/program-form-schema'
-import { useProgramsStore } from '../store/programs-store'
 import type {
   ProgramFormErrors,
   ProgramFormValues,
@@ -25,8 +29,6 @@ export function useProgramForm({
 }: UseProgramFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addProgram = useProgramsStore((state) => state.add)
-  const updateProgram = useProgramsStore((state) => state.update)
   const [values, setValues] = useState<ProgramFormValues>(initialValues)
   const [errors, setErrors] = useState<ProgramFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,10 +80,8 @@ export function useProgramForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addProgram(values)
+        const created = await createProgram(values)
         await queryClient.invalidateQueries({
           queryKey: programQueryKeys.all,
         })
@@ -97,16 +97,7 @@ export function useProgramForm({
         return
       }
 
-      const updated = updateProgram(programId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Program not found',
-          description: 'This program could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updateProgram(programId, values)
       await queryClient.invalidateQueries({
         queryKey: programQueryKeys.all,
       })
@@ -115,6 +106,14 @@ export function useProgramForm({
         description: `${updated.title} has been saved.`,
       })
       void navigate({ to: '/programs' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to add program'
+            : 'Unable to update program',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

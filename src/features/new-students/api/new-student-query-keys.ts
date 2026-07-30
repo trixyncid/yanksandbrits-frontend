@@ -15,4 +15,6 @@ export const newStudentQueryKeys = {
   lists: () => [...newStudentQueryKeys.all, 'list'] as const,
   list: (filters: NewStudentListFilters = {}) =>
     [...newStudentQueryKeys.lists(), filters] as const,
+  details: () => [...newStudentQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...newStudentQueryKeys.details(), id] as const,
 }

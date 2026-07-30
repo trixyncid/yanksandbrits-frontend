@@ -1,49 +1,34 @@
 import { format } from 'date-fns'
-import { FileDown, Search } from 'lucide-react'
-import { useState } from 'react'
+import { FileDown } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
-import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { Card } from '../../../shared/components/ui/card'
 import { DateRangePicker } from '../../../shared/components/ui/date-range-picker'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
-import type { StudentReportFilters } from '../api/student-report-query-keys'
-import { studentReportColumns } from '../components/student-report-columns'
-import {
-  StudentReportErrorState,
-  StudentReportLoadingState,
-} from '../components/student-report-states'
-import { studentReportBranchOptions } from '../data/student-report-placeholder'
-import { useStudentReportQuery } from '../hooks/use-student-report-query'
-import type { StudentReportRow } from '../types/student-report'
-
-function filterStudentReportRow(row: StudentReportRow, search: string) {
-  const haystack = [
-    row.pin,
-    row.fullName,
-    row.resource,
-    row.responseNo,
-    ...row.programs,
-  ]
-    .join(' ')
-    .toLowerCase()
-
-  return haystack.includes(search)
-}
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { downloadStudentRegistrationPdf } from '../api/student-report-api'
 
 export default function StudentReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [branchId, setBranchId] = useState('main')
-  const [appliedFilters, setAppliedFilters] =
-    useState<StudentReportFilters | null>(null)
+  const [branchId, setBranchId] = useState('')
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  const reportQuery = useStudentReportQuery(appliedFilters)
+  const branchesQuery = useBranchesQuery()
+  const branches = branchesQuery.data?.data ?? []
 
-  function handleSubmit() {
+  useEffect(() => {
+    if (!branchId && branches.length > 0) {
+      setBranchId(branches[0]!.id)
+    }
+  }, [branchId, branches])
+
+  async function handleDownload() {
     if (!dateRange?.from || !dateRange.to) {
       notify('warning', {
         title: 'Date range required',
@@ -55,16 +40,30 @@ export default function StudentReportPage() {
     if (!branchId) {
       notify('warning', {
         title: 'Branch required',
-        description: 'Please select a branch before generating the report.',
+        description: 'Please select a branch before downloading the report.',
       })
       return
     }
 
-    setAppliedFilters({
-      branchId,
-      startDate: format(dateRange.from, 'yyyy-MM-dd'),
-      endDate: format(dateRange.to, 'yyyy-MM-dd'),
-    })
+    setIsDownloading(true)
+    try {
+      await downloadStudentRegistrationPdf({
+        branchId,
+        startDate: format(dateRange.from, 'yyyy-MM-dd'),
+        endDate: format(dateRange.to, 'yyyy-MM-dd'),
+      })
+      notify('success', {
+        title: 'PDF downloaded',
+        description: 'Student registration report has been saved.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to download report',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   return (
@@ -74,8 +73,7 @@ export default function StudentReportPage() {
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-2xl font-bold text-slate-800">Student Report</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Generate a student registration report by date range and branch.
-              PDF export will be connected later.
+              Download a student registration PDF by date range and branch.
             </p>
           </div>
 
@@ -97,78 +95,38 @@ export default function StudentReportPage() {
                 value={branchId}
                 aria-label="Select branch"
                 containerClassName="w-full sm:w-full"
+                disabled={branchesQuery.isLoading || branches.length === 0}
                 onChange={(event) => setBranchId(event.target.value)}
               >
-                <option value="" disabled>
-                  -- Select Branch --
-                </option>
-                {studentReportBranchOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {branches.length === 0 ? (
+                  <option value="">Loading branches…</option>
+                ) : (
+                  branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))
+                )}
               </Select>
             </div>
 
-            <Button className="w-full md:w-auto" onClick={handleSubmit}>
-              <Search className="size-4" />
-              Submit Data
+            <Button
+              className="w-full md:w-auto"
+              disabled={isDownloading}
+              onClick={() => void handleDownload()}
+            >
+              <FileDown className="size-4" />
+              {isDownloading ? 'Downloading…' : 'Download PDF'}
             </Button>
           </div>
         </Card>
 
-        {!appliedFilters ? (
-          <Card className="px-6 py-14 text-center">
-            <p className="text-sm font-medium text-slate-500">
-              Choose a date range and branch, then submit to preview the
-              registration report.
-            </p>
-          </Card>
-        ) : null}
-
-        {appliedFilters && reportQuery.isLoading ? (
-          <StudentReportLoadingState />
-        ) : null}
-
-        {appliedFilters && reportQuery.isError ? (
-          <StudentReportErrorState
-            onRetry={() => void reportQuery.refetch()}
-          />
-        ) : null}
-
-        {appliedFilters && reportQuery.isSuccess ? (
-          <DataTable
-            title="Registration Preview"
-            description={`Branch: ${reportQuery.data.meta.branchLabel} · ${format(new Date(reportQuery.data.meta.startDate), 'MMM d, yyyy')} - ${format(new Date(reportQuery.data.meta.endDate), 'MMM d, yyyy')}${
-              reportQuery.data.meta.source === 'placeholder'
-                ? ' · Placeholder data'
-                : ''
-            }`}
-            totalLabel="students"
-            columns={studentReportColumns}
-            data={reportQuery.data.data}
-            searchPlaceholder="Search by pin, name, program..."
-            globalFilterFn={filterStudentReportRow}
-            initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
-            emptyMessage="No students found for the selected filters"
-            toolbarActions={
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  notify('info', {
-                    title: 'Export PDF placeholder',
-                    description:
-                      'PDF generation will be connected to the backend later.',
-                  })
-                }
-              >
-                <FileDown className="size-4" />
-                Export PDF
-              </Button>
-            }
-          />
-        ) : null}
+        <Card className="px-6 py-14 text-center">
+          <p className="text-sm font-medium text-slate-500">
+            This report is PDF-only. Choose a date range and branch, then
+            download the registration report.
+          </p>
+        </Card>
       </div>
     </AdminShell>
   )

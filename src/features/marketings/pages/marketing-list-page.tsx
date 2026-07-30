@@ -45,11 +45,7 @@ export default function MarketingListPage() {
         {marketingsQuery.isSuccess ? (
           <DataTable
             title="Marketing List"
-            description={
-              marketingsQuery.data.meta.source === 'placeholder'
-                ? 'Manage marketing counsellors and salary settings. Currently using placeholder data until the API is connected.'
-                : 'Manage marketing counsellors and salary settings.'
-            }
+            description="Manage marketing counsellors and salary settings."
             totalLabel="accounts"
             columns={marketingListColumns}
             data={marketingsQuery.data.data}
@@ -67,7 +63,7 @@ export default function MarketingListPage() {
                     void marketingsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Marketing list refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest marketing data has been loaded.',
                       })
                     })
                   }}
@@ -80,7 +76,7 @@ export default function MarketingListPage() {
                 <Button
                   onClick={() =>
                     notify('info', {
-                      title: 'Add marketing placeholder',
+                      title: 'Add marketing',
                       description:
                         'The create marketing form will be added later.',
                     })

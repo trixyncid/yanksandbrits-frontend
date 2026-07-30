@@ -3,17 +3,28 @@ import { ArrowLeft } from 'lucide-react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { studentToFormValues } from '../api/students-api'
 import { StudentForm } from '../components/student-form'
-import { studentDetailToFormValues } from '../data/students-placeholder'
 import { useStudentForm } from '../hooks/use-student-form'
-import { useStudentsStore } from '../store/students-store'
+import { useStudentQuery } from '../hooks/use-student-query'
+import type { StudentFormValues } from '../types/student'
 
 export default function StudentEditPage() {
   const navigate = useNavigate()
   const { studentId } = useParams({ strict: false }) as { studentId: string }
-  const student = useStudentsStore((state) => state.getById(studentId))
+  const studentQuery = useStudentQuery(studentId)
 
-  if (!student) {
+  if (studentQuery.isLoading) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center text-sm text-slate-500">
+          Loading student...
+        </div>
+      </AdminShell>
+    )
+  }
+
+  if (studentQuery.isError || !studentQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -35,10 +46,12 @@ export default function StudentEditPage() {
     )
   }
 
+  const student = studentQuery.data
+
   return (
     <StudentEditForm
       studentId={student.id}
-      initialValues={studentDetailToFormValues(student)}
+      initialValues={studentToFormValues(student)}
       pin={student.pin}
       fullName={student.fullName}
     />
@@ -52,7 +65,7 @@ function StudentEditForm({
   fullName,
 }: {
   studentId: string
-  initialValues: ReturnType<typeof studentDetailToFormValues>
+  initialValues: StudentFormValues
   pin: string
   fullName: string
 }) {

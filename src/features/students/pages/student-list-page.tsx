@@ -46,11 +46,7 @@ export default function StudentListPage() {
         {studentsQuery.isSuccess ? (
           <DataTable
             title="Student List"
-            description={
-              studentsQuery.data.meta.source === 'placeholder'
-                ? 'Browse, search, and manage enrolled students. Currently using placeholder data until the API is connected.'
-                : 'Browse, search, and manage enrolled students.'
-            }
+            description="Browse, search, and manage enrolled students."
             totalLabel="students"
             columns={studentListColumns}
             data={studentsQuery.data.data}
@@ -68,7 +64,7 @@ export default function StudentListPage() {
                     void studentsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Student list refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest students have been loaded.',
                       })
                     })
                   }}

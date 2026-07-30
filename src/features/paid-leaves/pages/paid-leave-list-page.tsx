@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -29,6 +30,7 @@ function filterPaidLeave(row: PaidLeaveListItem, search: string) {
 }
 
 export default function PaidLeaveListPage() {
+  const navigate = useNavigate()
   const leavesQuery = usePaidLeavesQuery()
 
   return (
@@ -45,11 +47,7 @@ export default function PaidLeaveListPage() {
         {leavesQuery.isSuccess ? (
           <DataTable
             title="Paid Leave List"
-            description={
-              leavesQuery.data.meta.source === 'placeholder'
-                ? 'Track staff paid leave requests. Currently using placeholder data until the API is connected.'
-                : 'Track staff paid leave requests.'
-            }
+            description="Track staff paid leave requests."
             totalLabel="records"
             columns={paidLeaveListColumns}
             data={leavesQuery.data.data}
@@ -67,7 +65,7 @@ export default function PaidLeaveListPage() {
                     void leavesQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Paid leave refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest paid leave data has been loaded.',
                       })
                     })
                   }}
@@ -78,13 +76,7 @@ export default function PaidLeaveListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add paid leave placeholder',
-                      description:
-                        'The create paid leave form will be added later.',
-                    })
-                  }
+                  onClick={() => void navigate({ to: '/paid-leaves/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Record

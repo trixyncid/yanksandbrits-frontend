@@ -17,7 +17,7 @@ function filterClassroom(row: ClassroomListItem, search: string) {
   const haystack = [
     row.code,
     row.className,
-    row.branch,
+    row.branchName ?? '',
     row.isActive ? 'active' : 'inactive',
   ]
     .join(' ')
@@ -44,11 +44,7 @@ export default function ClassroomListPage() {
         {classroomsQuery.isSuccess ? (
           <DataTable
             title="Classroom List"
-            description={
-              classroomsQuery.data.meta.source === 'placeholder'
-                ? 'Manage rooms available for class sessions. Currently using placeholder data until the API is connected.'
-                : 'Manage rooms available for class sessions.'
-            }
+            description="Manage rooms available for class sessions."
             totalLabel="classrooms"
             columns={classroomListColumns}
             data={classroomsQuery.data.data}
@@ -66,7 +62,7 @@ export default function ClassroomListPage() {
                     void classroomsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Classrooms refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest classroom data has been loaded.',
                       })
                     })
                   }}

@@ -1,105 +1,171 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { useClassroomsStore } from '../store/classrooms-store'
-import type { ClassroomListItem } from '../types/classroom'
+import type { ApiSuccessEnvelope } from '../../../shared/api/types'
+import type {
+  ClassroomFormValues,
+  ClassroomListItem,
+} from '../types/classroom'
 import type { ClassroomListFilters } from './classroom-query-keys'
 
 export type ClassroomListResponse = {
   data: ClassroomListItem[]
   meta: {
     total: number
-    source: 'api' | 'placeholder'
   }
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+type ClassroomDto = {
+  id: number
+  code: string
+  class_name: string
+  is_active: boolean
+  branch: number | null
+  branch_name: string | null
+  created_at: string
+  updated_at: string
+  created_by: number | null
+  created_by_name: string | null
+  updated_by: number | null
+  updated_by_name: string | null
 }
 
-function filterPlaceholderClassrooms(
-  classrooms: ClassroomListItem[],
-  filters: ClassroomListFilters,
-) {
-  const search = filters.search?.trim().toLowerCase()
-
-  return classrooms.filter((classroom) => {
-    if (filters.isActive === 'active' && !classroom.isActive) {
-      return false
-    }
-
-    if (filters.isActive === 'inactive' && classroom.isActive) {
-      return false
-    }
-
-    if (
-      filters.branchId &&
-      classroom.branch.toLowerCase() !== filters.branchId.toLowerCase()
-    ) {
-      return false
-    }
-
-    if (!search) {
-      return true
-    }
-
-    const haystack = [
-      classroom.code,
-      classroom.className,
-      classroom.branch,
-      classroom.isActive ? 'active' : 'inactive',
-    ]
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
+type PaginatedMeta = {
+  count?: number
+  next?: string | null
+  previous?: string | null
+  page?: number
+  page_size?: number
 }
 
-async function fetchClassroomsFromApi(
-  filters: ClassroomListFilters,
-): Promise<ClassroomListResponse> {
-  const { data } = await httpClient.get<ClassroomListResponse>(
-    '/api/classrooms',
-    { params: filters },
-  )
-
-  return data
+function mapClassroom(dto: ClassroomDto): ClassroomListItem {
+  return {
+    id: String(dto.id),
+    code: dto.code,
+    className: dto.class_name,
+    isActive: dto.is_active,
+    branchId: dto.branch == null ? null : String(dto.branch),
+    branchName: dto.branch_name,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+    createdBy: dto.created_by_name,
+    updatedBy: dto.updated_by_name,
+  }
 }
 
-async function fetchClassroomsPlaceholder(
-  filters: ClassroomListFilters,
-): Promise<ClassroomListResponse> {
-  await delay(PLACEHOLDER_DELAY_MS)
+function toWritePayload(values: ClassroomFormValues) {
+  return {
+    code: values.code.trim(),
+    class_name: values.className.trim(),
+    is_active: values.isActive,
+    branch: values.branchId ? Number(values.branchId) : null,
+  }
+}
 
-  const data = filterPlaceholderClassrooms(
-    useClassroomsStore.getState().items,
-    filters,
-  )
+async function fetchClassroomPage(params: {
+  page: number
+  page_size: number
+  search?: string
+  is_active?: boolean
+  branch?: number
+}) {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<ClassroomDto[]> & { meta: PaginatedMeta | null }
+  >('/classrooms', { params })
 
   return {
-    data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-    },
+    items: (data.data ?? []).map(mapClassroom),
+    total: data.meta?.count ?? data.data?.length ?? 0,
   }
 }
 
 export async function fetchClassrooms(
   filters: ClassroomListFilters = {},
 ): Promise<ClassroomListResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
+  const search = filters.search?.trim() || undefined
+  const isActive =
+    filters.isActive === 'active'
+      ? true
+      : filters.isActive === 'inactive'
+        ? false
+        : undefined
+  const branch = filters.branchId ? Number(filters.branchId) : undefined
 
-  if (hasApiBaseUrl) {
-    try {
-      return await fetchClassroomsFromApi(filters)
-    } catch {
-      return fetchClassroomsPlaceholder(filters)
-    }
+  const pageSize = 100
+  const first = await fetchClassroomPage({
+    page: 1,
+    page_size: pageSize,
+    search,
+    is_active: isActive,
+    branch,
+  })
+
+  const items = [...first.items]
+  let page = 2
+
+  while (items.length < first.total) {
+    const next = await fetchClassroomPage({
+      page,
+      page_size: pageSize,
+      search,
+      is_active: isActive,
+      branch,
+    })
+    if (next.items.length === 0) break
+    items.push(...next.items)
+    page += 1
   }
 
-  return fetchClassroomsPlaceholder(filters)
+  return {
+    data: items,
+    meta: { total: first.total },
+  }
+}
+
+export async function fetchClassroom(id: string): Promise<ClassroomListItem> {
+  const { data } = await httpClient.get<ApiSuccessEnvelope<ClassroomDto>>(
+    `/classrooms/${id}`,
+  )
+  return mapClassroom(data.data)
+}
+
+export async function createClassroom(
+  values: ClassroomFormValues,
+): Promise<ClassroomListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ClassroomDto>>(
+    '/classrooms',
+    toWritePayload(values),
+  )
+  return mapClassroom(data.data)
+}
+
+export async function updateClassroom(
+  id: string,
+  values: ClassroomFormValues,
+): Promise<ClassroomListItem> {
+  const { data } = await httpClient.patch<ApiSuccessEnvelope<ClassroomDto>>(
+    `/classrooms/${id}`,
+    toWritePayload(values),
+  )
+  return mapClassroom(data.data)
+}
+
+export async function deleteClassroom(id: string): Promise<void> {
+  await httpClient.delete(`/classrooms/${id}`)
+}
+
+export function classroomToFormValues(
+  classroom: ClassroomListItem,
+): ClassroomFormValues {
+  return {
+    code: classroom.code,
+    className: classroom.className,
+    isActive: classroom.isActive,
+    branchId: classroom.branchId ?? '',
+  }
+}
+
+export const emptyClassroomFormValues: ClassroomFormValues = {
+  code: '',
+  className: '',
+  isActive: true,
+  branchId: '',
 }

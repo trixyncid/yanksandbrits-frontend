@@ -22,7 +22,7 @@ function filterNewStudent(row: NewStudentListItem, search: string) {
     row.status,
     row.educationCounsellor,
     row.branch,
-    row.gender,
+    row.gender ?? '',
   ]
     .join(' ')
     .toLowerCase()
@@ -48,11 +48,7 @@ export default function NewStudentListPage() {
         {studentsQuery.isSuccess ? (
           <DataTable
             title="New Student List"
-            description={
-              studentsQuery.data.meta.source === 'placeholder'
-                ? 'Track marketing leads and new student inquiries. Currently using placeholder data until the API is connected.'
-                : 'Track marketing leads and new student inquiries.'
-            }
+            description="Track marketing leads and new student inquiries."
             totalLabel="students"
             columns={newStudentListColumns}
             data={studentsQuery.data.data}
@@ -70,7 +66,7 @@ export default function NewStudentListPage() {
                     void studentsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'New students refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest leads have been loaded.',
                       })
                     })
                   }}

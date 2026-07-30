@@ -1,5 +1,10 @@
+import { fetchAllPages } from '../../../shared/api/pagination'
 import { httpClient } from '../../../shared/api/http-client'
-import { tutorListPlaceholder } from '../data/tutors-placeholder'
+import {
+  deleteUser,
+  fetchUsers,
+  type UserListItem,
+} from '../../users/api/users-api'
 import type { TutorListItem } from '../types/tutor'
 import type { TutorListFilters } from './tutor-query-keys'
 
@@ -7,90 +12,63 @@ export type TutorListResponse = {
   data: TutorListItem[]
   meta: {
     total: number
-    source: 'api' | 'placeholder'
   }
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+type TutorWorkingScheduleDto = {
+  id: number
+  tutor: number
 }
 
-function filterPlaceholderTutors(
-  tutors: TutorListItem[],
-  filters: TutorListFilters,
-) {
-  const search = filters.search?.trim().toLowerCase()
-
-  return tutors.filter((item) => {
-    if (filters.isActive === 'active' && !item.isActive) {
-      return false
-    }
-
-    if (filters.isActive === 'inactive' && item.isActive) {
-      return false
-    }
-
-    if (!search) {
-      return true
-    }
-
-    const haystack = [
-      item.pin,
-      item.fullName,
-      item.email,
-      item.phone,
-      item.gender,
-      item.isActive ? 'active' : 'inactive',
-    ]
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
-}
-
-async function fetchTutorsFromApi(
-  filters: TutorListFilters,
-): Promise<TutorListResponse> {
-  const { data } = await httpClient.get<TutorListResponse>('/api/tutors', {
-    params: filters,
-  })
-
-  return data
-}
-
-async function fetchTutorsPlaceholder(
-  filters: TutorListFilters,
-): Promise<TutorListResponse> {
-  await delay(PLACEHOLDER_DELAY_MS)
-
-  const data = filterPlaceholderTutors(tutorListPlaceholder, filters)
-
+function mapTutor(
+  user: UserListItem,
+  scheduleTutorIds: Set<string>,
+): TutorListItem {
   return {
-    data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-    },
+    id: user.id,
+    pin: user.pin,
+    fullName: user.fullName,
+    email: user.email,
+    phone: user.phone,
+    gender: user.gender,
+    isActive: user.isActive,
+    lastLogin: user.lastLogin,
+    dateJoined: user.dateJoined,
+    paidLeaveLeft: user.paidLeaveLeft,
+    hasWorkingSchedule: scheduleTutorIds.has(user.id),
+  }
+}
+
+async function loadScheduleTutorIds(): Promise<Set<string>> {
+  try {
+    const { items } = await fetchAllPages<TutorWorkingScheduleDto>({
+      client: httpClient,
+      path: '/tutor-working-schedules',
+    })
+    return new Set(items.map((item) => String(item.tutor)))
+  } catch {
+    return new Set()
   }
 }
 
 export async function fetchTutors(
   filters: TutorListFilters = {},
 ): Promise<TutorListResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
+  const [{ data, meta }, scheduleTutorIds] = await Promise.all([
+    fetchUsers({
+      search: filters.search,
+      isActive: filters.isActive,
+      isTutor: true,
+    }),
+    loadScheduleTutorIds(),
+  ])
 
-  if (hasApiBaseUrl) {
-    try {
-      return await fetchTutorsFromApi(filters)
-    } catch {
-      return fetchTutorsPlaceholder(filters)
-    }
+  return {
+    data: data.map((user) => mapTutor(user, scheduleTutorIds)),
+    meta: { total: meta.total },
   }
+}
 
-  return fetchTutorsPlaceholder(filters)
+export async function deleteTutor(id: string): Promise<void> {
+  await deleteUser(id)
 }

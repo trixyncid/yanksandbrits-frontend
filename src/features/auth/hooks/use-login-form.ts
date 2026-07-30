@@ -2,8 +2,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { notify } from '../../../shared/lib/notify'
-import { loginPlaceholder } from '../api/login-placeholder'
+import { getApiErrorMessage, login, logout } from '../api/auth-api'
 import { loginFormSchema } from '../schema/login-form-schema'
+import { useAuthStore } from '../store/auth-store'
 import type {
   LoginFormErrors,
   LoginFormValues,
@@ -17,6 +18,7 @@ const defaultValues: LoginFormValues = {
 
 export function useLoginForm() {
   const navigate = useNavigate()
+  const setSession = useAuthStore((state) => state.setSession)
   const [values, setValues] = useState<LoginFormValues>(defaultValues)
   const [errors, setErrors] = useState<LoginFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,15 +67,46 @@ export function useLoginForm() {
     setIsSubmitting(true)
 
     try {
-      const result = await loginPlaceholder(values)
-      notify(result.type, {
-        title: result.ok ? 'Sign in placeholder submitted' : 'Sign in failed',
-        description: result.message,
+      const result = await login({
+        email: values.email,
+        password: values.password,
+        remember_me: values.rememberMe,
       })
 
-      if (result.ok) {
-        await navigate({ to: '/dashboard' })
+      if (result.user.is_student) {
+        try {
+          await logout()
+        } catch {
+          // Best-effort cookie clear
+        }
+        useAuthStore.getState().clearSession()
+        notify('error', {
+          title: 'Staff accounts only',
+          description:
+            'Student accounts cannot sign in to the admin panel. Use the student portal instead.',
+        })
+        return
       }
+
+      setSession({
+        user: result.user,
+        rememberMe: values.rememberMe,
+      })
+
+      notify('success', {
+        title: 'Signed in',
+        description: `Welcome back, ${result.user.full_name || result.user.email}.`,
+      })
+
+      await navigate({ to: '/dashboard' })
+    } catch (error) {
+      notify('error', {
+        title: 'Sign in failed',
+        description: getApiErrorMessage(
+          error,
+          'Invalid email or password. Please try again.',
+        ),
+      })
     } finally {
       setIsSubmitting(false)
     }

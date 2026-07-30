@@ -1,25 +1,47 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
+import { useMemo } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import {
+  classroomToFormValues,
+  deleteClassroom,
+} from '../api/classrooms-api'
 import { classroomQueryKeys } from '../api/classroom-query-keys'
 import { ClassroomForm } from '../components/classroom-form'
-import { classroomToFormValues } from '../data/classrooms-placeholder'
+import {
+  ClassroomListErrorState,
+  ClassroomListLoadingState,
+} from '../components/classroom-list-states'
 import { useClassroomForm } from '../hooks/use-classroom-form'
-import { useClassroomsStore } from '../store/classrooms-store'
+import { useClassroomQuery } from '../hooks/use-classroom-query'
+import type {
+  ClassroomFormValues,
+  ClassroomListItem,
+} from '../types/classroom'
 
 export default function ClassroomEditPage() {
   const navigate = useNavigate()
   const { classroomId } = useParams({ strict: false }) as {
     classroomId: string
   }
-  const classroom = useClassroomsStore((state) => state.getById(classroomId))
+  const classroomQuery = useClassroomQuery(classroomId)
 
-  if (!classroom) {
+  if (classroomQuery.isLoading) {
+    return (
+      <AdminShell>
+        <ClassroomListLoadingState />
+      </AdminShell>
+    )
+  }
+
+  if (classroomQuery.isError || !classroomQuery.data) {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
@@ -29,15 +51,31 @@ export default function ClassroomEditPage() {
           <p className="mt-2 text-sm text-slate-500">
             This classroom may have been removed or the link is invalid.
           </p>
-          <Button
-            className="mt-6"
-            variant="secondary"
-            size="sm"
-            onClick={() => void navigate({ to: '/classrooms' })}
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to classrooms
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void navigate({ to: '/classrooms' })}
+            >
+              <ArrowLeft className="size-3.5" />
+              Back to classrooms
+            </Button>
+            {classroomQuery.isError ? (
+              <Button
+                size="sm"
+                onClick={() => void classroomQuery.refetch()}
+              >
+                Retry
+              </Button>
+            ) : null}
+          </div>
+          {classroomQuery.isError ? (
+            <div className="mt-8 w-full">
+              <ClassroomListErrorState
+                onRetry={() => void classroomQuery.refetch()}
+              />
+            </div>
+          ) : null}
         </div>
       </AdminShell>
     )
@@ -45,52 +83,59 @@ export default function ClassroomEditPage() {
 
   return (
     <ClassroomEditForm
-      classroomId={classroom.id}
-      className={classroom.className}
-      initialValues={classroomToFormValues(classroom)}
-      meta={{
-        createdAt: classroom.createdAt,
-        updatedAt: classroom.updatedAt,
-        createdBy: classroom.createdBy,
-      }}
+      classroom={classroomQuery.data}
+      initialValues={classroomToFormValues(classroomQuery.data)}
     />
   )
 }
 
 function ClassroomEditForm({
-  classroomId,
-  className,
+  classroom,
   initialValues,
-  meta,
 }: {
-  classroomId: string
-  className: string
-  initialValues: ReturnType<typeof classroomToFormValues>
-  meta: { createdAt: string; updatedAt: string; createdBy: string }
+  classroom: ClassroomListItem
+  initialValues: ClassroomFormValues
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeClassroom = useClassroomsStore((state) => state.remove)
+  const branchesQuery = useBranchesQuery()
+  const branchOptions = useMemo(
+    () =>
+      (branchesQuery.data?.data ?? []).map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+      })),
+    [branchesQuery.data?.data],
+  )
   const form = useClassroomForm({
     mode: 'edit',
-    classroomId,
+    classroomId: classroom.id,
     initialValues,
   })
 
   function handleDelete() {
     requestDeleteConfirm({
       title: 'Delete classroom?',
-      description: `This will permanently remove ${className}. This action cannot be undone.`,
+      description: `This will permanently remove ${classroom.className}. This action cannot be undone.`,
       onConfirm: () => {
-        removeClassroom(classroomId)
-        void queryClient.invalidateQueries({
-          queryKey: classroomQueryKeys.all,
-        })
-        notify('success', {
-          title: 'Classroom deleted',
-          description: `${className} has been removed.`,
-        })
-        void navigate({ to: '/classrooms' })
+        void (async () => {
+          try {
+            await deleteClassroom(classroom.id)
+            await queryClient.invalidateQueries({
+              queryKey: classroomQueryKeys.all,
+            })
+            notify('success', {
+              title: 'Classroom deleted',
+              description: `${classroom.className} has been removed.`,
+            })
+            void navigate({ to: '/classrooms' })
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to delete classroom',
+              description: getApiErrorMessage(error),
+            })
+          }
+        })()
       },
     })
   }
@@ -111,7 +156,7 @@ function ClassroomEditForm({
               Update Classroom
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Edit details for {className}.
+              Edit details for {classroom.className}.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
@@ -125,7 +170,13 @@ function ClassroomEditForm({
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
-            meta={meta}
+            branchOptions={branchOptions}
+            branchesLoading={branchesQuery.isLoading}
+            meta={{
+              createdAt: classroom.createdAt,
+              updatedAt: classroom.updatedAt,
+              createdBy: classroom.createdBy,
+            }}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

@@ -49,11 +49,7 @@ export default function StudentResponseListPage() {
         {responsesQuery.isSuccess ? (
           <DataTable
             title="Student Response List"
-            description={
-              responsesQuery.data.meta.source === 'placeholder'
-                ? 'Review tutor and student response records. Currently using placeholder data until the API is connected.'
-                : 'Review tutor and student response records.'
-            }
+            description="Review tutor and student response records."
             totalLabel="responses"
             columns={studentResponseListColumns}
             data={responsesQuery.data.data}
@@ -71,7 +67,7 @@ export default function StudentResponseListPage() {
                     void responsesQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Student responses refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest response data has been loaded.',
                       })
                     })
                   }}

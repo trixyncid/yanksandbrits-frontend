@@ -48,11 +48,7 @@ export default function StudentPaymentListPage() {
         {paymentsQuery.isSuccess ? (
           <DataTable
             title="Student Payment List"
-            description={
-              paymentsQuery.data.meta.source === 'placeholder'
-                ? 'Track student payment transactions. Currently using placeholder data until the API is connected.'
-                : 'Track student payment transactions.'
-            }
+            description="Track student payment transactions."
             totalLabel="payments"
             columns={studentPaymentListColumns}
             data={paymentsQuery.data.data}
@@ -70,7 +66,7 @@ export default function StudentPaymentListPage() {
                     void paymentsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Student payments refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest payment data has been loaded.',
                       })
                     })
                   }}

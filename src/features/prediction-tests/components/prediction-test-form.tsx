@@ -7,7 +7,7 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
-import { useNewStudentsStore } from '../../new-students/store/new-students-store'
+import { useProspectiveStudentOptionsQuery } from '../hooks/use-prospective-student-options-query'
 import type {
   PredictionTestFormErrors,
   PredictionTestFormValues,
@@ -62,7 +62,12 @@ type PredictionTestFormProps = {
   isSubmitting: boolean
   meta?: Pick<
     PredictionTestListItem,
-    'createdAt' | 'updatedAt' | 'studentName' | 'branch' | 'educationCounsellor'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'studentName'
+    | 'branch'
+    | 'educationCounsellor'
+    | 'paymentProofUrl'
   >
   onChange: <K extends keyof PredictionTestFormValues>(
     field: K,
@@ -84,12 +89,18 @@ export function PredictionTestForm({
   onCancel,
   onDelete,
 }: PredictionTestFormProps) {
-  const studentOptions = useNewStudentsStore((state) => state.items)
+  const studentsQuery = useProspectiveStudentOptionsQuery()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
   }
+
+  const proofLabel = values.paymentProofFile
+    ? values.paymentProofFile.name
+    : meta?.paymentProofUrl
+      ? 'Current proof on file — click to replace'
+      : 'Click to upload payment proof'
 
   return (
     <form className="space-y-8" onSubmit={handleSubmit} noValidate>
@@ -117,7 +128,7 @@ export function PredictionTestForm({
               onChange={(event) => onChange('studentId', event.target.value)}
             >
               <option value="">Select student...</option>
-              {studentOptions.map((student) => (
+              {(studentsQuery.data ?? []).map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.fullName} | {student.phone}
                 </option>
@@ -203,23 +214,32 @@ export function PredictionTestForm({
               htmlFor="paymentProof"
               className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-[#F4F6FA] px-4 text-sm text-slate-600 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF]"
             >
-              <ImagePlus className="size-4 text-[#4274B9]" />
-              <span className="flex-1 truncate">
-                {values.hasPaymentProof
-                  ? 'Proof attached (placeholder)'
-                  : 'Click to mark proof as attached'}
-              </span>
+              <ImagePlus className="size-4 shrink-0 text-[#4274B9]" />
+              <span className="flex-1 truncate">{proofLabel}</span>
               <input
                 id="paymentProof"
-                type="checkbox"
-                className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-                checked={values.hasPaymentProof}
+                type="file"
+                accept="image/*"
+                className="sr-only"
                 onChange={(event) =>
-                  onChange('hasPaymentProof', event.target.checked)
+                  onChange(
+                    'paymentProofFile',
+                    event.target.files?.[0] ?? null,
+                  )
                 }
               />
             </label>
-            <FieldError message={errors.hasPaymentProof} />
+            {meta?.paymentProofUrl && !values.paymentProofFile ? (
+              <a
+                href={meta.paymentProofUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-medium text-[#4274B9] hover:underline"
+              >
+                View current proof
+              </a>
+            ) : null}
+            <FieldError message={errors.paymentProofFile} />
           </div>
         </div>
       </section>

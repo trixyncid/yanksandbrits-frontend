@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createPredictionTest,
+  emptyPredictionTestFormValues,
+  updatePredictionTest,
+} from '../api/prediction-tests-api'
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
-import { emptyPredictionTestFormValues } from '../data/prediction-tests-placeholder'
 import { predictionTestFormSchema } from '../schema/prediction-test-form-schema'
-import { usePredictionTestsStore } from '../store/prediction-tests-store'
 import type {
   PredictionTestFormErrors,
   PredictionTestFormValues,
@@ -25,8 +29,6 @@ export function usePredictionTestForm({
 }: UsePredictionTestFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addTest = usePredictionTestsStore((state) => state.add)
-  const updateTest = usePredictionTestsStore((state) => state.update)
   const [values, setValues] = useState<PredictionTestFormValues>(initialValues)
   const [errors, setErrors] = useState<PredictionTestFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,10 +80,8 @@ export function usePredictionTestForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addTest(values)
+        const created = await createPredictionTest(values)
         await queryClient.invalidateQueries({
           queryKey: predictionTestQueryKeys.all,
         })
@@ -97,16 +97,7 @@ export function usePredictionTestForm({
         return
       }
 
-      const updated = updateTest(testId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Prediction test not found',
-          description: 'This prediction test could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updatePredictionTest(testId, values)
       await queryClient.invalidateQueries({
         queryKey: predictionTestQueryKeys.all,
       })
@@ -115,6 +106,14 @@ export function usePredictionTestForm({
         description: `${updated.studentName} has been saved.`,
       })
       void navigate({ to: '/prediction-tests' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to add prediction test'
+            : 'Unable to update prediction test',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

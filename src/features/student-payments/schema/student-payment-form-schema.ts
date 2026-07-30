@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const studentPaymentFormSchema = z.object({
-  studentPin: z.string().min(1, 'Select a student.'),
+  studentId: z.string().min(1, 'Select a student.'),
   title: z.string().trim().min(2, 'Title is required.'),
   description: z.string().trim(),
   amount: z
@@ -13,5 +13,4 @@ export const studentPaymentFormSchema = z.object({
     }),
   status: z.enum(['pending', 'approved', 'void']),
   hasPaymentProof: z.boolean(),
-  transactionDate: z.string().min(1, 'Transaction date is required.'),
 })

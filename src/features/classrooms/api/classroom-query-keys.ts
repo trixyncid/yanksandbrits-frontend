@@ -9,4 +9,6 @@ export const classroomQueryKeys = {
   lists: () => [...classroomQueryKeys.all, 'list'] as const,
   list: (filters: ClassroomListFilters = {}) =>
     [...classroomQueryKeys.lists(), filters] as const,
+  details: () => [...classroomQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...classroomQueryKeys.details(), id] as const,
 }

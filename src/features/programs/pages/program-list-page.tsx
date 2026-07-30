@@ -44,11 +44,7 @@ export default function ProgramListPage() {
         {programsQuery.isSuccess ? (
           <DataTable
             title="Program List"
-            description={
-              programsQuery.data.meta.source === 'placeholder'
-                ? 'Manage academic programs and course packages. Currently using placeholder data until the API is connected.'
-                : 'Manage academic programs and course packages.'
-            }
+            description="Manage academic programs and course packages."
             totalLabel="programs"
             columns={programListColumns}
             data={programsQuery.data.data}
@@ -66,7 +62,7 @@ export default function ProgramListPage() {
                     void programsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Programs refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest program data has been loaded.',
                       })
                     })
                   }}

@@ -1,12 +1,17 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { useQueryClient } from '@tanstack/react-query'
 import { Eye, FileText, Trash2, Users } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteBookkeeping } from '../api/bookkeeping-api'
+import { bookkeepingQueryKeys } from '../api/bookkeeping-query-keys'
 import type {
   BookkeepingListItem,
   BookkeepingStatus,
@@ -52,6 +57,75 @@ function statusLabel(status: BookkeepingStatus) {
   }
 
   return 'Void'
+}
+
+function BookkeepingActionsCell({ item }: { item: BookkeepingListItem }) {
+  const queryClient = useQueryClient()
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        type="button"
+        aria-label="View bookkeeping"
+        onClick={() =>
+          notify('info', {
+            title: 'Bookkeeping detail',
+            description: `${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${statusLabel(item.status)}`,
+          })
+        }
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+      >
+        <Eye className="size-3.5" />
+      </button>
+      <Link
+        to="/tutor-report"
+        aria-label="View tutor report"
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
+      >
+        <FileText className="size-3.5" />
+      </Link>
+      <Link
+        to="/marketing-report"
+        aria-label="View marketing report"
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+      >
+        <Users className="size-3.5" />
+      </Link>
+      <button
+        type="button"
+        aria-label="Delete bookkeeping"
+        onClick={() =>
+          requestDeleteConfirm({
+            title: 'Delete bookkeeping?',
+            description:
+              'This will permanently remove this bookkeeping entry. This action cannot be undone.',
+            onConfirm: () => {
+              void (async () => {
+                try {
+                  await deleteBookkeeping(item.id)
+                  await queryClient.invalidateQueries({
+                    queryKey: bookkeepingQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Bookkeeping deleted',
+                    description: 'The bookkeeping entry has been removed.',
+                  })
+                } catch (error) {
+                  notify('error', {
+                    title: 'Unable to delete bookkeeping',
+                    description: getApiErrorMessage(error),
+                  })
+                }
+              })()
+            },
+          })
+        }
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+    </div>
+  )
 }
 
 export const bookkeepingListColumns: ColumnDef<BookkeepingListItem>[] = [
@@ -136,68 +210,6 @@ export const bookkeepingListColumns: ColumnDef<BookkeepingListItem>[] = [
         Action
       </span>
     ),
-    cell: () => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label="View bookkeeping"
-          onClick={() =>
-            notify('info', {
-              title: 'View bookkeeping placeholder',
-              description: 'Bookkeeping detail will be added later.',
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label="View tutor report"
-          onClick={() =>
-            notify('info', {
-              title: 'Tutor report placeholder',
-              description: 'Period tutor report link will be added later.',
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-        >
-          <FileText className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label="View marketing report"
-          onClick={() =>
-            notify('info', {
-              title: 'Marketing report placeholder',
-              description: 'Period marketing report link will be added later.',
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Users className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Delete bookkeeping"
-          onClick={() =>
-            requestDeleteConfirm({
-              title: 'Delete bookkeeping?',
-              description:
-                'This will permanently remove this bookkeeping entry. This action cannot be undone.',
-              onConfirm: () =>
-                notify('success', {
-                  title: 'Bookkeeping deleted',
-                  description:
-                    'The bookkeeping entry has been removed (placeholder).',
-                }),
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <BookkeepingActionsCell item={row.original} />,
   },
 ]

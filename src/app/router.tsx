@@ -1,4 +1,5 @@
 import {
+  Outlet,
   createRootRoute,
   createRoute,
   createRouter,
@@ -6,18 +7,30 @@ import {
   redirect,
 } from '@tanstack/react-router'
 
+import { useAuthStore } from '../features/auth/store/auth-store'
 import { RootLayout } from './root-layout'
 import { AppLoadingScreen } from './ui/app-loading-screen'
+
+function AuthenticatedLayout() {
+  return <Outlet />
+}
 
 const rootRoute = createRootRoute({
   component: RootLayout,
   pendingComponent: AppLoadingScreen,
+  beforeLoad: async () => {
+    await useAuthStore.getState().hydrate()
+  },
 })
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  beforeLoad: () => {
+  beforeLoad: async () => {
+    await useAuthStore.getState().hydrate()
+    if (useAuthStore.getState().isAuthenticated) {
+      throw redirect({ to: '/dashboard' })
+    }
     throw redirect({ to: '/login' })
   },
 })
@@ -25,11 +38,29 @@ const indexRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
+  beforeLoad: async () => {
+    await useAuthStore.getState().hydrate()
+    if (useAuthStore.getState().isAuthenticated) {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
   component: lazyRouteComponent(() => import('../features/auth/pages/login-page')),
 })
 
-const dashboardRoute = createRoute({
+const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: 'authenticated',
+  component: AuthenticatedLayout,
+  beforeLoad: async () => {
+    await useAuthStore.getState().hydrate()
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({ to: '/login' })
+    }
+  },
+})
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
   path: '/dashboard',
   component: lazyRouteComponent(
     () => import('../features/admin/pages/dashboard-page'),
@@ -37,7 +68,7 @@ const dashboardRoute = createRoute({
 })
 
 const studentsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/students',
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-list-page'),
@@ -45,7 +76,7 @@ const studentsRoute = createRoute({
 })
 
 const studentCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/students/new',
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-create-page'),
@@ -53,7 +84,7 @@ const studentCreateRoute = createRoute({
 })
 
 const studentDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/students/$studentId',
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-detail-page'),
@@ -61,7 +92,7 @@ const studentDetailRoute = createRoute({
 })
 
 const studentEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/students/$studentId/edit',
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-edit-page'),
@@ -69,7 +100,7 @@ const studentEditRoute = createRoute({
 })
 
 const studentResponsesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-responses',
   component: lazyRouteComponent(
     () =>
@@ -78,7 +109,7 @@ const studentResponsesRoute = createRoute({
 })
 
 const studentResponseCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-responses/new',
   component: lazyRouteComponent(
     () =>
@@ -89,7 +120,7 @@ const studentResponseCreateRoute = createRoute({
 })
 
 const studentResponseEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-responses/$responseId/edit',
   component: lazyRouteComponent(
     () =>
@@ -98,7 +129,7 @@ const studentResponseEditRoute = createRoute({
 })
 
 const studentGroupsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-groups',
   component: lazyRouteComponent(
     () =>
@@ -107,7 +138,7 @@ const studentGroupsRoute = createRoute({
 })
 
 const studentGroupCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-groups/new',
   component: lazyRouteComponent(
     () =>
@@ -116,7 +147,7 @@ const studentGroupCreateRoute = createRoute({
 })
 
 const studentGroupEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-groups/$groupId/edit',
   component: lazyRouteComponent(
     () =>
@@ -125,7 +156,7 @@ const studentGroupEditRoute = createRoute({
 })
 
 const studentPaymentsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-payments',
   component: lazyRouteComponent(
     () =>
@@ -134,7 +165,7 @@ const studentPaymentsRoute = createRoute({
 })
 
 const studentPaymentCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-payments/new',
   component: lazyRouteComponent(
     () =>
@@ -143,7 +174,7 @@ const studentPaymentCreateRoute = createRoute({
 })
 
 const studentPaymentEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-payments/$paymentId/edit',
   component: lazyRouteComponent(
     () =>
@@ -152,7 +183,7 @@ const studentPaymentEditRoute = createRoute({
 })
 
 const newStudentsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/new-students',
   component: lazyRouteComponent(
     () => import('../features/new-students/pages/new-student-list-page'),
@@ -160,7 +191,7 @@ const newStudentsRoute = createRoute({
 })
 
 const newStudentCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/new-students/new',
   component: lazyRouteComponent(
     () => import('../features/new-students/pages/new-student-create-page'),
@@ -168,7 +199,7 @@ const newStudentCreateRoute = createRoute({
 })
 
 const newStudentEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/new-students/$studentId/edit',
   component: lazyRouteComponent(
     () => import('../features/new-students/pages/new-student-edit-page'),
@@ -176,7 +207,7 @@ const newStudentEditRoute = createRoute({
 })
 
 const predictionTestsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/prediction-tests',
   component: lazyRouteComponent(
     () =>
@@ -185,7 +216,7 @@ const predictionTestsRoute = createRoute({
 })
 
 const predictionTestCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/prediction-tests/new',
   component: lazyRouteComponent(
     () =>
@@ -194,7 +225,7 @@ const predictionTestCreateRoute = createRoute({
 })
 
 const predictionTestEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/prediction-tests/$testId/edit',
   component: lazyRouteComponent(
     () =>
@@ -203,7 +234,7 @@ const predictionTestEditRoute = createRoute({
 })
 
 const programsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/programs',
   component: lazyRouteComponent(
     () => import('../features/programs/pages/program-list-page'),
@@ -211,7 +242,7 @@ const programsRoute = createRoute({
 })
 
 const programCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/programs/new',
   component: lazyRouteComponent(
     () => import('../features/programs/pages/program-create-page'),
@@ -219,7 +250,7 @@ const programCreateRoute = createRoute({
 })
 
 const programEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/programs/$programId/edit',
   component: lazyRouteComponent(
     () => import('../features/programs/pages/program-edit-page'),
@@ -227,7 +258,7 @@ const programEditRoute = createRoute({
 })
 
 const classroomsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/classrooms',
   component: lazyRouteComponent(
     () => import('../features/classrooms/pages/classroom-list-page'),
@@ -235,7 +266,7 @@ const classroomsRoute = createRoute({
 })
 
 const classroomCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/classrooms/new',
   component: lazyRouteComponent(
     () => import('../features/classrooms/pages/classroom-create-page'),
@@ -243,7 +274,7 @@ const classroomCreateRoute = createRoute({
 })
 
 const classroomEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/classrooms/$classroomId/edit',
   component: lazyRouteComponent(
     () => import('../features/classrooms/pages/classroom-edit-page'),
@@ -251,7 +282,7 @@ const classroomEditRoute = createRoute({
 })
 
 const fullScheduleRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/full-schedule',
   component: lazyRouteComponent(
     () => import('../features/full-schedule/pages/full-schedule-page'),
@@ -259,31 +290,79 @@ const fullScheduleRoute = createRoute({
 })
 
 const staffRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/staff',
   component: lazyRouteComponent(
     () => import('../features/staff/pages/staff-list-page'),
   ),
 })
 
+const staffDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/staff/$staffId',
+  component: lazyRouteComponent(
+    () => import('../features/staff/pages/staff-detail-page'),
+  ),
+})
+
+const staffEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/staff/$staffId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/staff/pages/staff-edit-page'),
+  ),
+})
+
 const tutorsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/tutors',
   component: lazyRouteComponent(
     () => import('../features/tutors/pages/tutor-list-page'),
   ),
 })
 
+const tutorDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutors/$tutorId',
+  component: lazyRouteComponent(
+    () => import('../features/tutors/pages/tutor-detail-page'),
+  ),
+})
+
+const tutorEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutors/$tutorId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/tutors/pages/tutor-edit-page'),
+  ),
+})
+
 const marketingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/marketings',
   component: lazyRouteComponent(
     () => import('../features/marketings/pages/marketing-list-page'),
   ),
 })
 
+const marketingDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/marketings/$marketingId',
+  component: lazyRouteComponent(
+    () => import('../features/marketings/pages/marketing-detail-page'),
+  ),
+})
+
+const marketingEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/marketings/$marketingId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/marketings/pages/marketing-edit-page'),
+  ),
+})
+
 const staffPermissionsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/staff-permissions',
   component: lazyRouteComponent(
     () =>
@@ -294,23 +373,55 @@ const staffPermissionsRoute = createRoute({
 })
 
 const paidLeavesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/paid-leaves',
   component: lazyRouteComponent(
     () => import('../features/paid-leaves/pages/paid-leave-list-page'),
   ),
 })
 
+const paidLeaveCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/paid-leaves/new',
+  component: lazyRouteComponent(
+    () => import('../features/paid-leaves/pages/paid-leave-create-page'),
+  ),
+})
+
+const paidLeaveEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/paid-leaves/$leaveId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/paid-leaves/pages/paid-leave-edit-page'),
+  ),
+})
+
 const branchesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/branches',
   component: lazyRouteComponent(
     () => import('../features/branches/pages/branch-list-page'),
   ),
 })
 
+const branchCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/branches/new',
+  component: lazyRouteComponent(
+    () => import('../features/branches/pages/branch-create-page'),
+  ),
+})
+
+const branchEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/branches/$branchId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/branches/pages/branch-edit-page'),
+  ),
+})
+
 const studentReportRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/student-report',
   component: lazyRouteComponent(
     () => import('../features/student-report/pages/student-report-page'),
@@ -318,7 +429,7 @@ const studentReportRoute = createRoute({
 })
 
 const bookkeepingRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/bookkeeping',
   component: lazyRouteComponent(
     () => import('../features/bookkeeping/pages/bookkeeping-list-page'),
@@ -326,7 +437,7 @@ const bookkeepingRoute = createRoute({
 })
 
 const tutorReportRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/tutor-report',
   component: lazyRouteComponent(
     () => import('../features/tutor-report/pages/tutor-report-list-page'),
@@ -334,7 +445,7 @@ const tutorReportRoute = createRoute({
 })
 
 const marketingReportRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/marketing-report',
   component: lazyRouteComponent(
     () =>
@@ -343,7 +454,7 @@ const marketingReportRoute = createRoute({
 })
 
 const appointmentByTutorRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/appointment-by-tutor',
   component: lazyRouteComponent(
     () =>
@@ -354,7 +465,7 @@ const appointmentByTutorRoute = createRoute({
 })
 
 const profileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/profile',
   component: lazyRouteComponent(
     () => import('../features/profile/pages/profile-page'),
@@ -362,7 +473,7 @@ const profileRoute = createRoute({
 })
 
 const notificationsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/notifications',
   component: lazyRouteComponent(
     () => import('../features/notifications/pages/notifications-page'),
@@ -370,7 +481,7 @@ const notificationsRoute = createRoute({
 })
 
 const notificationDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/notifications/$notificationId',
   component: lazyRouteComponent(
     () =>
@@ -381,47 +492,59 @@ const notificationDetailRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
-  dashboardRoute,
-  studentsRoute,
-  studentCreateRoute,
-  studentDetailRoute,
-  studentEditRoute,
-  studentResponsesRoute,
-  studentResponseCreateRoute,
-  studentResponseEditRoute,
-  studentGroupsRoute,
-  studentGroupCreateRoute,
-  studentGroupEditRoute,
-  studentPaymentsRoute,
-  studentPaymentCreateRoute,
-  studentPaymentEditRoute,
-  newStudentsRoute,
-  newStudentCreateRoute,
-  newStudentEditRoute,
-  predictionTestsRoute,
-  predictionTestCreateRoute,
-  predictionTestEditRoute,
-  programsRoute,
-  programCreateRoute,
-  programEditRoute,
-  classroomsRoute,
-  classroomCreateRoute,
-  classroomEditRoute,
-  fullScheduleRoute,
-  staffRoute,
-  tutorsRoute,
-  marketingsRoute,
-  staffPermissionsRoute,
-  paidLeavesRoute,
-  branchesRoute,
-  studentReportRoute,
-  bookkeepingRoute,
-  tutorReportRoute,
-  marketingReportRoute,
-  appointmentByTutorRoute,
-  profileRoute,
-  notificationsRoute,
-  notificationDetailRoute,
+  authenticatedRoute.addChildren([
+    dashboardRoute,
+    studentsRoute,
+    studentCreateRoute,
+    studentDetailRoute,
+    studentEditRoute,
+    studentResponsesRoute,
+    studentResponseCreateRoute,
+    studentResponseEditRoute,
+    studentGroupsRoute,
+    studentGroupCreateRoute,
+    studentGroupEditRoute,
+    studentPaymentsRoute,
+    studentPaymentCreateRoute,
+    studentPaymentEditRoute,
+    newStudentsRoute,
+    newStudentCreateRoute,
+    newStudentEditRoute,
+    predictionTestsRoute,
+    predictionTestCreateRoute,
+    predictionTestEditRoute,
+    programsRoute,
+    programCreateRoute,
+    programEditRoute,
+    classroomsRoute,
+    classroomCreateRoute,
+    classroomEditRoute,
+    fullScheduleRoute,
+    staffRoute,
+    staffDetailRoute,
+    staffEditRoute,
+    tutorsRoute,
+    tutorDetailRoute,
+    tutorEditRoute,
+    marketingsRoute,
+    marketingDetailRoute,
+    marketingEditRoute,
+    staffPermissionsRoute,
+    paidLeavesRoute,
+    paidLeaveCreateRoute,
+    paidLeaveEditRoute,
+    branchesRoute,
+    branchCreateRoute,
+    branchEditRoute,
+    studentReportRoute,
+    bookkeepingRoute,
+    tutorReportRoute,
+    marketingReportRoute,
+    appointmentByTutorRoute,
+    profileRoute,
+    notificationsRoute,
+    notificationDetailRoute,
+  ]),
 ])
 
 export const router = createRouter({

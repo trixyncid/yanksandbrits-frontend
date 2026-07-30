@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteStudentGroup } from '../api/student-groups-api'
 import { studentGroupQueryKeys } from '../api/student-group-query-keys'
-import { useStudentGroupsStore } from '../store/student-groups-store'
 import type { StudentGroupListItem } from '../types/student-group'
 
 export function StudentGroupActionsCell({
@@ -15,7 +16,6 @@ export function StudentGroupActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeGroup = useStudentGroupsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,23 @@ export function StudentGroupActionsCell({
             title: 'Delete group?',
             description: `This will permanently remove ${group.groupName}. This action cannot be undone.`,
             onConfirm: () => {
-              removeGroup(group.id)
-              void queryClient.invalidateQueries({
-                queryKey: studentGroupQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Group deleted',
-                description: `${group.groupName} has been removed.`,
-              })
+              void (async () => {
+                try {
+                  await deleteStudentGroup(group.id)
+                  await queryClient.invalidateQueries({
+                    queryKey: studentGroupQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Group deleted',
+                    description: `${group.groupName} has been removed.`,
+                  })
+                } catch (error) {
+                  notify('error', {
+                    title: 'Unable to delete group',
+                    description: getApiErrorMessage(error),
+                  })
+                }
+              })()
             },
           })
         }

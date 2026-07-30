@@ -1,16 +1,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, FileText, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
-import { notify } from '../../../shared/lib/notify'
 import type {
   PaidLeaveListItem,
   PaidLeaveStatus,
 } from '../types/paid-leave'
+import { PaidLeaveActionsCell } from './paid-leave-actions-cell'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -154,55 +152,6 @@ export const paidLeaveListColumns: ColumnDef<PaidLeaveListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View paid leave for ${row.original.staffName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View paid leave placeholder',
-              description: `${row.original.staffName} leave detail will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        {row.original.hasFile ? (
-          <button
-            type="button"
-            aria-label={`View PDF for ${row.original.staffName}`}
-            onClick={() =>
-              notify('info', {
-                title: 'View PDF placeholder',
-                description: 'Attachment preview will be connected later.',
-              })
-            }
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-          >
-            <FileText className="size-3.5" />
-          </button>
-        ) : null}
-        <button
-          type="button"
-          aria-label={`Delete paid leave for ${row.original.staffName}`}
-          onClick={() =>
-            requestDeleteConfirm({
-              title: 'Delete paid leave?',
-              description: `This will permanently remove ${row.original.staffName}. This action cannot be undone.`,
-              onConfirm: () =>
-                notify('success', {
-                  title: 'Paid leave deleted',
-                  description: `${row.original.staffName} has been removed (placeholder).`,
-                }),
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <PaidLeaveActionsCell leave={row.original} />,
   },
 ]

@@ -1,9 +1,12 @@
 import { Plus, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { updateOpenPeriodSalaries } from '../api/bookkeeping-api'
 import { bookkeepingListColumns } from '../components/bookkeeping-list-columns'
 import {
   BookkeepingListErrorState,
@@ -22,6 +25,26 @@ function filterBookkeeping(row: BookkeepingListItem, search: string) {
 
 export default function BookkeepingListPage() {
   const query = useBookkeepingQuery()
+  const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
+
+  async function handleUpdateSalary() {
+    setIsUpdatingSalary(true)
+    try {
+      await updateOpenPeriodSalaries()
+      await query.refetch()
+      notify('success', {
+        title: 'Salaries updated',
+        description: 'Open-period salary calculations have been refreshed.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to update salaries',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsUpdatingSalary(false)
+    }
+  }
 
   return (
     <AdminShell>
@@ -33,11 +56,7 @@ export default function BookkeepingListPage() {
         {query.isSuccess ? (
           <DataTable
             title="Bookkeeping List"
-            description={
-              query.data.meta.source === 'placeholder'
-                ? 'Manage payroll bookkeeping periods. Currently using placeholder data until the API is connected.'
-                : 'Manage payroll bookkeeping periods.'
-            }
+            description="Manage payroll bookkeeping periods."
             totalLabel="periods"
             columns={bookkeepingListColumns}
             data={query.data.data}
@@ -55,7 +74,7 @@ export default function BookkeepingListPage() {
                     void query.refetch().then(() => {
                       notify('success', {
                         title: 'Bookkeeping refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest bookkeeping data has been loaded.',
                       })
                     })
                   }}
@@ -67,20 +86,15 @@ export default function BookkeepingListPage() {
                 </Button>
                 <Button
                   variant="secondary"
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Update salary placeholder',
-                      description:
-                        'Salary recalculation will be connected later.',
-                    })
-                  }
+                  disabled={isUpdatingSalary}
+                  onClick={() => void handleUpdateSalary()}
                 >
-                  Update Salary
+                  {isUpdatingSalary ? 'Updating…' : 'Update Salary'}
                 </Button>
                 <Button
                   onClick={() =>
                     notify('info', {
-                      title: 'Add bookkeeping placeholder',
+                      title: 'Add bookkeeping',
                       description:
                         'The create bookkeeping form will be added later.',
                     })

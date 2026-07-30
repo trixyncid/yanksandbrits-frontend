@@ -1,9 +1,12 @@
 import { RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { refreshMarketingSalaries } from '../api/marketing-report-api'
 import { marketingReportListColumns } from '../components/marketing-report-list-columns'
 import {
   MarketingReportListErrorState,
@@ -28,6 +31,26 @@ function filterMarketingReport(row: MarketingReportListItem, search: string) {
 
 export default function MarketingReportListPage() {
   const query = useMarketingReportQuery()
+  const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
+
+  async function handleUpdateSalary() {
+    setIsUpdatingSalary(true)
+    try {
+      await refreshMarketingSalaries()
+      await query.refetch()
+      notify('success', {
+        title: 'Salaries updated',
+        description: 'Open-period marketing salaries have been recalculated.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to update salaries',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsUpdatingSalary(false)
+    }
+  }
 
   return (
     <AdminShell>
@@ -41,11 +64,7 @@ export default function MarketingReportListPage() {
         {query.isSuccess ? (
           <DataTable
             title="Marketing Salary List"
-            description={`Current Period: ${query.data.meta.period}${
-              query.data.meta.source === 'placeholder'
-                ? ' · Placeholder data'
-                : ''
-            }`}
+            description={`Period: ${query.data.meta.period}`}
             totalLabel="marketers"
             columns={marketingReportListColumns}
             data={query.data.data}
@@ -55,23 +74,31 @@ export default function MarketingReportListPage() {
             pageSizeOptions={[10, 20, 50]}
             emptyMessage="No marketing salary data found"
             toolbarActions={
-              <Button
-                variant="secondary"
-                disabled={query.isFetching}
-                onClick={() => {
-                  void query.refetch().then(() => {
-                    notify('success', {
-                      title: 'Marketing report refreshed',
-                      description: 'Latest placeholder data has been loaded.',
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={query.isFetching}
+                  onClick={() => {
+                    void query.refetch().then(() => {
+                      notify('success', {
+                        title: 'Marketing report refreshed',
+                        description: 'Latest salary data has been loaded.',
+                      })
                     })
-                  })
-                }}
-              >
-                <RefreshCw
-                  className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
-                />
-                Refresh
-              </Button>
+                  }}
+                >
+                  <RefreshCw
+                    className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
+                  />
+                  Refresh
+                </Button>
+                <Button
+                  disabled={isUpdatingSalary}
+                  onClick={() => void handleUpdateSalary()}
+                >
+                  {isUpdatingSalary ? 'Updating…' : 'Update Salary'}
+                </Button>
+              </>
             }
           />
         ) : null}

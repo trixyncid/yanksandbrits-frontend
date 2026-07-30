@@ -1,58 +1,42 @@
 import { format } from 'date-fns'
-import { FileDown, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { FileDown } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
-import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { Card } from '../../../shared/components/ui/card'
 import { DateRangePicker } from '../../../shared/components/ui/date-range-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
-import type { AppointmentReportFilters } from '../api/appointment-report-query-keys'
-import { appointmentReportColumns } from '../components/appointment-report-columns'
-import {
-  AppointmentReportErrorState,
-  AppointmentReportLoadingState,
-} from '../components/appointment-report-states'
-import {
-  appointmentBranchOptions,
-  appointmentTutorOptions,
-} from '../data/appointment-placeholder'
-import { useAppointmentReportQuery } from '../hooks/use-appointment-report-query'
-import type { AppointmentReportRow } from '../types/appointment-report'
-
-function filterAppointmentRow(row: AppointmentReportRow, search: string) {
-  const haystack = [
-    row.program,
-    row.tutorName,
-    row.studentName,
-    row.branch,
-  ]
-    .join(' ')
-    .toLowerCase()
-
-  return haystack.includes(search)
-}
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { useTutorOptionsQuery } from '../../users/hooks/use-user-options'
+import { downloadAppointmentByTutorPdf } from '../api/appointment-report-api'
 
 export default function AppointmentByTutorPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [branchId, setBranchId] = useState('all')
   const [tutorId, setTutorId] = useState('')
   const [tutorSearch, setTutorSearch] = useState('')
-  const [appliedFilters, setAppliedFilters] =
-    useState<AppointmentReportFilters | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  const reportQuery = useAppointmentReportQuery(appliedFilters)
+  const branchesQuery = useBranchesQuery()
+  const tutorsQuery = useTutorOptionsQuery()
+  const branches = branchesQuery.data?.data ?? []
+  const tutors = tutorsQuery.data ?? []
+
+  useEffect(() => {
+    setTutorId('')
+  }, [branchId])
 
   const filteredTutors = useMemo(() => {
     const keyword = tutorSearch.trim().toLowerCase()
 
-    return appointmentTutorOptions.filter((option) => {
-      if (branchId !== 'all' && option.branchId !== branchId) {
+    return tutors.filter((tutor) => {
+      if (branchId !== 'all' && tutor.branchId !== branchId) {
         return false
       }
 
@@ -60,11 +44,12 @@ export default function AppointmentByTutorPage() {
         return true
       }
 
-      return option.label.toLowerCase().includes(keyword)
+      const label = `${tutor.pin} ${tutor.fullName}`.toLowerCase()
+      return label.includes(keyword)
     })
-  }, [branchId, tutorSearch])
+  }, [branchId, tutorSearch, tutors])
 
-  function handleSubmit() {
+  async function handleDownload() {
     if (!dateRange?.from || !dateRange.to) {
       notify('warning', {
         title: 'Date range required',
@@ -76,17 +61,31 @@ export default function AppointmentByTutorPage() {
     if (!tutorId) {
       notify('warning', {
         title: 'Tutor required',
-        description: 'Please select a tutor before generating the report.',
+        description: 'Please select a tutor before downloading the report.',
       })
       return
     }
 
-    setAppliedFilters({
-      branchId,
-      tutorId,
-      startDate: format(dateRange.from, 'yyyy-MM-dd'),
-      endDate: format(dateRange.to, 'yyyy-MM-dd'),
-    })
+    setIsDownloading(true)
+    try {
+      await downloadAppointmentByTutorPdf({
+        branchId,
+        tutorId,
+        startDate: format(dateRange.from, 'yyyy-MM-dd'),
+        endDate: format(dateRange.to, 'yyyy-MM-dd'),
+      })
+      notify('success', {
+        title: 'PDF downloaded',
+        description: 'Appointment-by-tutor report has been saved.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to download report',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   return (
@@ -98,8 +97,8 @@ export default function AppointmentByTutorPage() {
               Appointment By Tutor
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Generate a finished appointment report by date range, branch, and
-              tutor. PDF export will be connected later.
+              Download a finished appointment PDF by date range, branch, and
+              tutor.
             </p>
           </div>
 
@@ -120,14 +119,13 @@ export default function AppointmentByTutorPage() {
                 id="appointment-branch"
                 value={branchId}
                 containerClassName="w-full sm:w-full"
-                onChange={(event) => {
-                  setBranchId(event.target.value)
-                  setTutorId('')
-                }}
+                disabled={branchesQuery.isLoading}
+                onChange={(event) => setBranchId(event.target.value)}
               >
-                {appointmentBranchOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="all">All Branch</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
                   </option>
                 ))}
               </Select>
@@ -145,77 +143,37 @@ export default function AppointmentByTutorPage() {
                 id="appointment-tutor"
                 value={tutorId}
                 containerClassName="w-full sm:w-full"
+                disabled={tutorsQuery.isLoading}
                 onChange={(event) => setTutorId(event.target.value)}
               >
                 <option value="" disabled>
                   -- Select Tutor --
                 </option>
-                {filteredTutors.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {filteredTutors.map((tutor) => (
+                  <option key={tutor.id} value={tutor.id}>
+                    {tutor.pin} - {tutor.fullName}
                   </option>
                 ))}
               </Select>
             </div>
 
-            <Button className="w-full xl:w-auto" onClick={handleSubmit}>
-              <Search className="size-4" />
-              Submit Data
+            <Button
+              className="w-full xl:w-auto"
+              disabled={isDownloading}
+              onClick={() => void handleDownload()}
+            >
+              <FileDown className="size-4" />
+              {isDownloading ? 'Downloading…' : 'Download PDF'}
             </Button>
           </div>
         </Card>
 
-        {!appliedFilters ? (
-          <Card className="px-6 py-14 text-center">
-            <p className="text-sm font-medium text-slate-500">
-              Choose filters and submit to preview the appointment report.
-            </p>
-          </Card>
-        ) : null}
-
-        {appliedFilters && reportQuery.isLoading ? (
-          <AppointmentReportLoadingState />
-        ) : null}
-
-        {appliedFilters && reportQuery.isError ? (
-          <AppointmentReportErrorState
-            onRetry={() => void reportQuery.refetch()}
-          />
-        ) : null}
-
-        {appliedFilters && reportQuery.isSuccess ? (
-          <DataTable
-            title="Appointment Preview"
-            description={`Tutor: ${reportQuery.data.meta.tutorLabel} · Branch: ${reportQuery.data.meta.branchLabel} · ${format(new Date(reportQuery.data.meta.startDate), 'MMM d, yyyy')} - ${format(new Date(reportQuery.data.meta.endDate), 'MMM d, yyyy')}${
-              reportQuery.data.meta.source === 'placeholder'
-                ? ' · Placeholder data'
-                : ''
-            }`}
-            totalLabel="appointments"
-            columns={appointmentReportColumns}
-            data={reportQuery.data.data}
-            searchPlaceholder="Search by program, student, branch..."
-            globalFilterFn={filterAppointmentRow}
-            initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
-            emptyMessage="No appointments found for the selected filters"
-            toolbarActions={
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  notify('info', {
-                    title: 'Export PDF placeholder',
-                    description:
-                      'PDF generation will be connected to the backend later.',
-                  })
-                }
-              >
-                <FileDown className="size-4" />
-                Export PDF
-              </Button>
-            }
-          />
-        ) : null}
+        <Card className="px-6 py-14 text-center">
+          <p className="text-sm font-medium text-slate-500">
+            This report is PDF-only. Choose filters, then download the
+            appointment report.
+          </p>
+        </Card>
       </div>
     </AdminShell>
   )

@@ -2,13 +2,16 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { predictionTestQueryKeys } from '../../prediction-tests/api/prediction-test-query-keys'
-import { usePredictionTestsStore } from '../../prediction-tests/store/prediction-tests-store'
+import {
+  createNewStudent,
+  emptyNewStudentFormValues,
+  updateNewStudent,
+} from '../api/new-students-api'
 import { newStudentQueryKeys } from '../api/new-student-query-keys'
-import { emptyNewStudentFormValues } from '../data/new-students-placeholder'
 import { newStudentFormSchema } from '../schema/new-student-form-schema'
-import { useNewStudentsStore } from '../store/new-students-store'
 import type {
   NewStudentFormErrors,
   NewStudentFormValues,
@@ -27,11 +30,6 @@ export function useNewStudentForm({
 }: UseNewStudentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addStudent = useNewStudentsStore((state) => state.add)
-  const updateStudent = useNewStudentsStore((state) => state.update)
-  const ensurePredictionTest = usePredictionTestsStore(
-    (state) => state.ensureForStudent,
-  )
   const [values, setValues] = useState<NewStudentFormValues>(initialValues)
   const [errors, setErrors] = useState<NewStudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,54 +81,66 @@ export function useNewStudentForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
-      let savedId = studentId
-
       if (mode === 'create') {
-        const created = addStudent(values)
-        savedId = created.id
+        const created = await createNewStudent(values)
+        await queryClient.invalidateQueries({
+          queryKey: newStudentQueryKeys.all,
+        })
+
+        if (values.status === 'prediction_test') {
+          await queryClient.invalidateQueries({
+            queryKey: predictionTestQueryKeys.all,
+          })
+          notify('success', {
+            title: 'New student created',
+            description: `${created.fullName} moved to prediction tests.`,
+          })
+          void navigate({ to: '/prediction-tests' })
+          return
+        }
+
         notify('success', {
           title: 'New student created',
           description: `${created.fullName} has been added.`,
         })
-      } else {
-        if (!studentId) {
-          return
-        }
-
-        const updated = updateStudent(studentId, values)
-
-        if (!updated) {
-          notify('error', {
-            title: 'New student not found',
-            description: 'This student could not be updated.',
-          })
-          return
-        }
-
-        notify('success', {
-          title: 'New student updated',
-          description: `${updated.fullName} has been saved.`,
-        })
+        void navigate({ to: '/new-students' })
+        return
       }
 
-      if (values.status === 'prediction_test' && savedId) {
-        ensurePredictionTest(savedId)
+      if (!studentId) {
+        return
+      }
+
+      const updated = await updateNewStudent(studentId, values)
+      await queryClient.invalidateQueries({
+        queryKey: newStudentQueryKeys.all,
+      })
+
+      if (values.status === 'prediction_test') {
         await queryClient.invalidateQueries({
           queryKey: predictionTestQueryKeys.all,
         })
-        await queryClient.invalidateQueries({
-          queryKey: newStudentQueryKeys.all,
+        notify('success', {
+          title: 'New student updated',
+          description: `${updated.fullName} moved to prediction tests.`,
         })
         void navigate({ to: '/prediction-tests' })
         return
       }
 
-      await queryClient.invalidateQueries({
-        queryKey: newStudentQueryKeys.all,
+      notify('success', {
+        title: 'New student updated',
+        description: `${updated.fullName} has been saved.`,
       })
       void navigate({ to: '/new-students' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to add new student'
+            : 'Unable to update new student',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

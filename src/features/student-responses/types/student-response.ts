@@ -2,11 +2,13 @@ export type StudentResponseStatus = 'pending' | 'approved' | 'void'
 
 export type StudentResponseListItem = {
   id: string
+  studentId: string
   studentPin: string
   studentName: string
   studentEmail: string
   studentPhone: string
   title: string
+  tutorId: string | null
   tutorPin: string
   tutorName: string
   tutorEmail: string
@@ -17,8 +19,8 @@ export type StudentResponseListItem = {
 }
 
 export type StudentResponseFormValues = {
-  studentPin: string
-  tutorPin: string
+  studentId: string
+  tutorId: string
   title: string
   description: string
   status: StudentResponseStatus

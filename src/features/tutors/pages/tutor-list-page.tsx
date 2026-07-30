@@ -42,11 +42,7 @@ export default function TutorListPage() {
         {tutorsQuery.isSuccess ? (
           <DataTable
             title="Tutor List"
-            description={
-              tutorsQuery.data.meta.source === 'placeholder'
-                ? 'Manage tutor profiles and working schedules. Currently using placeholder data until the API is connected.'
-                : 'Manage tutor profiles and working schedules.'
-            }
+            description="Manage tutor profiles and working schedules."
             totalLabel="tutors"
             columns={tutorListColumns}
             data={tutorsQuery.data.data}
@@ -64,7 +60,7 @@ export default function TutorListPage() {
                     void tutorsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Tutor list refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest tutor data has been loaded.',
                       })
                     })
                   }}
@@ -77,7 +73,7 @@ export default function TutorListPage() {
                 <Button
                   onClick={() =>
                     notify('info', {
-                      title: 'Add tutor placeholder',
+                      title: 'Add tutor',
                       description:
                         'The create tutor form will be added later.',
                     })

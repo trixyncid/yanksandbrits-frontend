@@ -1,8 +1,11 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { FileDown } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { downloadMarketingSalaryPdf } from '../api/marketing-report-api'
 import type { MarketingReportListItem } from '../types/marketing-report'
 
 function formatCurrency(amount: number) {
@@ -11,6 +14,43 @@ function formatCurrency(amount: number) {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function MarketingPdfButton({ item }: { item: MarketingReportListItem }) {
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  return (
+    <button
+      type="button"
+      disabled={isDownloading}
+      onClick={() => {
+        void (async () => {
+          setIsDownloading(true)
+          try {
+            await downloadMarketingSalaryPdf(
+              item.id,
+              `marketing-salary-${item.marketerPin}.pdf`,
+            )
+            notify('success', {
+              title: 'PDF downloaded',
+              description: `${item.marketerName} salary report saved.`,
+            })
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to download PDF',
+              description: getApiErrorMessage(error),
+            })
+          } finally {
+            setIsDownloading(false)
+          }
+        })()
+      }}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9] disabled:opacity-60"
+    >
+      <FileDown className="size-3.5" />
+      {isDownloading ? '…' : 'PDF'}
+    </button>
+  )
 }
 
 export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
@@ -113,19 +153,7 @@ export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
       ),
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() =>
-              notify('info', {
-                title: 'Export PDF placeholder',
-                description: `${row.original.marketerName} salary PDF will be connected later.`,
-              })
-            }
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
-          >
-            <FileDown className="size-3.5" />
-            PDF
-          </button>
+          <MarketingPdfButton item={row.original} />
         </div>
       ),
     },

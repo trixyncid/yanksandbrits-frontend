@@ -3,6 +3,11 @@ export type {
   ClassroomTimetableProps,
   TimetableColumn,
   TimetableEvent,
+  TimetableSlotRange,
   TimetableTone,
 } from './types'
-export { buildHourRange, formatHourLabel } from './utils'
+export {
+  buildHourRange,
+  formatHourLabel,
+  toneFromScheduleStatus,
+} from './utils'

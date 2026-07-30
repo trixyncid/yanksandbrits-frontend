@@ -5,16 +5,16 @@ export type CurrentUserProfile = {
   email: string
   position: string
   permissions: string[]
-  birthDate: string
+  birthDate: string | null
   birthPlace: string
-  gender: 'male' | 'female'
+  gender: 'male' | 'female' | null
   address: string
   mobilePhone: string
   homePhone: string
   othersPhone: string
   branch: string
   staffType: string
-  dateJoined: string
-  lastLogin: string
+  dateJoined: string | null
+  lastLogin: string | null
   paidLeaveLeft: number
 }

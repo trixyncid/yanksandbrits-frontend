@@ -49,11 +49,7 @@ export default function PredictionTestListPage() {
         {testsQuery.isSuccess ? (
           <DataTable
             title="Prediction Test List"
-            description={
-              testsQuery.data.meta.source === 'placeholder'
-                ? 'Review prediction test results and payments. Currently using placeholder data until the API is connected.'
-                : 'Review prediction test results and payments.'
-            }
+            description="Review prediction test results and payments."
             totalLabel="tests"
             columns={predictionTestListColumns}
             data={testsQuery.data.data}
@@ -71,7 +67,7 @@ export default function PredictionTestListPage() {
                     void testsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Prediction tests refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest prediction tests have been loaded.',
                       })
                     })
                   }}

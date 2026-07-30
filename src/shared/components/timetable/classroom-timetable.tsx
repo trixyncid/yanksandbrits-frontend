@@ -23,7 +23,7 @@ export function ClassroomTimetable({
   timeColumnWidth = DEFAULT_TIME_COLUMN_WIDTH,
   maxHeight = DEFAULT_MAX_HEIGHT,
   onEventClick,
-  onSlotClick,
+  onSlotRangeSelect,
   className,
 }: ClassroomTimetableProps) {
   const hours = buildHourRange(startHour, endHour)
@@ -58,7 +58,7 @@ export function ClassroomTimetable({
               rangeStartHour={startHour}
               isLast={index === columns.length - 1}
               onEventClick={onEventClick}
-              onSlotClick={onSlotClick}
+              onSlotRangeSelect={onSlotRangeSelect}
             />
           ))}
         </div>

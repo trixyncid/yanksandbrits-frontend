@@ -45,11 +45,7 @@ export default function StudentGroupListPage() {
         {groupsQuery.isSuccess ? (
           <DataTable
             title="Student Group List"
-            description={
-              groupsQuery.data.meta.source === 'placeholder'
-                ? 'Manage student groups and members. Currently using placeholder data until the API is connected.'
-                : 'Manage student groups and members.'
-            }
+            description="Manage student groups and members."
             totalLabel="groups"
             columns={studentGroupListColumns}
             data={groupsQuery.data.data}
@@ -67,7 +63,7 @@ export default function StudentGroupListPage() {
                     void groupsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Student groups refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest group data has been loaded.',
                       })
                     })
                   }}
@@ -78,9 +74,7 @@ export default function StudentGroupListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    void navigate({ to: '/student-groups/new' })
-                  }
+                  onClick={() => void navigate({ to: '/student-groups/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Student Group

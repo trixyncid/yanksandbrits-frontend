@@ -43,11 +43,7 @@ export default function StaffListPage() {
         {staffQuery.isSuccess ? (
           <DataTable
             title="Staff List"
-            description={
-              staffQuery.data.meta.source === 'placeholder'
-                ? 'Manage staff accounts and roles. Currently using placeholder data until the API is connected.'
-                : 'Manage staff accounts and roles.'
-            }
+            description="Manage staff accounts and roles."
             totalLabel="accounts"
             columns={staffListColumns}
             data={staffQuery.data.data}
@@ -65,7 +61,7 @@ export default function StaffListPage() {
                     void staffQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Staff list refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest staff data has been loaded.',
                       })
                     })
                   }}
@@ -78,7 +74,7 @@ export default function StaffListPage() {
                 <Button
                   onClick={() =>
                     notify('info', {
-                      title: 'Add account placeholder',
+                      title: 'Add account',
                       description:
                         'The create staff account form will be added later.',
                     })

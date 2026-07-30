@@ -1,13 +1,24 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { ClassroomForm } from '../components/classroom-form'
 import { useClassroomForm } from '../hooks/use-classroom-form'
 
 export default function ClassroomCreatePage() {
   const form = useClassroomForm({ mode: 'create' })
+  const branchesQuery = useBranchesQuery()
+  const branchOptions = useMemo(
+    () =>
+      (branchesQuery.data?.data ?? []).map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+      })),
+    [branchesQuery.data?.data],
+  )
 
   return (
     <AdminShell>
@@ -39,6 +50,8 @@ export default function ClassroomCreatePage() {
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
+            branchOptions={branchOptions}
+            branchesLoading={branchesQuery.isLoading}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

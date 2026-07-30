@@ -1,7 +1,6 @@
 export type StudentGender = 'M' | 'F'
 export type StudentStatus = 'active' | 'inactive'
-export type StudentPaymentStatus = 'paid' | 'pending'
-export type StudentProgramStatus = 'ongoing' | 'completed' | 'pending'
+export type StudentProgramStatus = 'ongoing' | 'completed'
 
 export type StudentListItem = {
   id: string
@@ -12,22 +11,24 @@ export type StudentListItem = {
   gender: StudentGender
   enrollmentDate: string
   counsellor: string
+  counsellorId: string | null
   branch: string
+  branchId: string | null
   status: StudentStatus
+  hasAccount: boolean
 }
 
 export type StudentProgramItem = {
   id: string
+  studentId: string
+  programId: string
   code: string
   title: string
   description: string
-  period: string
+  period: number
   sessions: number
-  sessionsUsed: number
-  firstMeeting: string
-  lastMeeting: string
-  progress: number
   status: StudentProgramStatus
+  createdAt: string
 }
 
 export type StudentDetail = {
@@ -42,15 +43,20 @@ export type StudentDetail = {
   mobilePhone: string
   homePhone: string
   othersPhone: string
-  occupation: string
-  institution: string
+  occupationId: string | null
+  occupationName: string
+  institutionId: string | null
+  institutionName: string
   enrollmentDate: string
   status: StudentStatus
-  paymentStatus: StudentPaymentStatus
+  counsellorId: string | null
   counsellor: string
-  referral: string
+  referralMarketing: string
   grn: string
+  branchId: string | null
   branch: string
+  hasAccount: boolean
+  accountActive: boolean | null
   createdAt: string
   updatedAt: string
   createdBy: string
@@ -69,13 +75,13 @@ export type StudentFormValues = {
   mobilePhone: string
   homePhone: string
   othersPhone: string
-  occupation: string
-  institution: string
+  occupationId: string
+  institutionId: string
   enrollmentDate: string
-  counsellor: string
-  referral: string
+  counsellorId: string
+  referralMarketing: string
   grn: string
-  branch: string
+  branchId: string
   status: StudentStatus
 }
 

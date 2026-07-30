@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
   Building2,
@@ -9,24 +10,31 @@ import {
   Pencil,
   Shield,
 } from 'lucide-react'
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
-import {
-  currentUserPlaceholder,
-  getUserInitials,
-} from '../data/current-user-placeholder'
+import { useAuthStore } from '../../auth/store/auth-store'
+import { fetchUser } from '../../users/api/users-api'
+import { ChangePasswordDialog } from '../components/change-password-dialog'
+import { getUserInitials } from '../data/current-user-placeholder'
+import { buildCurrentUserProfile } from '../lib/build-current-user-profile'
 
-function formatDate(value: string) {
-  return format(new Date(value), 'MMM d, yyyy')
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return format(date, 'MMM d, yyyy')
 }
 
-function formatDateTime(value: string) {
-  return format(new Date(value), 'MMM d, yyyy · h:mm a')
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return format(date, 'MMM d, yyyy · h:mm a')
 }
 
 function DetailItem({
@@ -79,12 +87,47 @@ function DetailSection({
 
 export default function ProfilePage() {
   const { requestLogout, logoutDialog } = useLogoutConfirm()
-  const user = currentUserPlaceholder
-  const genderLabel = user.gender === 'male' ? 'Male' : 'Female'
+  const authUser = useAuthStore((state) => state.user)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+
+  const userId = authUser?.id != null ? String(authUser.id) : null
+
+  const userDetailQuery = useQuery({
+    queryKey: ['users', 'detail', userId],
+    queryFn: () => fetchUser(userId!),
+    enabled: Boolean(userId),
+  })
+
+  if (!authUser) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-lg py-16 text-center">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            Profile unavailable
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Sign in again to view your staff profile.
+          </p>
+        </div>
+      </AdminShell>
+    )
+  }
+
+  const user = buildCurrentUserProfile(authUser, userDetailQuery.data)
+  const genderLabel =
+    user.gender === 'male'
+      ? 'Male'
+      : user.gender === 'female'
+        ? 'Female'
+        : '—'
 
   return (
     <AdminShell>
       {logoutDialog}
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
       <div
         className="mx-auto max-w-6xl space-y-8"
         style={
@@ -168,13 +211,7 @@ export default function ProfilePage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Change password placeholder',
-                      description:
-                        'Password change form will be added later.',
-                    })
-                  }
+                  onClick={() => setChangePasswordOpen(true)}
                 >
                   <KeyRound className="size-3.5" />
                   Change Password

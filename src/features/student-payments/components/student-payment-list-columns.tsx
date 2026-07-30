@@ -160,19 +160,31 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
     cell: ({ row }) => (
       <div className="flex justify-center">
         {row.original.hasPaymentProof ? (
-          <button
-            type="button"
-            onClick={() =>
-              notify('info', {
-                title: 'Payment proof placeholder',
-                description: 'Proof preview will be connected later.',
-              })
-            }
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
-          >
-            <FileImage className="size-3.5" />
-            IMG
-          </button>
+          row.original.paymentProofUrl ? (
+            <a
+              href={row.original.paymentProofUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
+            >
+              <FileImage className="size-3.5" />
+              IMG
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() =>
+                notify('info', {
+                  title: 'Payment proof',
+                  description: 'Proof is on file but no preview URL is available.',
+                })
+              }
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
+            >
+              <FileImage className="size-3.5" />
+              IMG
+            </button>
+          )
         ) : (
           <span className="text-xs font-medium text-slate-400">-</span>
         )}

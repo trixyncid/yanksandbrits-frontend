@@ -1,9 +1,12 @@
 import { RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { refreshTutorSalaries } from '../api/tutor-report-api'
 import { tutorReportListColumns } from '../components/tutor-report-list-columns'
 import {
   TutorReportListErrorState,
@@ -27,6 +30,26 @@ function filterTutorReport(row: TutorReportListItem, search: string) {
 
 export default function TutorReportListPage() {
   const query = useTutorReportQuery()
+  const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
+
+  async function handleUpdateSalary() {
+    setIsUpdatingSalary(true)
+    try {
+      await refreshTutorSalaries()
+      await query.refetch()
+      notify('success', {
+        title: 'Salaries updated',
+        description: 'Open-period tutor salaries have been recalculated.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to update salaries',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsUpdatingSalary(false)
+    }
+  }
 
   return (
     <AdminShell>
@@ -38,11 +61,7 @@ export default function TutorReportListPage() {
         {query.isSuccess ? (
           <DataTable
             title="Tutor Salary List"
-            description={`Current Period: ${query.data.meta.period}${
-              query.data.meta.source === 'placeholder'
-                ? ' · Placeholder data'
-                : ''
-            }`}
+            description={`Period: ${query.data.meta.period}`}
             totalLabel="tutors"
             columns={tutorReportListColumns}
             data={query.data.data}
@@ -60,7 +79,7 @@ export default function TutorReportListPage() {
                     void query.refetch().then(() => {
                       notify('success', {
                         title: 'Tutor report refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description: 'Latest salary data has been loaded.',
                       })
                     })
                   }}
@@ -71,15 +90,10 @@ export default function TutorReportListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Update salary placeholder',
-                      description:
-                        'Salary recalculation will be connected later.',
-                    })
-                  }
+                  disabled={isUpdatingSalary}
+                  onClick={() => void handleUpdateSalary()}
                 >
-                  Update Salary
+                  {isUpdatingSalary ? 'Updating…' : 'Update Salary'}
                 </Button>
               </>
             }

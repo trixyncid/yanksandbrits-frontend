@@ -1,6 +1,12 @@
 import { cn } from '../../lib/cn'
 import type { TimetableEvent } from './types'
-import { formatHourLabel, getEventHeight, getEventTop, timetableToneClasses } from './utils'
+import {
+  formatHourLabel,
+  getEventHeight,
+  getEventTop,
+  timetableStatusBadgeClasses,
+  timetableToneClasses,
+} from './utils'
 
 type TimetableEventCardProps = {
   event: TimetableEvent
@@ -41,7 +47,12 @@ export function TimetableEventCard({
           {event.meta ? ` • ${event.meta}` : ''}
         </span>
         {event.status ? (
-          <span className="inline-flex rounded-full bg-[#2E7FE0] px-2 py-0.5 text-[9px] font-bold tracking-wide text-white">
+          <span
+            className={cn(
+              'inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide',
+              timetableStatusBadgeClasses[event.tone],
+            )}
+          >
             {event.status}
           </span>
         ) : null}

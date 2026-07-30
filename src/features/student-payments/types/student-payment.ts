@@ -2,6 +2,7 @@ export type StudentPaymentStatus = 'pending' | 'approved' | 'void'
 
 export type StudentPaymentListItem = {
   id: string
+  studentId: string
   studentPin: string
   studentName: string
   title: string
@@ -11,17 +12,17 @@ export type StudentPaymentListItem = {
   status: StudentPaymentStatus
   createdBy: string
   hasPaymentProof: boolean
+  paymentProofUrl: string | null
   branch: string
 }
 
 export type StudentPaymentFormValues = {
-  studentPin: string
+  studentId: string
   title: string
   description: string
   amount: string
   status: StudentPaymentStatus
   hasPaymentProof: boolean
-  transactionDate: string
 }
 
 export type StudentPaymentFormErrors = Partial<

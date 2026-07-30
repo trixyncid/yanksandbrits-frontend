@@ -7,40 +7,9 @@ type DashboardStat = {
   deltaTone?: 'up' | 'neutral' | 'down'
 }
 
-const dashboardStats: DashboardStat[] = [
-  {
-    id: 'sessions',
-    label: 'Today sessions',
-    value: '28',
-    detail: 'Across all classrooms',
-    delta: '+4 from yesterday',
-    deltaTone: 'up',
-  },
-  {
-    id: 'students',
-    label: 'Total students',
-    value: '1,246',
-    detail: 'Active enrollments',
-    delta: '+18 this month',
-    deltaTone: 'up',
-  },
-  {
-    id: 'tutors',
-    label: 'Active tutors',
-    value: '14',
-    detail: 'On schedule today',
-    delta: '3 currently teaching',
-    deltaTone: 'neutral',
-  },
-  {
-    id: 'rooms',
-    label: 'Open rooms',
-    value: '6',
-    detail: 'Available for booking',
-    delta: '2 free next hour',
-    deltaTone: 'neutral',
-  },
-]
+export type DashboardStatsProps = {
+  stats: DashboardStat[]
+}
 
 const deltaClassName: Record<NonNullable<DashboardStat['deltaTone']>, string> = {
   up: 'text-[#2F9E6E]',
@@ -48,11 +17,11 @@ const deltaClassName: Record<NonNullable<DashboardStat['deltaTone']>, string> = 
   neutral: 'text-slate-500',
 }
 
-export function DashboardStats() {
+export function DashboardStats({ stats }: DashboardStatsProps) {
   return (
     <div className="border-t border-slate-200">
       <div className="grid divide-y divide-slate-200 sm:grid-cols-2 sm:divide-x xl:grid-cols-4 xl:divide-y-0">
-        {dashboardStats.map((stat) => (
+        {stats.map((stat) => (
           <div key={stat.id} className="px-6 py-5">
             <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
               {stat.label}

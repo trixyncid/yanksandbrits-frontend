@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deleteStudentPayment } from '../api/student-payments-api'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
-import { useStudentPaymentsStore } from '../store/student-payments-store'
 import type { StudentPaymentListItem } from '../types/student-payment'
 
 export function StudentPaymentActionsCell({
@@ -15,7 +16,6 @@ export function StudentPaymentActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removePayment = useStudentPaymentsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,23 @@ export function StudentPaymentActionsCell({
             title: 'Delete payment?',
             description: `This will permanently remove ${payment.title}. This action cannot be undone.`,
             onConfirm: () => {
-              removePayment(payment.id)
-              void queryClient.invalidateQueries({
-                queryKey: studentPaymentQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Payment deleted',
-                description: `${payment.title} has been removed.`,
-              })
+              void (async () => {
+                try {
+                  await deleteStudentPayment(payment.id)
+                  await queryClient.invalidateQueries({
+                    queryKey: studentPaymentQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Payment deleted',
+                    description: `${payment.title} has been removed.`,
+                  })
+                } catch (error) {
+                  notify('error', {
+                    title: 'Unable to delete payment',
+                    description: getApiErrorMessage(error),
+                  })
+                }
+              })()
             },
           })
         }

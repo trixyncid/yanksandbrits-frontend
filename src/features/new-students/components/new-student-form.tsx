@@ -1,14 +1,12 @@
 import type { FormEvent, ReactNode } from 'react'
 
+import { COURSE_OPTIONS } from '../../../shared/api/choices'
 import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
-import {
-  newStudentBranchOptions,
-  newStudentCounsellorOptions,
-  newStudentCourseOptions,
-} from '../data/new-students-placeholder'
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
   NewStudentFormErrors,
   NewStudentFormValues,
@@ -82,6 +80,9 @@ export function NewStudentForm({
   onCancel,
   onDelete,
 }: NewStudentFormProps) {
+  const marketingsQuery = useMarketingOptionsQuery()
+  const branchesQuery = useBranchesQuery()
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -99,22 +100,20 @@ export function NewStudentForm({
 
         <Field
           label="Education Counsellor"
-          htmlFor="educationCounsellor"
-          error={errors.educationCounsellor}
+          htmlFor="marketingId"
+          error={errors.marketingId}
           hint="Select the marketing counsellor for this lead."
         >
           <Select
-            id="educationCounsellor"
+            id="marketingId"
             containerClassName="w-full sm:w-full"
-            value={values.educationCounsellor}
-            onChange={(event) =>
-              onChange('educationCounsellor', event.target.value)
-            }
+            value={values.marketingId}
+            onChange={(event) => onChange('marketingId', event.target.value)}
           >
             <option value="">Select counsellor...</option>
-            {newStudentCounsellorOptions.map((option) => (
-              <option key={option.id} value={option.fullName}>
-                {option.fullName}
+            {(marketingsQuery.data ?? []).map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.pin} | {option.fullName}
               </option>
             ))}
           </Select>
@@ -174,12 +173,17 @@ export function NewStudentForm({
               id="course"
               containerClassName="w-full sm:w-full"
               value={values.course}
-              onChange={(event) => onChange('course', event.target.value)}
+              onChange={(event) =>
+                onChange(
+                  'course',
+                  event.target.value as NewStudentFormValues['course'],
+                )
+              }
             >
               <option value="">Select course...</option>
-              {newStudentCourseOptions.map((course) => (
-                <option key={course} value={course}>
-                  {course}
+              {COURSE_OPTIONS.map((course) => (
+                <option key={course.value} value={course.value}>
+                  {course.label}
                 </option>
               ))}
             </Select>
@@ -205,15 +209,16 @@ export function NewStudentForm({
             </Select>
           </Field>
 
-          <Field label="Branch" htmlFor="branch" error={errors.branch}>
+          <Field label="Branch" htmlFor="branchId" error={errors.branchId}>
             <Select
-              id="branch"
+              id="branchId"
               containerClassName="w-full sm:w-full"
-              value={values.branch}
-              onChange={(event) => onChange('branch', event.target.value)}
+              value={values.branchId}
+              onChange={(event) => onChange('branchId', event.target.value)}
             >
-              {newStudentBranchOptions.map((branch) => (
-                <option key={branch.id} value={branch.name}>
+              <option value="">Select branch...</option>
+              {(branchesQuery.data?.data ?? []).map((branch) => (
+                <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}

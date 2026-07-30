@@ -1,97 +1,172 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { useProgramsStore } from '../store/programs-store'
-import type { ProgramListItem } from '../types/program'
+import type { ApiSuccessEnvelope } from '../../../shared/api/types'
+import type { ProgramFormValues, ProgramListItem } from '../types/program'
 import type { ProgramListFilters } from './program-query-keys'
 
 export type ProgramListResponse = {
   data: ProgramListItem[]
   meta: {
     total: number
-    source: 'api' | 'placeholder'
   }
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+type ProgramDto = {
+  id: number
+  code: string
+  title: string
+  description: string | null
+  is_active: boolean
+  background_color: string | null
+  text_color: string | null
+  created_at: string
+  updated_at: string
+  created_by: number | null
+  created_by_name: string | null
+  updated_by: number | null
+  updated_by_name: string | null
 }
 
-function filterPlaceholderPrograms(
-  programs: ProgramListItem[],
-  filters: ProgramListFilters,
-) {
-  const search = filters.search?.trim().toLowerCase()
-
-  return programs.filter((program) => {
-    if (filters.isActive === 'active' && !program.isActive) {
-      return false
-    }
-
-    if (filters.isActive === 'inactive' && program.isActive) {
-      return false
-    }
-
-    if (!search) {
-      return true
-    }
-
-    const haystack = [
-      program.code,
-      program.title,
-      program.description,
-      program.isActive ? 'active' : 'inactive',
-    ]
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
+type PaginatedMeta = {
+  count?: number
+  next?: string | null
+  previous?: string | null
+  page?: number
+  page_size?: number
 }
 
-async function fetchProgramsFromApi(
-  filters: ProgramListFilters,
-): Promise<ProgramListResponse> {
-  const { data } = await httpClient.get<ProgramListResponse>('/api/programs', {
-    params: filters,
-  })
-
-  return data
+function mapProgram(dto: ProgramDto): ProgramListItem {
+  return {
+    id: String(dto.id),
+    code: dto.code,
+    title: dto.title,
+    description: dto.description ?? '',
+    isActive: dto.is_active,
+    backgroundColor: dto.background_color || '#FFFFFF',
+    textColor: dto.text_color || '#000000',
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+    createdBy: dto.created_by_name,
+    updatedBy: dto.updated_by_name,
+  }
 }
 
-async function fetchProgramsPlaceholder(
-  filters: ProgramListFilters,
-): Promise<ProgramListResponse> {
-  await delay(PLACEHOLDER_DELAY_MS)
+function toWritePayload(values: ProgramFormValues) {
+  return {
+    code: values.code.trim(),
+    title: values.title.trim(),
+    description: values.description.trim() || null,
+    is_active: values.isActive,
+    background_color: values.backgroundColor.trim(),
+    text_color: values.textColor.trim(),
+  }
+}
 
-  const data = filterPlaceholderPrograms(
-    useProgramsStore.getState().items,
-    filters,
-  )
+async function fetchProgramPage(params: {
+  page: number
+  page_size: number
+  search?: string
+  is_active?: boolean
+}) {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<ProgramDto[]> & { meta: PaginatedMeta | null }
+  >('/programs', { params })
 
   return {
-    data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-    },
+    items: (data.data ?? []).map(mapProgram),
+    total: data.meta?.count ?? data.data?.length ?? 0,
   }
 }
 
 export async function fetchPrograms(
   filters: ProgramListFilters = {},
 ): Promise<ProgramListResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
+  const search = filters.search?.trim() || undefined
+  const isActive =
+    filters.isActive === 'active'
+      ? true
+      : filters.isActive === 'inactive'
+        ? false
+        : undefined
 
-  if (hasApiBaseUrl) {
-    try {
-      return await fetchProgramsFromApi(filters)
-    } catch {
-      return fetchProgramsPlaceholder(filters)
-    }
+  const pageSize = 100
+  const first = await fetchProgramPage({
+    page: 1,
+    page_size: pageSize,
+    search,
+    is_active: isActive,
+  })
+
+  const items = [...first.items]
+  let page = 2
+
+  while (items.length < first.total) {
+    const next = await fetchProgramPage({
+      page,
+      page_size: pageSize,
+      search,
+      is_active: isActive,
+    })
+    if (next.items.length === 0) break
+    items.push(...next.items)
+    page += 1
   }
 
-  return fetchProgramsPlaceholder(filters)
+  return {
+    data: items,
+    meta: { total: first.total },
+  }
+}
+
+export async function fetchProgram(id: string): Promise<ProgramListItem> {
+  const { data } = await httpClient.get<ApiSuccessEnvelope<ProgramDto>>(
+    `/programs/${id}`,
+  )
+  return mapProgram(data.data)
+}
+
+export async function createProgram(
+  values: ProgramFormValues,
+): Promise<ProgramListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ProgramDto>>(
+    '/programs',
+    toWritePayload(values),
+  )
+  return mapProgram(data.data)
+}
+
+export async function updateProgram(
+  id: string,
+  values: ProgramFormValues,
+): Promise<ProgramListItem> {
+  const { data } = await httpClient.patch<ApiSuccessEnvelope<ProgramDto>>(
+    `/programs/${id}`,
+    toWritePayload(values),
+  )
+  return mapProgram(data.data)
+}
+
+export async function deleteProgram(id: string): Promise<void> {
+  await httpClient.delete(`/programs/${id}`)
+}
+
+export function programToFormValues(
+  program: ProgramListItem,
+): ProgramFormValues {
+  return {
+    code: program.code,
+    title: program.title,
+    description: program.description,
+    isActive: program.isActive,
+    backgroundColor: program.backgroundColor,
+    textColor: program.textColor,
+  }
+}
+
+export const emptyProgramFormValues: ProgramFormValues = {
+  code: '',
+  title: '',
+  description: '',
+  isActive: true,
+  backgroundColor: '#4274B9',
+  textColor: '#FFFFFF',
 }

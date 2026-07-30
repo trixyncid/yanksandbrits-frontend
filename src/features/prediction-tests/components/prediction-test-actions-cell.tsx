@@ -2,10 +2,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { deletePredictionTest } from '../api/prediction-tests-api'
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
-import { usePredictionTestsStore } from '../store/prediction-tests-store'
 import type { PredictionTestListItem } from '../types/prediction-test'
 
 export function PredictionTestActionsCell({
@@ -15,7 +16,6 @@ export function PredictionTestActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const removeTest = usePredictionTestsStore((state) => state.remove)
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -40,14 +40,22 @@ export function PredictionTestActionsCell({
             title: 'Delete prediction test?',
             description: `This will permanently remove ${test.studentName}. This action cannot be undone.`,
             onConfirm: () => {
-              removeTest(test.id)
-              void queryClient.invalidateQueries({
-                queryKey: predictionTestQueryKeys.all,
-              })
-              notify('success', {
-                title: 'Prediction test deleted',
-                description: `${test.studentName} has been removed.`,
-              })
+              void deletePredictionTest(test.id)
+                .then(async () => {
+                  await queryClient.invalidateQueries({
+                    queryKey: predictionTestQueryKeys.all,
+                  })
+                  notify('success', {
+                    title: 'Prediction test deleted',
+                    description: `${test.studentName} has been removed.`,
+                  })
+                })
+                .catch((error) => {
+                  notify('error', {
+                    title: 'Unable to delete prediction test',
+                    description: getApiErrorMessage(error),
+                  })
+                })
             },
           })
         }

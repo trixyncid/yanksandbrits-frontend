@@ -10,7 +10,9 @@ export const newStudentFormSchema = z.object({
   gender: z.enum(['male', 'female'], {
     message: 'Select a gender.',
   }),
-  course: z.string().min(1, 'Select a course.'),
+  course: z.enum(['TOE', 'GET', 'IEL', 'SAT', 'HSK', 'OT'], {
+    message: 'Select a course.',
+  }),
   status: z.enum([
     'waiting',
     'follow_up',
@@ -18,6 +20,6 @@ export const newStudentFormSchema = z.object({
     'prediction_test',
     'cancelled',
   ]),
-  educationCounsellor: z.string().min(1, 'Select an education counsellor.'),
-  branch: z.string().min(1, 'Select a branch.'),
+  marketingId: z.string().min(1, 'Select an education counsellor.'),
+  branchId: z.string().min(1, 'Select a branch.'),
 })

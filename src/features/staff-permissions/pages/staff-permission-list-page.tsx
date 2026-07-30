@@ -43,11 +43,7 @@ export default function StaffPermissionListPage() {
         {permissionsQuery.isSuccess ? (
           <DataTable
             title="Staff Group List"
-            description={
-              permissionsQuery.data.meta.source === 'placeholder'
-                ? 'Manage staff permission groups. Currently using placeholder data until the API is connected.'
-                : 'Manage staff permission groups.'
-            }
+            description="Manage staff permission groups."
             totalLabel="groups"
             columns={staffPermissionListColumns}
             data={permissionsQuery.data.data}
@@ -65,7 +61,8 @@ export default function StaffPermissionListPage() {
                     void permissionsQuery.refetch().then(() => {
                       notify('success', {
                         title: 'Staff permissions refreshed',
-                        description: 'Latest placeholder data has been loaded.',
+                        description:
+                          'Latest staff permission data has been loaded.',
                       })
                     })
                   }}
@@ -78,7 +75,7 @@ export default function StaffPermissionListPage() {
                 <Button
                   onClick={() =>
                     notify('info', {
-                      title: 'Add group placeholder',
+                      title: 'Add group',
                       description:
                         'The create staff permission group form will be added later.',
                     })

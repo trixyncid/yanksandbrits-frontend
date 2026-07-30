@@ -8,4 +8,6 @@ export const studentResponseQueryKeys = {
   lists: () => [...studentResponseQueryKeys.all, 'list'] as const,
   list: (filters: StudentResponseListFilters = {}) =>
     [...studentResponseQueryKeys.lists(), filters] as const,
+  details: () => [...studentResponseQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...studentResponseQueryKeys.details(), id] as const,
 }

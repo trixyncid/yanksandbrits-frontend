@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createStudentGroup,
+  emptyStudentGroupFormValues,
+  updateStudentGroup,
+} from '../api/student-groups-api'
 import { studentGroupQueryKeys } from '../api/student-group-query-keys'
-import { emptyStudentGroupFormValues } from '../data/student-groups-placeholder'
 import { studentGroupFormSchema } from '../schema/student-group-form-schema'
-import { useStudentGroupsStore } from '../store/student-groups-store'
 import type {
   StudentGroupFormErrors,
   StudentGroupFormValues,
@@ -25,8 +29,6 @@ export function useStudentGroupForm({
 }: UseStudentGroupFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addGroup = useStudentGroupsStore((state) => state.add)
-  const updateGroup = useStudentGroupsStore((state) => state.update)
   const [values, setValues] = useState<StudentGroupFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentGroupFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,9 +69,7 @@ export function useStudentGroupForm({
     if (!isValid) {
       notify('error', {
         title:
-          mode === 'create'
-            ? 'Unable to add group'
-            : 'Unable to update group',
+          mode === 'create' ? 'Unable to add group' : 'Unable to update group',
         description: 'Please check the highlighted fields and try again.',
       })
       return
@@ -78,10 +78,8 @@ export function useStudentGroupForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addGroup(values)
+        const created = await createStudentGroup(values)
         await queryClient.invalidateQueries({
           queryKey: studentGroupQueryKeys.all,
         })
@@ -97,16 +95,7 @@ export function useStudentGroupForm({
         return
       }
 
-      const updated = updateGroup(groupId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Group not found',
-          description: 'This student group could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updateStudentGroup(groupId, values)
       await queryClient.invalidateQueries({
         queryKey: studentGroupQueryKeys.all,
       })
@@ -115,6 +104,12 @@ export function useStudentGroupForm({
         description: `${updated.groupName} has been saved.`,
       })
       void navigate({ to: '/student-groups' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create' ? 'Unable to add group' : 'Unable to update group',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

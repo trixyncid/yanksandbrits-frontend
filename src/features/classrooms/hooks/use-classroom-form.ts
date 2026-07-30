@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createClassroom,
+  emptyClassroomFormValues,
+  updateClassroom,
+} from '../api/classrooms-api'
 import { classroomQueryKeys } from '../api/classroom-query-keys'
-import { emptyClassroomFormValues } from '../data/classrooms-placeholder'
 import { classroomFormSchema } from '../schema/classroom-form-schema'
-import { useClassroomsStore } from '../store/classrooms-store'
 import type {
   ClassroomFormErrors,
   ClassroomFormValues,
@@ -25,8 +29,6 @@ export function useClassroomForm({
 }: UseClassroomFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addClassroom = useClassroomsStore((state) => state.add)
-  const updateClassroom = useClassroomsStore((state) => state.update)
   const [values, setValues] = useState<ClassroomFormValues>(initialValues)
   const [errors, setErrors] = useState<ClassroomFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,10 +80,8 @@ export function useClassroomForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addClassroom(values)
+        const created = await createClassroom(values)
         await queryClient.invalidateQueries({
           queryKey: classroomQueryKeys.all,
         })
@@ -97,16 +97,7 @@ export function useClassroomForm({
         return
       }
 
-      const updated = updateClassroom(classroomId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Classroom not found',
-          description: 'This classroom could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updateClassroom(classroomId, values)
       await queryClient.invalidateQueries({
         queryKey: classroomQueryKeys.all,
       })
@@ -115,6 +106,14 @@ export function useClassroomForm({
         description: `${updated.className} has been saved.`,
       })
       void navigate({ to: '/classrooms' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to add classroom'
+            : 'Unable to update classroom',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

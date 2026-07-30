@@ -1,8 +1,11 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { FileDown } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { downloadTutorSalaryPdf } from '../api/tutor-report-api'
 import type { TutorReportListItem } from '../types/tutor-report'
 
 function formatCurrency(amount: number) {
@@ -11,6 +14,43 @@ function formatCurrency(amount: number) {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function TutorPdfButton({ item }: { item: TutorReportListItem }) {
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  return (
+    <button
+      type="button"
+      disabled={isDownloading}
+      onClick={() => {
+        void (async () => {
+          setIsDownloading(true)
+          try {
+            await downloadTutorSalaryPdf(
+              item.id,
+              `tutor-salary-${item.tutorPin}.pdf`,
+            )
+            notify('success', {
+              title: 'PDF downloaded',
+              description: `${item.tutorName} salary report saved.`,
+            })
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to download PDF',
+              description: getApiErrorMessage(error),
+            })
+          } finally {
+            setIsDownloading(false)
+          }
+        })()
+      }}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9] disabled:opacity-60"
+    >
+      <FileDown className="size-3.5" />
+      {isDownloading ? '…' : 'PDF'}
+    </button>
+  )
 }
 
 export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
@@ -148,19 +188,7 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     ),
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={() =>
-            notify('info', {
-              title: 'Export PDF placeholder',
-              description: `${row.original.tutorName} salary PDF will be connected later.`,
-            })
-          }
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
-        >
-          <FileDown className="size-3.5" />
-          PDF
-        </button>
+        <TutorPdfButton item={row.original} />
       </div>
     ),
   },

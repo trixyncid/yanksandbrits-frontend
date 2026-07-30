@@ -2,11 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  createStudentResponse,
+  emptyStudentResponseFormValues,
+  updateStudentResponse,
+} from '../api/student-responses-api'
 import { studentResponseQueryKeys } from '../api/student-response-query-keys'
-import { emptyStudentResponseFormValues } from '../data/student-responses-placeholder'
 import { studentResponseFormSchema } from '../schema/student-response-form-schema'
-import { useStudentResponsesStore } from '../store/student-responses-store'
 import type {
   StudentResponseFormErrors,
   StudentResponseFormValues,
@@ -25,8 +29,6 @@ export function useStudentResponseForm({
 }: UseStudentResponseFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const addResponse = useStudentResponsesStore((state) => state.add)
-  const updateResponse = useStudentResponsesStore((state) => state.update)
   const [values, setValues] = useState<StudentResponseFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentResponseFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,10 +80,8 @@ export function useStudentResponseForm({
     setIsSubmitting(true)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-
       if (mode === 'create') {
-        const created = addResponse(values)
+        const created = await createStudentResponse(values)
         await queryClient.invalidateQueries({
           queryKey: studentResponseQueryKeys.all,
         })
@@ -97,16 +97,7 @@ export function useStudentResponseForm({
         return
       }
 
-      const updated = updateResponse(responseId, values)
-
-      if (!updated) {
-        notify('error', {
-          title: 'Response not found',
-          description: 'This response could not be updated.',
-        })
-        return
-      }
-
+      const updated = await updateStudentResponse(responseId, values)
       await queryClient.invalidateQueries({
         queryKey: studentResponseQueryKeys.all,
       })
@@ -115,6 +106,14 @@ export function useStudentResponseForm({
         description: `${updated.title} has been saved.`,
       })
       void navigate({ to: '/student-responses' })
+    } catch (error) {
+      notify('error', {
+        title:
+          mode === 'create'
+            ? 'Unable to add response'
+            : 'Unable to update response',
+        description: getApiErrorMessage(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

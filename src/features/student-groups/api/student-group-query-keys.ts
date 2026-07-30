@@ -9,4 +9,6 @@ export const studentGroupQueryKeys = {
   lists: () => [...studentGroupQueryKeys.all, 'list'] as const,
   list: (filters: StudentGroupListFilters = {}) =>
     [...studentGroupQueryKeys.lists(), filters] as const,
+  details: () => [...studentGroupQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...studentGroupQueryKeys.details(), id] as const,
 }

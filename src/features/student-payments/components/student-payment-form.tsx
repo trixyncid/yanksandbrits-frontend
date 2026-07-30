@@ -1,15 +1,13 @@
-import { parseISO } from 'date-fns'
 import { ImagePlus } from 'lucide-react'
 import type { FormEvent, ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
-import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
-import { studentPaymentStudentOptions } from '../data/student-payments-placeholder'
+import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentFormValues,
@@ -47,6 +45,24 @@ function Field({
   )
 }
 
+type StudentPaymentFormProps = {
+  mode: 'create' | 'edit'
+  values: StudentPaymentFormValues
+  errors: StudentPaymentFormErrors
+  isSubmitting: boolean
+  meta?: Pick<
+    StudentPaymentListItem,
+    'createdBy' | 'branch' | 'transactionDate'
+  >
+  onChange: <K extends keyof StudentPaymentFormValues>(
+    field: K,
+    value: StudentPaymentFormValues[K],
+  ) => void
+  onSubmit: () => void | Promise<void>
+  onCancel: () => void
+  onDelete?: () => void
+}
+
 function formatDate(value: string) {
   if (!value) {
     return '—'
@@ -57,44 +73,6 @@ function formatDate(value: string) {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(value))
-}
-
-function parseDateValue(value: string) {
-  if (!value) {
-    return undefined
-  }
-
-  try {
-    return parseISO(value.length === 10 ? `${value}T00:00:00` : value)
-  } catch {
-    return undefined
-  }
-}
-
-function toDateString(date: Date | undefined) {
-  if (!date) {
-    return ''
-  }
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-type StudentPaymentFormProps = {
-  mode: 'create' | 'edit'
-  values: StudentPaymentFormValues
-  errors: StudentPaymentFormErrors
-  isSubmitting: boolean
-  meta?: Pick<StudentPaymentListItem, 'createdBy' | 'branch'>
-  onChange: <K extends keyof StudentPaymentFormValues>(
-    field: K,
-    value: StudentPaymentFormValues[K],
-  ) => void
-  onSubmit: () => void | Promise<void>
-  onCancel: () => void
-  onDelete?: () => void
 }
 
 export function StudentPaymentForm({
@@ -108,6 +86,9 @@ export function StudentPaymentForm({
   onCancel,
   onDelete,
 }: StudentPaymentFormProps) {
+  const studentsQuery = useStudentsQuery({ status: 'active' })
+  const students = studentsQuery.data?.data ?? []
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -128,39 +109,23 @@ export function StudentPaymentForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Student Name"
-            htmlFor="studentPin"
-            error={errors.studentPin}
+            htmlFor="studentId"
+            error={errors.studentId}
           >
             <Select
-              id="studentPin"
+              id="studentId"
               containerClassName="w-full sm:w-full"
-              value={values.studentPin}
-              onChange={(event) => onChange('studentPin', event.target.value)}
+              value={values.studentId}
+              onChange={(event) => onChange('studentId', event.target.value)}
+              disabled={studentsQuery.isLoading}
             >
               <option value="">Select student...</option>
-              {studentPaymentStudentOptions.map((option) => (
-                <option key={option.pin} value={option.pin}>
+              {students.map((option) => (
+                <option key={option.id} value={option.id}>
                   {option.pin} | {option.fullName}
                 </option>
               ))}
             </Select>
-          </Field>
-
-          <Field
-            label="Transaction Date"
-            htmlFor="transactionDate"
-            error={errors.transactionDate}
-          >
-            <DatePicker
-              value={parseDateValue(values.transactionDate)}
-              onChange={(date) =>
-                onChange('transactionDate', toDateString(date))
-              }
-              placeholder="Pick transaction date"
-              title="Transaction date"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
-              align="start"
-            />
           </Field>
 
           <Field label="Title" htmlFor="title" error={errors.title}>
@@ -180,22 +145,7 @@ export function StudentPaymentForm({
               placeholder="0"
             />
           </Field>
-        </div>
 
-        <Field
-          label="Description"
-          htmlFor="description"
-          error={errors.description}
-        >
-          <Textarea
-            id="description"
-            value={values.description}
-            onChange={(event) => onChange('description', event.target.value)}
-            placeholder="Optional notes about this transaction"
-          />
-        </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Transaction Status"
             htmlFor="status"
@@ -217,31 +167,44 @@ export function StudentPaymentForm({
               <option value="void">Void</option>
             </Select>
           </Field>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="paymentProof">Payment Proof</Label>
-            <label
-              htmlFor="paymentProof"
-              className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-[#F4F6FA] px-4 text-sm text-slate-600 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF]"
-            >
-              <ImagePlus className="size-4 text-[#4274B9]" />
-              <span className="flex-1 truncate">
-                {values.hasPaymentProof
-                  ? 'Proof attached (placeholder)'
-                  : 'Click to mark proof as attached'}
-              </span>
-              <input
-                id="paymentProof"
-                type="checkbox"
-                className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-                checked={values.hasPaymentProof}
-                onChange={(event) =>
-                  onChange('hasPaymentProof', event.target.checked)
-                }
-              />
-            </label>
-            <FieldError message={errors.hasPaymentProof} />
-          </div>
+        <Field
+          label="Description"
+          htmlFor="description"
+          error={errors.description}
+        >
+          <Textarea
+            id="description"
+            value={values.description}
+            onChange={(event) => onChange('description', event.target.value)}
+            placeholder="Optional notes about this transaction"
+          />
+        </Field>
+
+        <div className="space-y-2">
+          <Label htmlFor="paymentProof">Payment Proof</Label>
+          <label
+            htmlFor="paymentProof"
+            className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-[#F4F6FA] px-4 text-sm text-slate-600 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF]"
+          >
+            <ImagePlus className="size-4 text-[#4274B9]" />
+            <span className="flex-1 truncate">
+              {values.hasPaymentProof
+                ? 'Proof on file'
+                : 'No proof attached yet'}
+            </span>
+            <input
+              id="paymentProof"
+              type="checkbox"
+              className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+              checked={values.hasPaymentProof}
+              onChange={(event) =>
+                onChange('hasPaymentProof', event.target.checked)
+              }
+            />
+          </label>
+          <FieldError message={errors.hasPaymentProof} />
         </div>
       </section>
 
@@ -266,7 +229,7 @@ export function StudentPaymentForm({
               <div className="sm:col-span-2">
                 <dt className="text-xs text-slate-400">Transaction date</dt>
                 <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDate(values.transactionDate)}
+                  {formatDate(meta.transactionDate)}
                 </dd>
               </div>
             </dl>

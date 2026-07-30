@@ -7,7 +7,7 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { cn } from '../../../shared/lib/cn'
-import { studentGroupMemberOptions } from '../data/student-groups-placeholder'
+import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import type {
   StudentGroupFormErrors,
   StudentGroupFormValues,
@@ -85,38 +85,38 @@ export function StudentGroupForm({
   onDelete,
 }: StudentGroupFormProps) {
   const [memberSearch, setMemberSearch] = useState('')
+  const studentsQuery = useStudentsQuery({ status: 'active' })
+  const studentOptions = studentsQuery.data?.data ?? []
 
   const selectedMembers = useMemo(
     () =>
-      studentGroupMemberOptions.filter((option) =>
-        values.memberPins.includes(option.pin),
-      ),
-    [values.memberPins],
+      studentOptions.filter((option) => values.memberIds.includes(option.id)),
+    [studentOptions, values.memberIds],
   )
 
   const visibleOptions = useMemo(() => {
     const query = memberSearch.trim().toLowerCase()
     if (!query) {
-      return studentGroupMemberOptions
+      return studentOptions
     }
 
-    return studentGroupMemberOptions.filter((option) =>
+    return studentOptions.filter((option) =>
       `${option.fullName} ${option.pin} ${option.branch}`
         .toLowerCase()
         .includes(query),
     )
-  }, [memberSearch])
+  }, [memberSearch, studentOptions])
 
-  function toggleMember(pin: string) {
-    if (values.memberPins.includes(pin)) {
+  function toggleMember(id: string) {
+    if (values.memberIds.includes(id)) {
       onChange(
-        'memberPins',
-        values.memberPins.filter((value) => value !== pin),
+        'memberIds',
+        values.memberIds.filter((value) => value !== id),
       )
       return
     }
 
-    onChange('memberPins', [...values.memberPins, pin])
+    onChange('memberIds', [...values.memberIds, id])
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -181,9 +181,9 @@ export function StudentGroupForm({
           <div className="flex flex-wrap gap-2">
             {selectedMembers.map((member) => (
               <button
-                key={member.pin}
+                key={member.id}
                 type="button"
-                onClick={() => toggleMember(member.pin)}
+                onClick={() => toggleMember(member.id)}
                 className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF4FF] px-3 py-1.5 text-xs font-semibold text-[#2F5A94] ring-1 ring-[#BED2F2] transition hover:bg-[#DCE9FB]"
               >
                 {member.fullName}
@@ -196,8 +196,8 @@ export function StudentGroupForm({
         <Field
           label="Students"
           htmlFor="memberSearch"
-          error={errors.memberPins}
-          hint={`${values.memberPins.length} selected`}
+          error={errors.memberIds}
+          hint={`${values.memberIds.length} selected`}
         >
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F8FAFC]">
             <div className="relative border-b border-slate-200 bg-white px-3 py-2">
@@ -212,17 +212,21 @@ export function StudentGroupForm({
             </div>
 
             <div className="max-h-72 space-y-1 overflow-y-auto p-2">
-              {visibleOptions.length === 0 ? (
+              {studentsQuery.isLoading ? (
+                <p className="px-3 py-8 text-center text-sm text-slate-500">
+                  Loading students...
+                </p>
+              ) : visibleOptions.length === 0 ? (
                 <p className="px-3 py-8 text-center text-sm text-slate-500">
                   No students match your search.
                 </p>
               ) : (
                 visibleOptions.map((option) => {
-                  const selected = values.memberPins.includes(option.pin)
+                  const selected = values.memberIds.includes(option.id)
 
                   return (
                     <label
-                      key={option.pin}
+                      key={option.id}
                       className={cn(
                         'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition',
                         selected
@@ -233,7 +237,7 @@ export function StudentGroupForm({
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={() => toggleMember(option.pin)}
+                        onChange={() => toggleMember(option.id)}
                         className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
                       />
                       <span className="min-w-0 flex-1">

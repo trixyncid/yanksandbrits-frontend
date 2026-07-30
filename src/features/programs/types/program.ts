@@ -8,7 +8,8 @@ export type ProgramListItem = {
   textColor: string
   createdAt: string
   updatedAt: string
-  createdBy: string
+  createdBy: string | null
+  updatedBy: string | null
 }
 
 export type ProgramFormValues = {
@@ -20,4 +21,6 @@ export type ProgramFormValues = {
   textColor: string
 }
 
-export type ProgramFormErrors = Partial<Record<keyof ProgramFormValues, string>>
+export type ProgramFormErrors = Partial<
+  Record<keyof ProgramFormValues, string>
+>

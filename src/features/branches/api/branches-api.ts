@@ -1,86 +1,176 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { branchListPlaceholder } from '../data/branches-placeholder'
-import type { BranchListItem } from '../types/branch'
+import type { ApiSuccessEnvelope } from '../../../shared/api/types'
+import type {
+  BranchFormValues,
+  BranchListItem,
+  BrandOption,
+} from '../types/branch'
 import type { BranchListFilters } from './branch-query-keys'
 
 export type BranchListResponse = {
   data: BranchListItem[]
   meta: {
     total: number
-    source: 'api' | 'placeholder'
   }
 }
 
-const PLACEHOLDER_DELAY_MS = 450
-
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+type BranchDto = {
+  id: number
+  name: string
+  brand: number | null
+  brand_name: string | null
+  address: string | null
+  phone: string | null
+  created_at: string
+  updated_at: string
+  created_by: number | null
+  created_by_name: string | null
+  updated_by: number | null
+  updated_by_name: string | null
+  total_student: number
 }
 
-function filterPlaceholderBranches(
-  branches: BranchListItem[],
-  filters: BranchListFilters,
-) {
-  const search = filters.search?.trim().toLowerCase()
+type BrandDto = {
+  id: number
+  name: string
+}
 
-  if (!search) {
-    return branches
+type PaginatedMeta = {
+  count?: number
+  next?: string | null
+  previous?: string | null
+  page?: number
+  page_size?: number
+}
+
+function mapBranch(dto: BranchDto): BranchListItem {
+  return {
+    id: String(dto.id),
+    name: dto.name,
+    brandId: dto.brand == null ? null : String(dto.brand),
+    brandName: dto.brand_name,
+    phone: dto.phone ?? '',
+    address: dto.address ?? '',
+    totalStudent: dto.total_student,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+    createdBy: dto.created_by_name,
+    updatedBy: dto.updated_by_name,
   }
-
-  return branches.filter((item) => {
-    const haystack = [
-      item.name,
-      item.phone,
-      item.address,
-      String(item.totalStudent),
-    ]
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
 }
 
-async function fetchBranchesFromApi(
-  filters: BranchListFilters,
-): Promise<BranchListResponse> {
-  const { data } = await httpClient.get<BranchListResponse>('/api/branches', {
-    params: filters,
-  })
-
-  return data
+function toWritePayload(values: BranchFormValues) {
+  return {
+    name: values.name.trim(),
+    phone: values.phone.trim() || null,
+    address: values.address.trim() || null,
+    brand: values.brandId ? Number(values.brandId) : null,
+  }
 }
 
-async function fetchBranchesPlaceholder(
-  filters: BranchListFilters,
-): Promise<BranchListResponse> {
-  await delay(PLACEHOLDER_DELAY_MS)
-
-  const data = filterPlaceholderBranches(branchListPlaceholder, filters)
+async function fetchBranchPage(params: {
+  page: number
+  page_size: number
+  search?: string
+}) {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<BranchDto[]> & { meta: PaginatedMeta | null }
+  >('/branches', { params })
 
   return {
-    data,
-    meta: {
-      total: data.length,
-      source: 'placeholder',
-    },
+    items: (data.data ?? []).map(mapBranch),
+    total: data.meta?.count ?? data.data?.length ?? 0,
   }
 }
 
 export async function fetchBranches(
   filters: BranchListFilters = {},
 ): Promise<BranchListResponse> {
-  const hasApiBaseUrl = Boolean(import.meta.env.VITE_API_BASE_URL)
+  const search = filters.search?.trim() || undefined
+  const pageSize = 100
+  const first = await fetchBranchPage({
+    page: 1,
+    page_size: pageSize,
+    search,
+  })
 
-  if (hasApiBaseUrl) {
-    try {
-      return await fetchBranchesFromApi(filters)
-    } catch {
-      return fetchBranchesPlaceholder(filters)
-    }
+  const items = [...first.items]
+  let page = 2
+
+  while (items.length < first.total) {
+    const next = await fetchBranchPage({
+      page,
+      page_size: pageSize,
+      search,
+    })
+    if (next.items.length === 0) break
+    items.push(...next.items)
+    page += 1
   }
 
-  return fetchBranchesPlaceholder(filters)
+  return {
+    data: items,
+    meta: { total: first.total },
+  }
+}
+
+export async function fetchBranch(id: string): Promise<BranchListItem> {
+  const { data } = await httpClient.get<ApiSuccessEnvelope<BranchDto>>(
+    `/branches/${id}`,
+  )
+  return mapBranch(data.data)
+}
+
+export async function createBranch(
+  values: BranchFormValues,
+): Promise<BranchListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<BranchDto>>(
+    '/branches',
+    toWritePayload(values),
+  )
+  return mapBranch(data.data)
+}
+
+export async function updateBranch(
+  id: string,
+  values: BranchFormValues,
+): Promise<BranchListItem> {
+  const { data } = await httpClient.patch<ApiSuccessEnvelope<BranchDto>>(
+    `/branches/${id}`,
+    toWritePayload(values),
+  )
+  return mapBranch(data.data)
+}
+
+export async function deleteBranch(id: string): Promise<void> {
+  await httpClient.delete(`/branches/${id}`)
+}
+
+export function branchToFormValues(branch: BranchListItem): BranchFormValues {
+  return {
+    name: branch.name,
+    phone: branch.phone,
+    address: branch.address,
+    brandId: branch.brandId ?? '',
+  }
+}
+
+export const emptyBranchFormValues: BranchFormValues = {
+  name: '',
+  phone: '',
+  address: '',
+  brandId: '',
+}
+
+export async function fetchBrandOptions(): Promise<BrandOption[]> {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<BrandDto[]> & { meta: PaginatedMeta | null }
+  >('/brands', {
+    params: { page_size: 100 },
+  })
+
+  return (data.data ?? []).map((brand) => ({
+    id: String(brand.id),
+    name: brand.name,
+  }))
 }

@@ -1,13 +1,11 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { BadgeDollarSign, Eye, Trash2 } from 'lucide-react'
 
 import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
-import { notify } from '../../../shared/lib/notify'
 import type { MarketingListItem } from '../types/marketing'
+import { MarketingActionsCell } from './marketing-actions-cell'
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -24,6 +22,10 @@ function formatDateTime(value: string | null) {
 }
 
 function formatDate(value: string) {
+  if (!value) {
+    return '-'
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -142,55 +144,6 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
         Action
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`View marketing ${row.original.fullName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'View marketing placeholder',
-              description: `${row.original.fullName} detail page will be added later.`,
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-        >
-          <Eye className="size-3.5" />
-        </button>
-        {row.original.hasSalary ? (
-          <button
-            type="button"
-            aria-label={`Edit salary for ${row.original.fullName}`}
-            onClick={() =>
-              notify('info', {
-                title: 'Edit salary placeholder',
-                description: `${row.original.fullName} salary form will be added later.`,
-              })
-            }
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-          >
-            <BadgeDollarSign className="size-3.5" />
-          </button>
-        ) : null}
-        <button
-          type="button"
-          aria-label={`Delete marketing ${row.original.fullName}`}
-          onClick={() =>
-            requestDeleteConfirm({
-              title: 'Delete marketing?',
-              description: `This will permanently remove ${row.original.fullName}. This action cannot be undone.`,
-              onConfirm: () =>
-                notify('success', {
-                  title: 'Marketing deleted',
-                  description: `${row.original.fullName} has been removed (placeholder).`,
-                }),
-            })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-    ),
+    cell: ({ row }) => <MarketingActionsCell marketing={row.original} />,
   },
 ]

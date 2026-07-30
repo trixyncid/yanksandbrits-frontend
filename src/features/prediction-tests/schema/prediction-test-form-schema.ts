@@ -18,5 +18,5 @@ export const predictionTestFormSchema = z.object({
       message: 'Amount must be 0 or greater.',
     }),
   status: z.enum(['pending', 'approved', 'void']),
-  hasPaymentProof: z.boolean(),
+  paymentProofFile: z.instanceof(File).nullable(),
 })
