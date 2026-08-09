@@ -52,7 +52,6 @@ export default function BranchListPage() {
             searchPlaceholder="Search by name, phone, address..."
             globalFilterFn={filterBranch}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No branches found"
             toolbarActions={
               <>

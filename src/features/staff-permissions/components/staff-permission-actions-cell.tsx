@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Eye, Trash2 } from 'lucide-react'
 
@@ -13,17 +14,18 @@ export function StaffPermissionActionsCell({
 }: {
   group: StaffPermissionListItem
 }) {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   return (
     <div className="flex items-center justify-center gap-2">
       <button
         type="button"
-        aria-label={`View group ${group.name}`}
+        aria-label={`Edit group ${group.name}`}
         onClick={() =>
-          notify('info', {
-            title: 'Staff permission group',
-            description: `${group.name} permission editor will be added later.`,
+          void navigate({
+            to: '/staff-permissions/$groupId/edit',
+            params: { groupId: group.id },
           })
         }
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
@@ -35,8 +37,10 @@ export function StaffPermissionActionsCell({
         aria-label={`Delete group ${group.name}`}
         onClick={() =>
           requestDeleteConfirm({
-            title: 'Delete staff permission?',
-            description: `This will permanently remove ${group.name}. This action cannot be undone.`,
+            title: 'Delete role?',
+            description: group.isSystem
+              ? `This will permanently remove the built-in role ${group.name}. Users currently in this role will lose it. This action cannot be undone.`
+              : `This will permanently remove ${group.name}. This action cannot be undone.`,
             onConfirm: () => {
               void (async () => {
                 try {
@@ -45,12 +49,12 @@ export function StaffPermissionActionsCell({
                     queryKey: staffPermissionQueryKeys.all,
                   })
                   notify('success', {
-                    title: 'Staff permission deleted',
+                    title: 'Role deleted',
                     description: `${group.name} has been removed.`,
                   })
                 } catch (error) {
                   notify('error', {
-                    title: 'Unable to delete staff permission',
+                    title: 'Unable to delete role',
                     description: getApiErrorMessage(error),
                   })
                 }

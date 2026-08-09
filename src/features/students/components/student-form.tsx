@@ -12,7 +12,7 @@ import {
   useInstitutionOptionsQuery,
   useOccupationOptionsQuery,
 } from '../../lookups/hooks/use-lookup-options'
-import { useCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
+import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
   StudentFormErrors,
   StudentFormValues,
@@ -97,7 +97,7 @@ export function StudentForm({
   const branchesQuery = useBranchesQuery()
   const occupationsQuery = useOccupationOptionsQuery()
   const institutionsQuery = useInstitutionOptionsQuery()
-  const counsellorsQuery = useCounsellorOptionsQuery()
+  const counsellorsQuery = useMarketingOptionsQuery()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -232,6 +232,7 @@ export function StudentForm({
               onChange={(date) => onChange('birthDate', toDateString(date))}
               placeholder="Pick birth date"
               title="Birth date"
+              captionLayout="dropdown"
               className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
               align="start"
             />

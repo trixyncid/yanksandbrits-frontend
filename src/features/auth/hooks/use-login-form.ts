@@ -5,6 +5,7 @@ import { notify } from '../../../shared/lib/notify'
 import { getApiErrorMessage, login, logout } from '../api/auth-api'
 import { loginFormSchema } from '../schema/login-form-schema'
 import { useAuthStore } from '../store/auth-store'
+import { hasAuthRole } from '../types/auth'
 import type {
   LoginFormErrors,
   LoginFormValues,
@@ -73,7 +74,10 @@ export function useLoginForm() {
         remember_me: values.rememberMe,
       })
 
-      if (result.user.is_student) {
+      const isStudent =
+        hasAuthRole(result.user, 'student') || Boolean(result.user.is_student)
+
+      if (isStudent) {
         try {
           await logout()
         } catch {
@@ -89,7 +93,11 @@ export function useLoginForm() {
       }
 
       setSession({
-        user: result.user,
+        user: {
+          ...result.user,
+          roles: result.user.roles ?? [],
+          permissions: result.user.permissions ?? [],
+        },
         rememberMe: values.rememberMe,
       })
 

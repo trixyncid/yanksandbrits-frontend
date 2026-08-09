@@ -51,7 +51,6 @@ export default function ProgramListPage() {
             searchPlaceholder="Search by code, title, description..."
             globalFilterFn={filterProgram}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No programs found"
             toolbarActions={
               <>

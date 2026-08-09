@@ -7,7 +7,6 @@ import {
   FolderKanban,
   GraduationCap,
   LayoutDashboard,
-  MessageSquareText,
   Megaphone,
   PieChart,
   Receipt,
@@ -21,14 +20,12 @@ export type AppPath =
   | '/dashboard'
   | '/students'
   | '/students/new'
-  | '/student-responses'
-  | '/student-responses/new'
   | '/student-groups'
   | '/student-groups/new'
   | '/student-payments'
   | '/student-payments/new'
-  | '/new-students'
-  | '/new-students/new'
+  | '/prospective-students'
+  | '/prospective-students/new'
   | '/prediction-tests'
   | '/prediction-tests/new'
   | '/programs'
@@ -36,7 +33,7 @@ export type AppPath =
   | '/classrooms'
   | '/classrooms/new'
   | '/full-schedule'
-  | '/staff'
+  | '/users'
   | '/tutors'
   | '/marketings'
   | '/staff-permissions'
@@ -80,8 +77,8 @@ export const adminNavigation: NavigationItem[] = [
     to: '/dashboard',
   },
   {
-    id: 'student-data',
-    label: 'Student Data',
+    id: 'students',
+    label: 'Students',
     icon: Users,
     children: [
       {
@@ -103,10 +100,10 @@ export const adminNavigation: NavigationItem[] = [
         to: '/student-payments',
       },
       {
-        id: 'student-response',
-        label: 'Student Response',
-        icon: MessageSquareText,
-        to: '/student-responses',
+        id: 'student-report',
+        label: 'Student Report',
+        icon: PieChart,
+        to: '/student-report',
       },
     ],
   },
@@ -116,10 +113,10 @@ export const adminNavigation: NavigationItem[] = [
     icon: Megaphone,
     children: [
       {
-        id: 'new-student',
-        label: 'New Student',
+        id: 'prospective-student',
+        label: 'Prospective Student',
         icon: Users,
-        to: '/new-students',
+        to: '/prospective-students',
       },
       {
         id: 'prediction-test',
@@ -130,8 +127,8 @@ export const adminNavigation: NavigationItem[] = [
     ],
   },
   {
-    id: 'academic-data',
-    label: 'Academic Data',
+    id: 'academics',
+    label: 'Academics',
     icon: School,
     children: [
       {
@@ -146,24 +143,30 @@ export const adminNavigation: NavigationItem[] = [
         icon: School,
         to: '/classrooms',
       },
+      {
+        id: 'full-schedule',
+        label: 'Full Schedule',
+        icon: CalendarDays,
+        to: '/full-schedule',
+      },
+      {
+        id: 'appointment-by-tutor',
+        label: 'Tutor Sessions',
+        icon: CalendarDays,
+        to: '/appointment-by-tutor',
+      },
     ],
   },
   {
-    id: 'full-schedule',
-    label: 'Full Schedule',
-    icon: CalendarDays,
-    to: '/full-schedule',
-  },
-  {
-    id: 'staff-data',
-    label: 'Staff Data',
+    id: 'staff',
+    label: 'Staff',
     icon: FolderKanban,
     children: [
       {
         id: 'staff-list',
-        label: 'Staff List',
+        label: 'Users',
         icon: Users,
-        to: '/staff',
+        to: '/users',
       },
       {
         id: 'tutor-list',
@@ -179,23 +182,23 @@ export const adminNavigation: NavigationItem[] = [
       },
       {
         id: 'staff-permission',
-        label: 'Staff Permission',
+        label: 'Roles',
         icon: ShieldCheck,
         to: '/staff-permissions',
+      },
+      {
+        id: 'paid-leave',
+        label: 'Paid Leave',
+        icon: ClipboardList,
+        to: '/paid-leaves',
       },
     ],
   },
   {
-    id: 'report',
-    label: 'Report',
+    id: 'finance',
+    label: 'Finance',
     icon: Receipt,
     children: [
-      {
-        id: 'student-report',
-        label: 'Student Report',
-        icon: PieChart,
-        to: '/student-report',
-      },
       {
         id: 'bookkeeping',
         label: 'Bookkeeping',
@@ -215,18 +218,6 @@ export const adminNavigation: NavigationItem[] = [
         to: '/marketing-report',
       },
     ],
-  },
-  {
-    id: 'appointment-by-tutor',
-    label: 'Appointment By Tutor',
-    icon: CalendarDays,
-    to: '/appointment-by-tutor',
-  },
-  {
-    id: 'paid-leave',
-    label: 'Paid Leave',
-    icon: ClipboardList,
-    to: '/paid-leaves',
   },
   {
     id: 'branch',

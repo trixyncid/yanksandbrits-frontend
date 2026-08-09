@@ -1,4 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
+import { adminPath } from '../../../shared/api/paths'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type {
   TimetableColumn,
@@ -9,7 +10,11 @@ import { fetchClassrooms } from '../../classrooms/api/classrooms-api'
 import type {
   ScheduleDetail,
   ScheduleFormValues,
-  ScheduleStatusCode,
+  ScheduleStatusUi,
+} from '../types/schedule'
+import {
+  mapScheduleStatusFromApi,
+  mapScheduleStatusToApi,
 } from '../types/schedule'
 
 export type DayScheduleRow = {
@@ -56,10 +61,10 @@ type ClassScheduleDetailDto = {
   status: string
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  '1_ON': 'ONGOING',
-  '2_FN': 'FINISHED',
-  '3_CN': 'CANCELLED',
+const STATUS_LABEL: Record<ScheduleStatusUi, string> = {
+  ongoing: 'ONGOING',
+  finished: 'FINISHED',
+  cancelled: 'CANCELLED',
 }
 
 function hourFromIso(iso: string | null): number {
@@ -153,6 +158,8 @@ function mapDayRows(
         'Class'
       const participantCount = row.participants?.length ?? 0
 
+      const status = mapScheduleStatusFromApi(row.status)
+
       return {
         id: String(row.id),
         columnId,
@@ -160,8 +167,8 @@ function mapDayRows(
         subtitle: row.program ?? row.description ?? '—',
         startHour,
         durationHours: Math.max(endHour - startHour, 0.5),
-        tone: toneFromScheduleStatus(row.status),
-        status: STATUS_LABEL[row.status] ?? row.status,
+        tone: toneFromScheduleStatus(status),
+        status: STATUS_LABEL[status],
         meta:
           participantCount > 0
             ? `${participantCount} students`
@@ -194,7 +201,7 @@ function mapScheduleDetail(dto: ClassScheduleDetailDto): ScheduleDetail {
     description: dto.description ?? '',
     startTime: dto.start_time,
     endTime: dto.end_time,
-    status: (dto.status as ScheduleStatusCode) || '1_ON',
+    status: mapScheduleStatusFromApi(dto.status),
   }
 }
 
@@ -214,7 +221,7 @@ function toWritePayload(values: ScheduleFormValues) {
     description: values.description.trim() || null,
     start_time: toScheduleDateTime(values.date, values.startTime),
     end_time: toScheduleDateTime(values.date, values.endTime),
-    status: values.status,
+    status: mapScheduleStatusToApi(values.status),
   }
 }
 
@@ -224,7 +231,7 @@ export async function fetchDaySchedule(
 ): Promise<DayScheduleResult> {
   const [scheduleResponse, classrooms] = await Promise.all([
     httpClient.get<ApiSuccessEnvelope<DayScheduleRow[]>>(
-      '/class-schedules/day',
+      adminPath('/class-schedules/day'),
       {
         params: {
           schedule_date: date,
@@ -256,7 +263,7 @@ export async function fetchDaySchedule(
 export async function fetchClassSchedule(id: string): Promise<ScheduleDetail> {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<ClassScheduleDetailDto>
-  >(`/class-schedules/${id}`)
+  >(adminPath(`/class-schedules/${id}`))
   return mapScheduleDetail(data.data)
 }
 
@@ -265,7 +272,7 @@ export async function createClassSchedule(
 ): Promise<ScheduleDetail> {
   const { data } = await httpClient.post<
     ApiSuccessEnvelope<ClassScheduleDetailDto>
-  >('/class-schedules', toWritePayload(values))
+  >(adminPath('/class-schedules'), toWritePayload(values))
   return mapScheduleDetail(data.data)
 }
 
@@ -275,12 +282,12 @@ export async function updateClassSchedule(
 ): Promise<ScheduleDetail> {
   const { data } = await httpClient.patch<
     ApiSuccessEnvelope<ClassScheduleDetailDto>
-  >(`/class-schedules/${id}`, toWritePayload(values))
+  >(adminPath(`/class-schedules/${id}`), toWritePayload(values))
   return mapScheduleDetail(data.data)
 }
 
 export async function deleteClassSchedule(id: string): Promise<void> {
-  await httpClient.delete(`/class-schedules/${id}`)
+  await httpClient.delete(adminPath(`/class-schedules/${id}`))
 }
 
 export function scheduleToFormValues(
@@ -300,7 +307,8 @@ export function scheduleToFormValues(
     date: start.date,
     startTime: start.time,
     endTime: end.time,
-    status: schedule.status,
+    // Normalize again in case cached/partial payloads still carry API codes.
+    status: mapScheduleStatusFromApi(schedule.status),
   }
 }
 
@@ -316,7 +324,7 @@ export function emptyScheduleFormValues(overrides: Partial<ScheduleFormValues> =
     date: '',
     startTime: '08:00',
     endTime: '09:00',
-    status: '1_ON',
+    status: 'ongoing',
     ...overrides,
   }
 }

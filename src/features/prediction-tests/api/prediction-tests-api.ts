@@ -6,12 +6,13 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { parseCurrencyValue } from '../../../shared/lib/currency'
-import type { NewStudentListItem } from '../../new-students/types/new-student'
+import type { ProspectiveStudentListItem } from '../../prospective-students/types/prospective-student'
 import type {
   PredictionTestFormValues,
   PredictionTestListItem,
 } from '../types/prediction-test'
 import type { PredictionTestListFilters } from './prediction-test-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type PredictionTestListResponse = {
   data: PredictionTestListItem[]
@@ -107,7 +108,7 @@ function toFormDataPayload(values: PredictionTestFormValues) {
 async function loadProspectLookups() {
   const { items } = await fetchAllPages<ProspectiveLookupDto>({
     client: httpClient,
-    path: '/prospective-students',
+    path: adminPath('/prospective-students'),
   })
 
   return new Map(items.map((item) => [String(item.id), item]))
@@ -127,7 +128,7 @@ export async function fetchPredictionTests(
   const [{ items, total }, prospectsById] = await Promise.all([
     fetchAllPages<PredictionTestDto>({
       client: httpClient,
-      path: '/prediction-tests',
+      path: adminPath('/prediction-tests'),
       params,
     }),
     loadProspectLookups(),
@@ -153,7 +154,7 @@ export async function fetchPredictionTest(
 ): Promise<PredictionTestListItem> {
   const [{ data }, prospectsById] = await Promise.all([
     httpClient.get<ApiSuccessEnvelope<PredictionTestDto>>(
-      `/prediction-tests/${id}`,
+      adminPath(`/prediction-tests/${id}`),
     ),
     loadProspectLookups(),
   ])
@@ -170,12 +171,12 @@ export async function createPredictionTest(
 ): Promise<PredictionTestListItem> {
   const { data } = values.paymentProofFile
     ? await httpClient.post<ApiSuccessEnvelope<PredictionTestDto>>(
-        '/prediction-tests',
+        adminPath('/prediction-tests'),
         toFormDataPayload(values),
         { headers: multipartHeaders },
       )
     : await httpClient.post<ApiSuccessEnvelope<PredictionTestDto>>(
-        '/prediction-tests',
+        adminPath('/prediction-tests'),
         toJsonPayload(values),
       )
 
@@ -208,18 +209,18 @@ export async function updatePredictionTest(
 ): Promise<PredictionTestListItem> {
   if (values.paymentProofFile) {
     await httpClient.patch(
-      `/prediction-tests/${id}`,
+      adminPath(`/prediction-tests/${id}`),
       toFormDataPayload(values),
       { headers: multipartHeaders },
     )
   } else {
-    await httpClient.patch(`/prediction-tests/${id}`, toJsonPayload(values))
+    await httpClient.patch(adminPath(`/prediction-tests/${id}`), toJsonPayload(values))
   }
   return fetchPredictionTest(id)
 }
 
 export async function deletePredictionTest(id: string): Promise<void> {
-  await httpClient.delete(`/prediction-tests/${id}`)
+  await httpClient.delete(adminPath(`/prediction-tests/${id}`))
 }
 
 export function predictionTestToFormValues(
@@ -245,7 +246,7 @@ export const emptyPredictionTestFormValues: PredictionTestFormValues = {
 }
 
 export type ProspectiveStudentOption = Pick<
-  NewStudentListItem,
+  ProspectiveStudentListItem,
   'id' | 'fullName' | 'phone' | 'email'
 >
 
@@ -254,7 +255,7 @@ export async function fetchProspectiveStudentOptions(): Promise<
 > {
   const { items } = await fetchAllPages<ProspectiveLookupDto>({
     client: httpClient,
-    path: '/prospective-students',
+    path: adminPath('/prospective-students'),
   })
 
   return items.map((item) => ({

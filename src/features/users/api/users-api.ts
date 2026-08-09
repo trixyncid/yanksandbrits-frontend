@@ -2,6 +2,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import { mapGenderFromApi, mapGenderToApi } from '../../../shared/api/choices'
+import { adminPath } from '../../../shared/api/paths'
 
 export type StaffUserOption = {
   id: string
@@ -12,9 +13,15 @@ export type StaffUserOption = {
   branchName: string | null
 }
 
+export type UserRoleSummary = {
+  id: string
+  code: string
+  name: string
+}
+
 export type UserListItem = {
   id: string
-  pin: string
+  pin: string | null
   fullName: string
   email: string
   phone: string
@@ -23,6 +30,7 @@ export type UserListItem = {
   isTutor: boolean
   isMarketing: boolean
   isManager: boolean
+  isStudent: boolean
   isSuperuser: boolean
   staffType: string | null
   paidLeaveTotal: number
@@ -33,6 +41,8 @@ export type UserListItem = {
   branchName: string | null
   hasWorkingSchedule: boolean
   hasSalary: boolean
+  roles: UserRoleSummary[]
+  studentId: string | null
 }
 
 export type UserDetail = UserListItem & {
@@ -45,6 +55,7 @@ export type UserDetail = UserListItem & {
   initial: string | null
   resignDate: string | null
   updatedAt: string | null
+  groupIds: string[]
 }
 
 export type UserFormValues = {
@@ -61,13 +72,11 @@ export type UserFormValues = {
   homePhone: string
   otherPhone: string
   isActive: boolean
-  isTutor: boolean
-  isMarketing: boolean
-  isManager: boolean
   staffType: string
   branchId: string
   paidLeave: string
   resignDate: string
+  groupIds: string[]
 }
 
 export type UserFormErrors = Partial<Record<keyof UserFormValues, string>>
@@ -79,7 +88,7 @@ export const STAFF_TYPE_OPTIONS = [
 
 type UserListDto = {
   id: number
-  pin: string
+  pin: string | null
   email: string
   full_name: string
   initial?: string | null
@@ -87,6 +96,7 @@ type UserListDto = {
   is_tutor: boolean
   is_marketing: boolean
   is_manager: boolean
+  is_student?: boolean
   is_superuser?: boolean
   staff_type: string | null
   branch: number | null
@@ -97,6 +107,8 @@ type UserListDto = {
   check_paid_leave?: number
   mobile_phone?: string | null
   gender?: string | null
+  roles?: Array<{ id: number; code?: string; name: string }>
+  student_id?: number | null
 }
 
 type UserDetailDto = UserListDto & {
@@ -112,7 +124,46 @@ type UserDetailDto = UserListDto & {
   user_permissions?: number[]
 }
 
+function mapRoles(
+  roles?: Array<{ id: number; code?: string; name: string }>,
+): UserRoleSummary[] {
+  return (roles ?? []).map((role) => ({
+    id: String(role.id),
+    code: role.code ?? '',
+    name: role.name,
+  }))
+}
+
+function applyRoleFlags(
+  roles: UserRoleSummary[],
+  fallback: {
+    isTutor: boolean
+    isMarketing: boolean
+    isManager: boolean
+    isStudent: boolean
+  },
+) {
+  if (!roles.length) {
+    return fallback
+  }
+  const codes = new Set(roles.map((role) => role.code))
+  return {
+    isTutor: codes.has('tutor') || fallback.isTutor,
+    isMarketing: codes.has('marketing') || fallback.isMarketing,
+    isManager: codes.has('manager') || fallback.isManager,
+    isStudent: codes.has('student') || fallback.isStudent,
+  }
+}
+
 function mapUser(dto: UserListDto | UserDetailDto): UserListItem {
+  const roles = mapRoles(dto.roles)
+  const flags = applyRoleFlags(roles, {
+    isTutor: dto.is_tutor,
+    isMarketing: dto.is_marketing,
+    isManager: dto.is_manager,
+    isStudent: Boolean(dto.is_student),
+  })
+
   return {
     id: String(dto.id),
     pin: dto.pin,
@@ -121,9 +172,10 @@ function mapUser(dto: UserListDto | UserDetailDto): UserListItem {
     phone: dto.mobile_phone ?? '',
     gender: mapGenderFromApi(dto.gender),
     isActive: dto.is_active,
-    isTutor: dto.is_tutor,
-    isMarketing: dto.is_marketing,
-    isManager: dto.is_manager,
+    isTutor: flags.isTutor,
+    isMarketing: flags.isMarketing,
+    isManager: flags.isManager,
+    isStudent: flags.isStudent,
     isSuperuser: Boolean(dto.is_superuser),
     staffType: dto.staff_type,
     paidLeaveTotal: dto.paid_leave ?? 0,
@@ -134,10 +186,16 @@ function mapUser(dto: UserListDto | UserDetailDto): UserListItem {
     branchName: dto.branch_name ?? null,
     hasWorkingSchedule: false,
     hasSalary: false,
+    roles,
+    studentId: dto.student_id == null ? null : String(dto.student_id),
   }
 }
 
 function mapUserDetail(dto: UserDetailDto): UserDetail {
+  const roles = mapRoles(dto.roles)
+  const groupIds =
+    dto.groups?.map(String) ?? roles.map((role) => role.id)
+
   return {
     ...mapUser(dto),
     birthDate: dto.birth_date ?? null,
@@ -149,6 +207,7 @@ function mapUserDetail(dto: UserDetailDto): UserDetail {
     initial: dto.initial ?? null,
     resignDate: dto.resign_date ?? null,
     updatedAt: dto.updated_at ?? null,
+    groupIds,
   }
 }
 
@@ -171,17 +230,19 @@ function toWritePayload(values: UserFormValues, mode: 'create' | 'edit') {
     home_phone: emptyToNull(values.homePhone),
     other_phone: emptyToNull(values.otherPhone),
     is_active: values.isActive,
-    is_tutor: values.isTutor,
-    is_marketing: values.isMarketing,
-    is_manager: values.isManager,
     staff_type: values.staffType.trim() || null,
     branch: values.branchId ? Number(values.branchId) : null,
     paid_leave: values.paidLeave ? Number(values.paidLeave) : 0,
     resign_date: emptyToNull(values.resignDate),
+    groups: values.groupIds.map(Number),
   }
 
   if (mode === 'create' || values.password.trim()) {
     payload.password = values.password
+  }
+
+  if (mode === 'create') {
+    payload.is_staff = true
   }
 
   return payload
@@ -212,7 +273,7 @@ export async function fetchUsers(
 
   const { items, total } = await fetchAllPages<UserListDto>({
     client: httpClient,
-    path: '/users',
+    path: adminPath('/users'),
     params,
   })
 
@@ -224,14 +285,14 @@ export async function fetchUsers(
 
 export async function fetchUser(id: string): Promise<UserDetail> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<UserDetailDto>>(
-    `/users/${id}`,
+    adminPath(`/users/${id}`),
   )
   return mapUserDetail(data.data)
 }
 
 export async function createUser(values: UserFormValues): Promise<UserListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<UserDetailDto>>(
-    '/users',
+    adminPath('/users'),
     toWritePayload(values, 'create'),
   )
   return mapUser(data.data)
@@ -242,19 +303,19 @@ export async function updateUser(
   values: UserFormValues,
 ): Promise<UserListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<UserDetailDto>>(
-    `/users/${id}`,
+    adminPath(`/users/${id}`),
     toWritePayload(values, 'edit'),
   )
   return mapUser(data.data)
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  await httpClient.delete(`/users/${id}`)
+  await httpClient.delete(adminPath(`/users/${id}`))
 }
 
 export async function fetchLatestUserPin(): Promise<string> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<{ pin?: string; latest_id?: string }>>(
-    '/users/latest-id',
+    adminPath('/users/latest-id'),
   )
   return String(data.data.pin ?? data.data.latest_id ?? '')
 }
@@ -271,7 +332,7 @@ export async function fetchStaffUserOptions(filters: {
 
   return data.map((user) => ({
     id: user.id,
-    pin: user.pin,
+    pin: user.pin ?? '',
     fullName: user.fullName,
     email: user.email,
     branchId: user.branchId,
@@ -283,7 +344,7 @@ export function userToFormValues(user: UserDetail | UserListItem): UserFormValue
   const detail = user as UserDetail
 
   return {
-    pin: user.pin,
+    pin: user.pin ?? '',
     email: user.email,
     fullName: user.fullName,
     password: '',
@@ -296,13 +357,14 @@ export function userToFormValues(user: UserDetail | UserListItem): UserFormValue
     homePhone: detail.homePhone ?? '',
     otherPhone: detail.otherPhone ?? '',
     isActive: user.isActive,
-    isTutor: user.isTutor,
-    isMarketing: user.isMarketing,
-    isManager: user.isManager,
     staffType: user.staffType ?? 'English',
     branchId: user.branchId ?? '',
     paidLeave: String(user.paidLeaveTotal),
     resignDate: detail.resignDate ?? '',
+    groupIds:
+      detail.groupIds ??
+      user.roles?.map((role) => role.id) ??
+      [],
   }
 }
 
@@ -320,13 +382,11 @@ export const emptyUserFormValues: UserFormValues = {
   homePhone: '',
   otherPhone: '',
   isActive: true,
-  isTutor: false,
-  isMarketing: false,
-  isManager: false,
   staffType: 'English',
   branchId: '',
   paidLeave: '0',
   resignDate: '',
+  groupIds: [],
 }
 
 export function getUserInitials(name: string) {
@@ -340,6 +400,7 @@ export function getUserInitials(name: string) {
 
 export function deriveStaffPosition(user: UserListItem) {
   if (user.isSuperuser) return 'superuser' as const
+  if (user.isStudent) return 'student' as const
   if (user.isManager) return 'manager' as const
   if (user.isMarketing) return 'marketing' as const
   if (user.isTutor) return 'tutor' as const

@@ -21,7 +21,7 @@ type AdminSidebarProps = {
 }
 
 function isLeafActive(item: NavigationLeafItem, pathname: string) {
-  return item.to === pathname
+  return item.to === pathname || pathname.startsWith(`${item.to}/`)
 }
 
 function isGroupActive(item: NavigationGroupItem, pathname: string) {

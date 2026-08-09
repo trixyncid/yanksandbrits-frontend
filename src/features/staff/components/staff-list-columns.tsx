@@ -43,6 +43,10 @@ function positionTone(position: StaffPosition) {
     return 'danger' as const
   }
 
+  if (position === 'student') {
+    return 'success' as const
+  }
+
   return 'neutral' as const
 }
 
@@ -63,25 +67,44 @@ function positionLabel(position: StaffPosition) {
     return 'Tutor'
   }
 
-  return 'Staff'
+  if (position === 'student') {
+    return 'Student'
+  }
+
+  return 'User'
+}
+
+function accountTitle(row: StaffListItem) {
+  if (row.pin) {
+    return `${row.pin} | ${row.fullName}`
+  }
+  return row.fullName
+}
+
+function genderLabel(gender: StaffListItem['gender']) {
+  if (gender === 'male') return 'Male'
+  if (gender === 'female') return 'Female'
+  return '—'
 }
 
 export const staffListColumns: ColumnDef<StaffListItem>[] = [
   {
     id: 'accountDetail',
-    accessorFn: (row) => `${row.pin} ${row.fullName} ${row.email}`,
+    accessorFn: (row) => `${row.pin ?? ''} ${row.fullName} ${row.email}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Account's Detail" />
+      <DataTableColumnHeader column={column} title="Account detail" />
     ),
     cell: ({ row }) => (
       <div>
         <p className="text-sm font-semibold text-slate-900">
-          {row.original.pin} | {row.original.fullName}
+          {accountTitle(row.original)}
         </p>
         <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
-        <p className="text-xs text-slate-500">
-          {row.original.gender === 'male' ? 'Male' : 'Female'}
-        </p>
+        {!row.original.isStudent ? (
+          <p className="text-xs text-slate-500">
+            {genderLabel(row.original.gender)}
+          </p>
+        ) : null}
       </div>
     ),
   },
@@ -90,7 +113,7 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Staff Position"
+        title="Role"
         align="center"
       />
     ),
@@ -120,13 +143,15 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Paid Leave Total"
+        title="Paid leave"
         align="center"
       />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.paidLeaveLeft}x left
+        {row.original.isStudent
+          ? '—'
+          : `${row.original.paidLeaveLeft}x left`}
       </p>
     ),
   },
@@ -135,7 +160,7 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Last Login"
+        title="Last login"
         align="center"
       />
     ),
@@ -150,7 +175,7 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Date Joined"
+        title="Date joined"
         align="center"
       />
     ),

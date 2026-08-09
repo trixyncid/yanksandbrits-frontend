@@ -14,6 +14,7 @@ import type {
   PaidLeaveListItem,
 } from '../types/paid-leave'
 import type { PaidLeaveListFilters } from './paid-leave-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type PaidLeaveListResponse = {
   data: PaidLeaveListItem[]
@@ -125,10 +126,14 @@ export async function fetchPaidLeaves(
     params.status = mapApprovalStatusToApi(filters.status)
   }
 
+  if (filters.userId) {
+    params.user = Number(filters.userId)
+  }
+
   const [{ items, total }, usersById] = await Promise.all([
     fetchAllPages<PaidLeaveDto>({
       client: httpClient,
-      path: '/paid-leaves',
+      path: adminPath('/paid-leaves'),
       params,
     }),
     loadStaffLookup(),
@@ -153,7 +158,7 @@ export async function fetchPaidLeaves(
 
 export async function fetchPaidLeave(id: string): Promise<PaidLeaveListItem> {
   const [{ data }, usersById] = await Promise.all([
-    httpClient.get<ApiSuccessEnvelope<PaidLeaveDto>>(`/paid-leaves/${id}`),
+    httpClient.get<ApiSuccessEnvelope<PaidLeaveDto>>(adminPath(`/paid-leaves/${id}`)),
     loadStaffLookup(),
   ])
   return mapPaidLeave(data.data, usersById)
@@ -164,12 +169,12 @@ export async function createPaidLeave(
 ): Promise<PaidLeaveListItem> {
   const { data } = values.filesFile
     ? await httpClient.post<ApiSuccessEnvelope<PaidLeaveDto>>(
-        '/paid-leaves',
+        adminPath('/paid-leaves'),
         toFormDataPayload(values),
         { headers: multipartHeaders },
       )
     : await httpClient.post<ApiSuccessEnvelope<PaidLeaveDto>>(
-        '/paid-leaves',
+        adminPath('/paid-leaves'),
         toJsonPayload(values),
       )
 
@@ -187,18 +192,18 @@ export async function updatePaidLeave(
 ): Promise<PaidLeaveListItem> {
   if (values.filesFile) {
     await httpClient.patch(
-      `/paid-leaves/${id}`,
+      adminPath(`/paid-leaves/${id}`),
       toFormDataPayload(values),
       { headers: multipartHeaders },
     )
   } else {
-    await httpClient.patch(`/paid-leaves/${id}`, toJsonPayload(values))
+    await httpClient.patch(adminPath(`/paid-leaves/${id}`), toJsonPayload(values))
   }
   return fetchPaidLeave(id)
 }
 
 export async function deletePaidLeave(id: string): Promise<void> {
-  await httpClient.delete(`/paid-leaves/${id}`)
+  await httpClient.delete(adminPath(`/paid-leaves/${id}`))
 }
 
 export function paidLeaveToFormValues(

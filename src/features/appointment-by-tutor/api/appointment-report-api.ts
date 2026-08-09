@@ -1,6 +1,7 @@
 import { downloadBlob } from '../../../shared/api/download'
 import { httpClient } from '../../../shared/api/http-client'
 import type { AppointmentReportFilters } from './appointment-report-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 function dateRangeParam(filters: AppointmentReportFilters) {
   return `${filters.startDate} to ${filters.endDate}`
@@ -19,7 +20,7 @@ export async function downloadAppointmentByTutorPdf(
   }
 
   const { data } = await httpClient.get<Blob>(
-    '/reports/appointments-by-tutor',
+    adminPath('/reports/appointments-by-tutor'),
     {
       params,
       responseType: 'blob',
@@ -29,6 +30,6 @@ export async function downloadAppointmentByTutorPdf(
 
   await downloadBlob(
     data,
-    `appointments-by-tutor-${filters.startDate}_${filters.endDate}.pdf`,
+    `tutor-sessions-${filters.startDate}_${filters.endDate}.pdf`,
   )
 }

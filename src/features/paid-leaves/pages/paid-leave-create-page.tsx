@@ -1,13 +1,21 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { emptyPaidLeaveFormValues } from '../api/paid-leaves-api'
 import { PaidLeaveForm } from '../components/paid-leave-form'
 import { usePaidLeaveForm } from '../hooks/use-paid-leave-form'
 
 export default function PaidLeaveCreatePage() {
-  const form = usePaidLeaveForm({ mode: 'create' })
+  const { userId } = useSearch({ strict: false }) as { userId?: string }
+  const form = usePaidLeaveForm({
+    mode: 'create',
+    initialValues: {
+      ...emptyPaidLeaveFormValues,
+      userId: userId ?? '',
+    },
+  })
 
   return (
     <AdminShell>

@@ -1,20 +1,24 @@
 import { format } from 'date-fns'
-import { FileDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
-import { Button } from '../../../shared/components/ui/button'
-import { Card } from '../../../shared/components/ui/card'
 import { DateRangePicker } from '../../../shared/components/ui/date-range-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
-import { AdminShell } from '../../admin/components/admin-shell'
+import { ReportGeneratorLayout } from '../../admin/components/report-generator-layout'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useTutorOptionsQuery } from '../../users/hooks/use-user-options'
 import { downloadAppointmentByTutorPdf } from '../api/appointment-report-api'
+
+function formatPeriod(range: DateRange | undefined) {
+  if (!range?.from || !range.to) {
+    return 'Not selected'
+  }
+  return `${format(range.from, 'MMM d, yyyy')} – ${format(range.to, 'MMM d, yyyy')}`
+}
 
 export default function AppointmentByTutorPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
@@ -49,6 +53,26 @@ export default function AppointmentByTutorPage() {
     })
   }, [branchId, tutorSearch, tutors])
 
+  const selectedBranchName = useMemo(() => {
+    if (branchId === 'all') {
+      return 'All branches'
+    }
+    return branches.find((branch) => branch.id === branchId)?.name ?? 'Not selected'
+  }, [branchId, branches])
+
+  const selectedTutorLabel = useMemo(() => {
+    if (!tutorId) {
+      return 'Not selected'
+    }
+    const tutor = tutors.find((item) => item.id === tutorId)
+    if (!tutor) {
+      return 'Not selected'
+    }
+    return `${tutor.pin} · ${tutor.fullName}`
+  }, [tutorId, tutors])
+
+  const ready = Boolean(dateRange?.from && dateRange.to && tutorId)
+
   async function handleDownload() {
     if (!dateRange?.from || !dateRange.to) {
       notify('warning', {
@@ -76,7 +100,7 @@ export default function AppointmentByTutorPage() {
       })
       notify('success', {
         title: 'PDF downloaded',
-        description: 'Appointment-by-tutor report has been saved.',
+        description: 'Tutor sessions report has been saved.',
       })
     } catch (error) {
       notify('error', {
@@ -89,55 +113,60 @@ export default function AppointmentByTutorPage() {
   }
 
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-4">
-        <Card className="overflow-hidden">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <h2 className="text-2xl font-bold text-slate-800">
-              Appointment By Tutor
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Download a finished appointment PDF by date range, branch, and
-              tutor.
-            </p>
+    <ReportGeneratorLayout
+      title="Tutor Sessions"
+      description="Generate a PDF of finished sessions a tutor has taught over a selected period and branch."
+      ready={ready}
+      isDownloading={isDownloading}
+      onDownload={() => void handleDownload()}
+      readyHint="Select a date range and tutor to enable download."
+      summaryItems={[
+        { label: 'Period', value: formatPeriod(dateRange) },
+        { label: 'Branch', value: selectedBranchName },
+        { label: 'Tutor', value: selectedTutorLabel },
+      ]}
+      criteria={
+        <>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="appointment-date-range">
+              Date range <span className="text-rose-500">*</span>
+            </Label>
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              className="w-full"
+              placeholder="Select date range"
+            />
           </div>
 
-          <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="appointment-date-range">Date Range</Label>
-              <DateRangePicker
-                value={dateRange}
-                onChange={setDateRange}
-                className="w-full"
-                placeholder="Select date range"
-              />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="appointment-branch">Branch</Label>
+            <Select
+              id="appointment-branch"
+              value={branchId}
+              containerClassName="w-full sm:w-full"
+              disabled={branchesQuery.isLoading}
+              onChange={(event) => setBranchId(event.target.value)}
+            >
+              <option value="all">All branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="appointment-branch">Branch</Label>
-              <Select
-                id="appointment-branch"
-                value={branchId}
-                containerClassName="w-full sm:w-full"
-                disabled={branchesQuery.isLoading}
-                onChange={(event) => setBranchId(event.target.value)}
-              >
-                <option value="all">All Branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-1">
-              <Label htmlFor="appointment-tutor">Tutor</Label>
+          <div className="space-y-2">
+            <Label htmlFor="appointment-tutor">
+              Tutor <span className="text-rose-500">*</span>
+            </Label>
+            <div className="space-y-2 rounded-xl border border-slate-200/80 bg-white/80 p-3">
               <Input
                 id="tutor-search"
                 value={tutorSearch}
                 onChange={(event) => setTutorSearch(event.target.value)}
-                placeholder="Search tutor by PIN or name..."
+                placeholder="Search by PIN or name…"
               />
               <Select
                 id="appointment-tutor"
@@ -147,7 +176,7 @@ export default function AppointmentByTutorPage() {
                 onChange={(event) => setTutorId(event.target.value)}
               >
                 <option value="" disabled>
-                  -- Select Tutor --
+                  Select tutor…
                 </option>
                 {filteredTutors.map((tutor) => (
                   <option key={tutor.id} value={tutor.id}>
@@ -155,26 +184,15 @@ export default function AppointmentByTutorPage() {
                   </option>
                 ))}
               </Select>
+              {filteredTutors.length === 0 && !tutorsQuery.isLoading ? (
+                <p className="text-xs text-slate-400">
+                  No tutors match the current branch or search.
+                </p>
+              ) : null}
             </div>
-
-            <Button
-              className="w-full xl:w-auto"
-              disabled={isDownloading}
-              onClick={() => void handleDownload()}
-            >
-              <FileDown className="size-4" />
-              {isDownloading ? 'Downloading…' : 'Download PDF'}
-            </Button>
           </div>
-        </Card>
-
-        <Card className="px-6 py-14 text-center">
-          <p className="text-sm font-medium text-slate-500">
-            This report is PDF-only. Choose filters, then download the
-            appointment report.
-          </p>
-        </Card>
-      </div>
-    </AdminShell>
+        </>
+      }
+    />
   )
 }

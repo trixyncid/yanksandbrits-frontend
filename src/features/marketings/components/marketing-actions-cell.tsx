@@ -1,10 +1,13 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BadgeDollarSign, Eye, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { fetchMarketingSalary } from '../../users/api/compensation-api'
+import { MarketingSalaryDialog } from '../../users/components/marketing-salary-dialog'
 import { deleteMarketing } from '../api/marketings-api'
 import { marketingQueryKeys } from '../api/marketing-query-keys'
 import type { MarketingListItem } from '../types/marketing'
@@ -16,6 +19,13 @@ export function MarketingActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const salaryQuery = useQuery({
+    queryKey: ['marketing-salaries', marketing.id],
+    queryFn: () => fetchMarketingSalary(marketing.id),
+    enabled: dialogOpen,
+  })
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -32,21 +42,25 @@ export function MarketingActionsCell({
       >
         <Eye className="size-3.5" />
       </button>
-      {marketing.hasSalary ? (
-        <button
-          type="button"
-          aria-label={`Edit salary for ${marketing.fullName}`}
-          onClick={() =>
-            notify('info', {
-              title: 'Marketing salary',
-              description: `${marketing.fullName} salary form will be added later.`,
+      <button
+        type="button"
+        aria-label={
+          marketing.hasSalary
+            ? `Edit salary for ${marketing.fullName}`
+            : `Record salary for ${marketing.fullName}`
+        }
+        onClick={() => {
+          void queryClient
+            .ensureQueryData({
+              queryKey: ['marketing-salaries', marketing.id],
+              queryFn: () => fetchMarketingSalary(marketing.id),
             })
-          }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-        >
-          <BadgeDollarSign className="size-3.5" />
-        </button>
-      ) : null}
+            .then(() => setDialogOpen(true))
+        }}
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
+      >
+        <BadgeDollarSign className="size-3.5" />
+      </button>
       <button
         type="button"
         aria-label={`Delete marketing ${marketing.fullName}`}
@@ -79,6 +93,14 @@ export function MarketingActionsCell({
       >
         <Trash2 className="size-3.5" />
       </button>
+
+      <MarketingSalaryDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        marketingId={marketing.id}
+        marketingName={marketing.fullName}
+        salary={salaryQuery.data ?? null}
+      />
     </div>
   )
 }

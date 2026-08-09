@@ -1,7 +1,11 @@
 import { httpClient } from '../../../shared/api/http-client'
+import { adminPath } from '../../../shared/api/paths'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type { ProgramFormValues, ProgramListItem } from '../types/program'
-import type { ProgramListFilters } from './program-query-keys'
+import type {
+  ProgramFilteredFilters,
+  ProgramListFilters,
+} from './program-query-keys'
 
 export type ProgramListResponse = {
   data: ProgramListItem[]
@@ -69,12 +73,47 @@ async function fetchProgramPage(params: {
 }) {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<ProgramDto[]> & { meta: PaginatedMeta | null }
-  >('/programs', { params })
+  >(adminPath('/programs'), { params })
 
   return {
     items: (data.data ?? []).map(mapProgram),
     total: data.meta?.count ?? data.data?.length ?? 0,
   }
+}
+
+type FilteredProgramDto = {
+  id: number
+  code: string
+  title: string
+}
+
+export async function fetchFilteredPrograms(
+  filters: ProgramFilteredFilters = {},
+): Promise<ProgramListItem[]> {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<{ programs: FilteredProgramDto[] }>
+  >(adminPath('/programs/filtered'), {
+    params: {
+      student_id: filters.studentId ? Number(filters.studentId) : undefined,
+      student_group_id: filters.studentGroupId
+        ? Number(filters.studentGroupId)
+        : undefined,
+    },
+  })
+
+  return (data.data?.programs ?? []).map((program) => ({
+    id: String(program.id),
+    code: program.code,
+    title: program.title,
+    description: '',
+    isActive: true,
+    backgroundColor: '#FFFFFF',
+    textColor: '#000000',
+    createdAt: '',
+    updatedAt: '',
+    createdBy: null,
+    updatedBy: null,
+  }))
 }
 
 export async function fetchPrograms(
@@ -119,7 +158,7 @@ export async function fetchPrograms(
 
 export async function fetchProgram(id: string): Promise<ProgramListItem> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<ProgramDto>>(
-    `/programs/${id}`,
+    adminPath(`/programs/${id}`),
   )
   return mapProgram(data.data)
 }
@@ -128,7 +167,7 @@ export async function createProgram(
   values: ProgramFormValues,
 ): Promise<ProgramListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<ProgramDto>>(
-    '/programs',
+    adminPath('/programs'),
     toWritePayload(values),
   )
   return mapProgram(data.data)
@@ -139,14 +178,14 @@ export async function updateProgram(
   values: ProgramFormValues,
 ): Promise<ProgramListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<ProgramDto>>(
-    `/programs/${id}`,
+    adminPath(`/programs/${id}`),
     toWritePayload(values),
   )
   return mapProgram(data.data)
 }
 
 export async function deleteProgram(id: string): Promise<void> {
-  await httpClient.delete(`/programs/${id}`)
+  await httpClient.delete(adminPath(`/programs/${id}`))
 }
 
 export function programToFormValues(

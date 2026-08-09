@@ -55,7 +55,6 @@ export default function StudentPaymentListPage() {
             searchPlaceholder="Search by student, title, status, branch..."
             globalFilterFn={filterStudentPayment}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No payment transactions found"
             toolbarActions={
               <>

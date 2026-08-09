@@ -53,7 +53,7 @@ function buildCreateValues(context: ScheduleDialogCreateContext): ScheduleFormVa
     date: context.date,
     startTime: hourToTimeString(context.startHour),
     endTime: hourToTimeString(context.endHour),
-    status: '1_ON',
+    status: 'ongoing',
   })
 }
 

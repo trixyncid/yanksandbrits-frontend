@@ -18,7 +18,7 @@ export const scheduleFormSchema = z
       .string()
       .trim()
       .regex(/^\d{2}:\d{2}$/, 'End time is required.'),
-    status: z.enum(['1_ON', '2_FN', '3_CN']),
+    status: z.enum(['ongoing', 'finished', 'cancelled']),
   })
   .superRefine((values, ctx) => {
     if (values.participantType === 'student' && !values.studentId) {

@@ -25,8 +25,8 @@ export const notificationsPlaceholder: AppNotification[] = [
   },
   {
     id: 'n-3',
-    title: 'New student registered',
-    body: 'Maya Putri was added under New Students and is waiting for a placement test slot. Marketing follow-up is still open.',
+    title: 'Prospective student registered',
+    body: 'Maya Putri was added under Prospective Students and is waiting for a placement test slot. Marketing follow-up is still open.',
     category: 'student',
     createdAt: '2026-07-28T16:50:00',
     read: false,
@@ -70,7 +70,7 @@ export const notificationsPlaceholder: AppNotification[] = [
   {
     id: 'n-7',
     title: 'Missed follow-up',
-    body: 'Two new-student responses from Marketing have no staff reply after 48 hours. Please review the Responses list.',
+    body: 'Two prospective-student responses from Marketing have no staff reply after 48 hours. Please review the Responses list.',
     category: 'student',
     createdAt: '2026-07-26T14:10:00',
     read: true,

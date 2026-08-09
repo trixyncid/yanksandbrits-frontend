@@ -1,4 +1,5 @@
 import type { AuthUser } from '../../auth/types/auth'
+import { hasAuthRole } from '../../auth/types/auth'
 import type { UserDetail } from '../../users/api/users-api'
 import type { CurrentUserProfile } from '../types/profile'
 
@@ -10,23 +11,34 @@ function titleCase(value: string) {
     .join(' ')
 }
 
+/** Roles / labels for profile chips (not Django permission codenames). */
 export function getAuthPermissions(user: AuthUser): string[] {
-  const permissions: string[] = []
+  if (user.roles?.length) {
+    const labels = user.roles
+      .filter((role) => role.code !== 'student')
+      .map((role) => role.name)
+    if (user.is_superuser && !labels.includes('Superuser')) {
+      return ['Superuser', ...labels]
+    }
+    return labels.length ? labels : user.is_superuser ? ['Superuser'] : []
+  }
 
+  const permissions: string[] = []
   if (user.is_superuser) permissions.push('Superuser')
   if (user.is_manager) permissions.push('Manager')
   if (user.is_marketing) permissions.push('Marketing')
   if (user.is_tutor) permissions.push('Tutor')
   if (user.is_student) permissions.push('Student')
-
   return permissions
 }
 
 export function getAuthPosition(user: AuthUser): string {
   if (user.is_superuser) return 'Superuser'
-  if (user.is_manager) return 'Manager'
-  if (user.is_marketing) return 'Marketing'
-  if (user.is_tutor) return 'Tutor'
+  if (hasAuthRole(user, 'manager') || user.is_manager) return 'Manager'
+  if (hasAuthRole(user, 'tutor') || user.is_tutor) return 'Tutor'
+  if (hasAuthRole(user, 'marketing') || user.is_marketing) return 'Marketing'
+  if (hasAuthRole(user, 'student') || user.is_student) return 'Student'
+  if (user.roles?.length) return user.roles[0]?.name ?? 'Staff'
   return 'Staff'
 }
 
@@ -37,9 +49,15 @@ export function buildCurrentUserProfile(
   const permissions = detail
     ? [
         ...(detail.isSuperuser ? ['Superuser'] : []),
-        ...(detail.isManager ? ['Manager'] : []),
-        ...(detail.isMarketing ? ['Marketing'] : []),
-        ...(detail.isTutor ? ['Tutor'] : []),
+        ...(detail.roles?.length
+          ? detail.roles
+              .filter((role) => role.code !== 'student')
+              .map((role) => role.name)
+          : [
+              ...(detail.isManager ? ['Manager'] : []),
+              ...(detail.isMarketing ? ['Marketing'] : []),
+              ...(detail.isTutor ? ['Tutor'] : []),
+            ]),
       ]
     : getAuthPermissions(authUser)
 

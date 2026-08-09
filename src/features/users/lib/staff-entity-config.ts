@@ -4,15 +4,15 @@ export type StaffEntityConfig = {
   kind: StaffEntityKind
   singular: string
   plural: string
-  listPath: '/staff' | '/tutors' | '/marketings'
+  listPath: '/users' | '/tutors' | '/marketings'
   listQueryKey: readonly unknown[]
 }
 
 export const staffEntityConfig: StaffEntityConfig = {
   kind: 'staff',
-  singular: 'Staff',
-  plural: 'Staff',
-  listPath: '/staff',
+  singular: 'User',
+  plural: 'Users',
+  listPath: '/users',
   listQueryKey: ['staff'],
 }
 

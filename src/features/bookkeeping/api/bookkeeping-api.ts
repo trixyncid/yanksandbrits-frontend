@@ -8,6 +8,7 @@ import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type { BookkeepingListItem } from '../types/bookkeeping'
 import type { BookkeepingListFilters } from './bookkeeping-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type BookkeepingListResponse = {
   data: BookkeepingListItem[]
@@ -76,7 +77,7 @@ export async function fetchBookkeeping(
 
   const { items, total } = await fetchAllPages<BookkeepingDto>({
     client: httpClient,
-    path: '/bookkeepings',
+    path: adminPath('/bookkeepings'),
     params,
   })
 
@@ -90,7 +91,7 @@ export async function fetchBookkeepingItem(
   id: string,
 ): Promise<BookkeepingListItem> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<BookkeepingDto>>(
-    `/bookkeepings/${id}`,
+    adminPath(`/bookkeepings/${id}`),
   )
   return mapBookkeeping(data.data)
 }
@@ -99,7 +100,7 @@ export async function createBookkeeping(
   values: BookkeepingFormValues,
 ): Promise<BookkeepingListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<BookkeepingDto>>(
-    '/bookkeepings',
+    adminPath('/bookkeepings'),
     toWritePayload(values),
   )
   return mapBookkeeping(data.data)
@@ -110,20 +111,20 @@ export async function updateBookkeeping(
   values: BookkeepingFormValues,
 ): Promise<BookkeepingListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<BookkeepingDto>>(
-    `/bookkeepings/${id}`,
+    adminPath(`/bookkeepings/${id}`),
     toWritePayload(values),
   )
   return mapBookkeeping(data.data)
 }
 
 export async function deleteBookkeeping(id: string): Promise<void> {
-  await httpClient.delete(`/bookkeepings/${id}`)
+  await httpClient.delete(adminPath(`/bookkeepings/${id}`))
 }
 
 export async function recalculateBookkeeping(id: string): Promise<void> {
-  await httpClient.post(`/bookkeepings/${id}/recalculate`)
+  await httpClient.post(adminPath(`/bookkeepings/${id}/recalculate`))
 }
 
 export async function updateOpenPeriodSalaries(): Promise<void> {
-  await httpClient.post('/bookkeepings/update-open-period-salaries')
+  await httpClient.post(adminPath('/bookkeepings/update-open-period-salaries'))
 }

@@ -5,6 +5,7 @@ import { updateOpenPeriodSalaries } from '../../bookkeeping/api/bookkeeping-api'
 import { fetchUsers, type UserListItem } from '../../users/api/users-api'
 import type { MarketingReportListItem } from '../types/marketing-report'
 import type { MarketingReportListFilters } from './marketing-report-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type MarketingReportListResponse = {
   data: MarketingReportListItem[]
@@ -56,7 +57,7 @@ export async function fetchMarketingReport(
   const [{ items, total }, marketersResult] = await Promise.all([
     fetchAllPages<MarketingSalaryDto>({
       client: httpClient,
-      path: '/marketing-salary-calculations',
+      path: adminPath('/marketing-salary-calculations'),
       params,
     }),
     fetchUsers({ isMarketing: true }),
@@ -81,7 +82,7 @@ export async function downloadMarketingSalaryPdf(
   filename?: string,
 ): Promise<void> {
   const { data } = await httpClient.get<Blob>(
-    `/marketing-salary-calculations/${id}/pdf`,
+    adminPath(`/marketing-salary-calculations/${id}/pdf`),
     { responseType: 'blob', timeout: 60000 },
   )
   await downloadBlob(data, filename ?? `marketing-salary-${id}.pdf`)

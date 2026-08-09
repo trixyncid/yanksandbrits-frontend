@@ -71,7 +71,6 @@ export default function MarketingReportListPage() {
             searchPlaceholder="Search by marketer, branch..."
             globalFilterFn={filterMarketingReport}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No marketing salary data found"
             toolbarActions={
               <>

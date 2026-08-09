@@ -54,7 +54,6 @@ export default function PaidLeaveListPage() {
             searchPlaceholder="Search by staff, branch, status, notes..."
             globalFilterFn={filterPaidLeave}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No paid leave records found"
             toolbarActions={
               <>
@@ -76,7 +75,12 @@ export default function PaidLeaveListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() => void navigate({ to: '/paid-leaves/new' })}
+                  onClick={() =>
+                    void navigate({
+                      to: '/paid-leaves/new',
+                      search: { userId: undefined },
+                    })
+                  }
                 >
                   <Plus className="size-4" />
                   Add New Record

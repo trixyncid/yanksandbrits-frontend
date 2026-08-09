@@ -53,7 +53,6 @@ export default function StudentListPage() {
             searchPlaceholder="Search by name, PIN, email, branch..."
             globalFilterFn={filterStudent}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No students found"
             toolbarActions={
               <>
@@ -74,7 +73,14 @@ export default function StudentListPage() {
                   />
                   Refresh
                 </Button>
-                <Button onClick={() => void navigate({ to: '/students/new' })}>
+                <Button
+                  onClick={() =>
+                    void navigate({
+                      to: '/students/new',
+                      search: { prospectiveStudentId: undefined },
+                    })
+                  }
+                >
                   <Plus className="size-4" />
                   Add New Student
                 </Button>

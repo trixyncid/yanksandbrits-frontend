@@ -49,7 +49,6 @@ export default function TutorListPage() {
             searchPlaceholder="Search by pin, name, email, phone..."
             globalFilterFn={filterTutor}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No tutors found"
             toolbarActions={
               <>

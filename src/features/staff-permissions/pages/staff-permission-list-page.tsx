@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -15,8 +16,11 @@ import type { StaffPermissionListItem } from '../types/staff-permission'
 function filterStaffPermission(row: StaffPermissionListItem, search: string) {
   const haystack = [
     row.name,
+    row.code,
+    row.description,
     String(row.permissionCount),
     String(row.memberCount),
+    row.isSystem ? 'system' : '',
   ]
     .join(' ')
     .toLowerCase()
@@ -25,6 +29,7 @@ function filterStaffPermission(row: StaffPermissionListItem, search: string) {
 }
 
 export default function StaffPermissionListPage() {
+  const navigate = useNavigate()
   const permissionsQuery = useStaffPermissionsQuery()
 
   return (
@@ -42,16 +47,15 @@ export default function StaffPermissionListPage() {
 
         {permissionsQuery.isSuccess ? (
           <DataTable
-            title="Staff Group List"
-            description="Manage staff permission groups."
-            totalLabel="groups"
+            title="Roles"
+            description="Create roles, attach Django permissions, then assign roles to user accounts."
+            totalLabel="roles"
             columns={staffPermissionListColumns}
             data={permissionsQuery.data.data}
-            searchPlaceholder="Search by group name..."
+            searchPlaceholder="Search by name, code..."
             globalFilterFn={filterStaffPermission}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
-            emptyMessage="No staff permission groups found"
+            emptyMessage="No roles found"
             toolbarActions={
               <>
                 <Button
@@ -60,9 +64,8 @@ export default function StaffPermissionListPage() {
                   onClick={() => {
                     void permissionsQuery.refetch().then(() => {
                       notify('success', {
-                        title: 'Staff permissions refreshed',
-                        description:
-                          'Latest staff permission data has been loaded.',
+                        title: 'Roles refreshed',
+                        description: 'Latest role definitions have been loaded.',
                       })
                     })
                   }}
@@ -73,16 +76,10 @@ export default function StaffPermissionListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add group',
-                      description:
-                        'The create staff permission group form will be added later.',
-                    })
-                  }
+                  onClick={() => void navigate({ to: '/staff-permissions/new' })}
                 >
                   <Plus className="size-4" />
-                  Add New Group
+                  Add New Role
                 </Button>
               </>
             }

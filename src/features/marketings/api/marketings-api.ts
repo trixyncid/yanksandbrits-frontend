@@ -16,7 +16,7 @@ export type MarketingListResponse = {
 function mapMarketing(user: UserListItem): MarketingListItem {
   return {
     id: user.id,
-    pin: user.pin,
+    pin: user.pin ?? '',
     fullName: user.fullName,
     email: user.email,
     phone: user.phone,

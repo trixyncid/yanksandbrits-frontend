@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, RefreshCw } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -12,7 +13,7 @@ import {
 import { useStaffQuery } from '../hooks/use-staff-query'
 import type { StaffListItem } from '../types/staff'
 
-function filterStaff(row: StaffListItem, search: string) {
+function filterUsers(row: StaffListItem, search: string) {
   const haystack = [
     row.pin,
     row.fullName,
@@ -29,6 +30,7 @@ function filterStaff(row: StaffListItem, search: string) {
 }
 
 export default function StaffListPage() {
+  const navigate = useNavigate()
   const staffQuery = useStaffQuery()
 
   return (
@@ -42,16 +44,15 @@ export default function StaffListPage() {
 
         {staffQuery.isSuccess ? (
           <DataTable
-            title="Staff List"
-            description="Manage staff accounts and roles."
+            title="Users"
+            description="Manage login accounts across staff and students."
             totalLabel="accounts"
             columns={staffListColumns}
             data={staffQuery.data.data}
-            searchPlaceholder="Search by pin, name, position, branch..."
-            globalFilterFn={filterStaff}
+            searchPlaceholder="Search by pin, name, email, role, branch..."
+            globalFilterFn={filterUsers}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
-            emptyMessage="No staff accounts found"
+            emptyMessage="No user accounts found"
             toolbarActions={
               <>
                 <Button
@@ -60,8 +61,8 @@ export default function StaffListPage() {
                   onClick={() => {
                     void staffQuery.refetch().then(() => {
                       notify('success', {
-                        title: 'Staff list refreshed',
-                        description: 'Latest staff data has been loaded.',
+                        title: 'User list refreshed',
+                        description: 'Latest account data has been loaded.',
                       })
                     })
                   }}
@@ -72,16 +73,10 @@ export default function StaffListPage() {
                   Refresh
                 </Button>
                 <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add account',
-                      description:
-                        'The create staff account form will be added later.',
-                    })
-                  }
+                  onClick={() => void navigate({ to: '/users/new' })}
                 >
                   <Plus className="size-4" />
-                  Add New Account
+                  Add Staff Account
                 </Button>
               </>
             }

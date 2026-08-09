@@ -16,10 +16,11 @@ import { cn } from '../../../shared/lib/cn'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { StudentProgramsTab } from '../components/student-programs-tab'
+import { StudentAccountCard } from '../components/student-account-card'
 import { deleteStudent, getStudentInitials } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
 import { useStudentQuery } from '../hooks/use-student-query'
-import type { StudentProgramItem } from '../types/student'
 
 type DetailTab = 'programs' | 'payments'
 
@@ -55,28 +56,6 @@ function DetailItem({
         {value || '—'}
       </dd>
     </div>
-  )
-}
-
-function ProgramStatusBadge({
-  status,
-}: {
-  status: StudentProgramItem['status']
-}) {
-  const styles = {
-    ongoing: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-    completed: 'bg-[#EDF4FF] text-[#2F5A94] ring-[#BED2F2]',
-  }
-
-  return (
-    <span
-      className={cn(
-        'inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ring-1',
-        styles[status],
-      )}
-    >
-      {status}
-    </span>
   )
 }
 
@@ -327,6 +306,8 @@ export default function StudentDetailPage() {
           </aside>
         </div>
 
+        <StudentAccountCard student={student} />
+
         <section className="animate-in fade-in slide-in-from-bottom-2 delay-150 space-y-4">
           <div className="flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:max-w-md">
             {(
@@ -352,80 +333,34 @@ export default function StudentDetailPage() {
           </div>
 
           <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {tab === 'programs' ? 'Program List' : 'Payment History'}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {tab === 'programs'
-                    ? 'Programs enrolled for this student.'
-                    : 'Manage payments from the Student Payments page.'}
-                </p>
-              </div>
-              {tab === 'programs' ? null : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    void navigate({ to: '/student-payments/new' })
-                  }
-                >
-                  Add Payment
-                </Button>
-              )}
-            </div>
-
             {tab === 'programs' ? (
-              student.programs.length === 0 ? (
-                <div className="px-6 py-12 text-center text-sm text-slate-500">
-                  No programs enrolled yet.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50/80 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                      <tr>
-                        <th className="px-6 py-3">Program</th>
-                        <th className="px-4 py-3">Period</th>
-                        <th className="px-4 py-3 text-center">Sessions</th>
-                        <th className="px-4 py-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {student.programs.map((program) => (
-                        <tr
-                          key={program.id}
-                          className="border-t border-slate-100"
-                        >
-                          <td className="px-6 py-4">
-                            <p className="font-semibold text-slate-900">
-                              {program.title}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {program.description || '—'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-4 text-slate-600">
-                            {program.period}
-                          </td>
-                          <td className="px-4 py-4 text-center text-slate-600">
-                            {program.sessions}
-                          </td>
-                          <td className="px-4 py-4">
-                            <ProgramStatusBadge status={program.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
+              <StudentProgramsTab student={student} />
             ) : (
-              <div className="px-6 py-12 text-center text-sm text-slate-500">
-                Open Student Payments to view and manage payment records for
-                this student.
-              </div>
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Payment History
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Manage payments from the Student Payments page.
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      void navigate({ to: '/student-payments/new' })
+                    }
+                  >
+                    Add Payment
+                  </Button>
+                </div>
+                <div className="px-6 py-12 text-center text-sm text-slate-500">
+                  Open Student Payments to view and manage payment records for
+                  this student.
+                </div>
+              </>
             )}
           </div>
         </section>

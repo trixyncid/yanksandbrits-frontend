@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns'
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
@@ -7,8 +8,11 @@ import { Label } from '../../../shared/components/ui/label'
 import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { cn } from '../../../shared/lib/cn'
 import { useClassroomsQuery } from '../../classrooms/hooks/use-classrooms-query'
-import { useProgramsQuery } from '../../programs/hooks/use-programs-query'
+import { fetchProgram } from '../../programs/api/programs-api'
+import { programQueryKeys } from '../../programs/api/program-query-keys'
+import { useFilteredProgramsQuery } from '../../programs/hooks/use-filtered-programs-query'
 import { useStudentGroupsQuery } from '../../student-groups/hooks/use-student-groups-query'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import { useTutorOptionsQuery } from '../../users/hooks/use-user-options'
@@ -105,7 +109,6 @@ export function ScheduleForm({
   onCancel,
   onDelete,
 }: ScheduleFormProps) {
-  const programsQuery = useProgramsQuery({ isActive: 'active' })
   const classroomsQuery = useClassroomsQuery({
     branchId,
     isActive: 'active',
@@ -117,14 +120,58 @@ export function ScheduleForm({
   })
   const groupsQuery = useStudentGroupsQuery({ status: 'active' })
 
-  const programOptions = useMemo(
-    () =>
-      (programsQuery.data?.data ?? []).map((program) => ({
+  const selectedStudentId =
+    values.participantType === 'student' ? values.studentId : undefined
+  const selectedGroupId =
+    values.participantType === 'group' ? values.studentGroupId : undefined
+  const hasParticipant = Boolean(selectedStudentId || selectedGroupId)
+
+  const filteredProgramsQuery = useFilteredProgramsQuery({
+    studentId: selectedStudentId,
+    studentGroupId: selectedGroupId,
+  })
+
+  const filteredPrograms = filteredProgramsQuery.data ?? []
+  const selectedProgramMissing =
+    Boolean(values.programId) &&
+    filteredProgramsQuery.isSuccess &&
+    !filteredPrograms.some((program) => program.id === values.programId)
+
+  const currentProgramQuery = useQuery({
+    queryKey: programQueryKeys.detail(values.programId),
+    queryFn: () => fetchProgram(values.programId),
+    enabled: selectedProgramMissing,
+  })
+
+  const programOptions = useMemo(() => {
+    const options = filteredPrograms.map((program) => ({
+      value: program.id,
+      label: program.code ? `${program.code} · ${program.title}` : program.title,
+      keywords: `${program.code} ${program.title}`,
+    }))
+
+    if (
+      selectedProgramMissing &&
+      currentProgramQuery.data &&
+      currentProgramQuery.data.id === values.programId
+    ) {
+      const program = currentProgramQuery.data
+      options.unshift({
         value: program.id,
-        label: program.title,
-      })),
-    [programsQuery.data?.data],
-  )
+        label: program.code
+          ? `${program.code} · ${program.title}`
+          : program.title,
+        keywords: `${program.code} ${program.title}`,
+      })
+    }
+
+    return options
+  }, [
+    currentProgramQuery.data,
+    filteredPrograms,
+    selectedProgramMissing,
+    values.programId,
+  ])
 
   const tutorOptions = useMemo(
     () =>
@@ -155,6 +202,16 @@ export function ScheduleForm({
     [groupsQuery.data?.data],
   )
 
+  const programHint = !hasParticipant
+    ? values.participantType === 'student'
+      ? 'Select a student first to see their enrolled programs.'
+      : 'Select a student group first to see shared enrolled programs.'
+    : filteredProgramsQuery.isFetched && programOptions.length === 0
+      ? values.participantType === 'student'
+        ? 'This student has no open program enrollments.'
+        : 'This group has no programs shared by every participant.'
+      : undefined
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -183,18 +240,6 @@ export function ScheduleForm({
           </Select>
         </Field>
 
-        <Field label="Program" htmlFor="programId" error={errors.programId}>
-          <SearchableSelect
-            id="programId"
-            value={values.programId}
-            options={programOptions}
-            onChange={(next) => onChange('programId', next)}
-            placeholder="Select program"
-            searchPlaceholder="Search programs..."
-            disabled={programsQuery.isLoading}
-          />
-        </Field>
-
         <Field label="Tutor" htmlFor="tutorId" error={errors.tutorId}>
           <SearchableSelect
             id="tutorId"
@@ -208,24 +253,36 @@ export function ScheduleForm({
           />
         </Field>
 
-        <Field label="Status" htmlFor="status" error={errors.status}>
-          <Select
-            id="status"
-            containerClassName="w-full sm:w-full"
-            value={values.status}
-            onChange={(event) =>
-              onChange(
-                'status',
-                event.target.value as ScheduleFormValues['status'],
-              )
-            }
+        <Field label="Status" htmlFor="schedule-status" error={errors.status}>
+          <div
+            id="schedule-status"
+            role="radiogroup"
+            aria-label="Session status"
+            className="grid grid-cols-3 gap-2"
           >
-            {SCHEDULE_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+            {SCHEDULE_STATUS_OPTIONS.map((option) => {
+              const selected = values.status === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  disabled={isSubmitting}
+                  onClick={() => onChange('status', option.value)}
+                  className={cn(
+                    'h-12 rounded-xl border text-sm font-semibold transition',
+                    selected
+                      ? 'border-[#4274B9] bg-[#EDF4FF] text-[#2F5A94] shadow-sm shadow-[#4274B9]/15'
+                      : 'border-slate-200 bg-[#F4F6FA] text-slate-600 hover:border-[#BED2F2] hover:bg-white',
+                    'disabled:cursor-not-allowed disabled:opacity-60',
+                  )}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
         </Field>
       </div>
 
@@ -284,6 +341,34 @@ export function ScheduleForm({
           />
         </Field>
       )}
+
+      <Field
+        label="Program"
+        htmlFor="programId"
+        error={errors.programId}
+        hint={programHint}
+      >
+        <SearchableSelect
+          id="programId"
+          value={values.programId}
+          options={programOptions}
+          onChange={(next) => onChange('programId', next)}
+          placeholder={
+            !hasParticipant
+              ? values.participantType === 'student'
+                ? 'Select a student first'
+                : 'Select a group first'
+              : 'Select program'
+          }
+          searchPlaceholder="Search enrolled programs..."
+          disabled={!hasParticipant || filteredProgramsQuery.isLoading}
+          emptyMessage={
+            values.participantType === 'student'
+              ? 'No open enrollments for this student'
+              : 'No shared open enrollments for this group'
+          }
+        />
+      </Field>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Date" htmlFor="date" error={errors.date}>

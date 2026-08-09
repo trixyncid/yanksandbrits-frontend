@@ -14,12 +14,12 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
 import { useAuthStore } from '../../auth/store/auth-store'
 import { fetchUser } from '../../users/api/users-api'
 import { ChangePasswordDialog } from '../components/change-password-dialog'
+import { EditProfileDialog } from '../components/edit-profile-dialog'
 import { getUserInitials } from '../data/current-user-placeholder'
 import { buildCurrentUserProfile } from '../lib/build-current-user-profile'
 
@@ -89,6 +89,7 @@ export default function ProfilePage() {
   const { requestLogout, logoutDialog } = useLogoutConfirm()
   const authUser = useAuthStore((state) => state.user)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   const userId = authUser?.id != null ? String(authUser.id) : null
 
@@ -124,6 +125,12 @@ export default function ProfilePage() {
   return (
     <AdminShell>
       {logoutDialog}
+      <EditProfileDialog
+        open={editProfileOpen}
+        onOpenChange={setEditProfileOpen}
+        profile={user}
+        detail={userDetailQuery.data}
+      />
       <ChangePasswordDialog
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
@@ -198,12 +205,7 @@ export default function ProfilePage() {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Edit profile placeholder',
-                      description: 'Profile editing will be added later.',
-                    })
-                  }
+                  onClick={() => setEditProfileOpen(true)}
                 >
                   <Pencil className="size-3.5" />
                   Edit Profile

@@ -9,6 +9,7 @@ import type {
   StudentGroupMember,
 } from '../types/student-group'
 import type { StudentGroupListFilters } from './student-group-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type StudentGroupListResponse = {
   data: StudentGroupListItem[]
@@ -90,7 +91,7 @@ export async function fetchStudentGroups(
   const [{ items, total }, studentsById] = await Promise.all([
     fetchAllPages<StudentGroupDto>({
       client: httpClient,
-      path: '/student-groups',
+      path: adminPath('/student-groups'),
       params,
     }),
     loadStudentLookup(),
@@ -114,7 +115,7 @@ export async function fetchStudentGroup(
 ): Promise<StudentGroupListItem> {
   const [{ data }, studentsById] = await Promise.all([
     httpClient.get<ApiSuccessEnvelope<StudentGroupDto>>(
-      `/student-groups/${id}`,
+      adminPath(`/student-groups/${id}`),
     ),
     loadStudentLookup(),
   ])
@@ -125,7 +126,7 @@ export async function createStudentGroup(
   values: StudentGroupFormValues,
 ): Promise<StudentGroupListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<StudentGroupDto>>(
-    '/student-groups',
+    adminPath('/student-groups'),
     toWritePayload(values),
   )
   const studentsById = await loadStudentLookup()
@@ -137,7 +138,7 @@ export async function updateStudentGroup(
   values: StudentGroupFormValues,
 ): Promise<StudentGroupListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<StudentGroupDto>>(
-    `/student-groups/${id}`,
+    adminPath(`/student-groups/${id}`),
     toWritePayload(values),
   )
   const studentsById = await loadStudentLookup()
@@ -145,7 +146,7 @@ export async function updateStudentGroup(
 }
 
 export async function deleteStudentGroup(id: string): Promise<void> {
-  await httpClient.delete(`/student-groups/${id}`)
+  await httpClient.delete(adminPath(`/student-groups/${id}`))
 }
 
 export function studentGroupToFormValues(

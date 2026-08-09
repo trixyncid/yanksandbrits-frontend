@@ -5,6 +5,7 @@ import type {
   ClassroomListItem,
 } from '../types/classroom'
 import type { ClassroomListFilters } from './classroom-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type ClassroomListResponse = {
   data: ClassroomListItem[]
@@ -69,7 +70,7 @@ async function fetchClassroomPage(params: {
 }) {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<ClassroomDto[]> & { meta: PaginatedMeta | null }
-  >('/classrooms', { params })
+  >(adminPath('/classrooms'), { params })
 
   return {
     items: (data.data ?? []).map(mapClassroom),
@@ -122,7 +123,7 @@ export async function fetchClassrooms(
 
 export async function fetchClassroom(id: string): Promise<ClassroomListItem> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<ClassroomDto>>(
-    `/classrooms/${id}`,
+    adminPath(`/classrooms/${id}`),
   )
   return mapClassroom(data.data)
 }
@@ -131,7 +132,7 @@ export async function createClassroom(
   values: ClassroomFormValues,
 ): Promise<ClassroomListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<ClassroomDto>>(
-    '/classrooms',
+    adminPath('/classrooms'),
     toWritePayload(values),
   )
   return mapClassroom(data.data)
@@ -142,14 +143,14 @@ export async function updateClassroom(
   values: ClassroomFormValues,
 ): Promise<ClassroomListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<ClassroomDto>>(
-    `/classrooms/${id}`,
+    adminPath(`/classrooms/${id}`),
     toWritePayload(values),
   )
   return mapClassroom(data.data)
 }
 
 export async function deleteClassroom(id: string): Promise<void> {
-  await httpClient.delete(`/classrooms/${id}`)
+  await httpClient.delete(adminPath(`/classrooms/${id}`))
 }
 
 export function classroomToFormValues(

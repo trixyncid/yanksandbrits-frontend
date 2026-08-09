@@ -70,7 +70,7 @@ export function useUserForm({
 
   function detailPath(id: string) {
     if (entity.kind === 'staff') {
-      return { to: '/staff/$staffId' as const, params: { staffId: id } }
+      return { to: '/users/$userId' as const, params: { userId: id } }
     }
     if (entity.kind === 'tutor') {
       return { to: '/tutors/$tutorId' as const, params: { tutorId: id } }

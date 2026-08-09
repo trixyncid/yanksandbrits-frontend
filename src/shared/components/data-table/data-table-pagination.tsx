@@ -10,6 +10,8 @@ import { Button } from '../ui/button'
 import { Select } from '../ui/select'
 import { cn } from '../../lib/cn'
 
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
+
 type DataTablePaginationProps<TData> = {
   table: Table<TData>
   pageSizeOptions?: number[]
@@ -29,7 +31,7 @@ function getVisiblePages(current: number, total: number) {
 
 export function DataTablePagination<TData>({
   table,
-  pageSizeOptions = [10, 20, 50],
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }: DataTablePaginationProps<TData>) {
   const pageCount = table.getPageCount()
   const currentPage = table.getState().pagination.pageIndex + 1

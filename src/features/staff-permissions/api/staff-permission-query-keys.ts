@@ -7,4 +7,8 @@ export const staffPermissionQueryKeys = {
   lists: () => [...staffPermissionQueryKeys.all, 'list'] as const,
   list: (filters: StaffPermissionListFilters = {}) =>
     [...staffPermissionQueryKeys.lists(), filters] as const,
+  details: () => [...staffPermissionQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...staffPermissionQueryKeys.details(), id] as const,
+  permissions: () =>
+    [...staffPermissionQueryKeys.all, 'permissions'] as const,
 }

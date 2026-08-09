@@ -56,7 +56,6 @@ export default function PredictionTestListPage() {
             searchPlaceholder="Search by student, counsellor, status, branch..."
             globalFilterFn={filterPredictionTest}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No prediction tests found"
             toolbarActions={
               <>

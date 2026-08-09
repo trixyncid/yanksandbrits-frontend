@@ -22,9 +22,6 @@ export const userFormSchema = z.object({
   homePhone: z.string().trim(),
   otherPhone: z.string().trim(),
   isActive: z.boolean(),
-  isTutor: z.boolean(),
-  isMarketing: z.boolean(),
-  isManager: z.boolean(),
   staffType: z
     .string()
     .trim()
@@ -39,6 +36,7 @@ export const userFormSchema = z.object({
     .trim()
     .regex(/^\d+$/, 'Paid leave must be a number.'),
   resignDate: z.string(),
+  groupIds: z.array(z.string()),
 })
 
 export function validateUserPassword(

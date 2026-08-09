@@ -63,7 +63,6 @@ export default function BookkeepingListPage() {
             searchPlaceholder="Search by status, creator, dates..."
             globalFilterFn={filterBookkeeping}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No bookkeeping periods found"
             toolbarActions={
               <>

@@ -68,7 +68,6 @@ export default function TutorReportListPage() {
             searchPlaceholder="Search by tutor, email..."
             globalFilterFn={filterTutorReport}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No tutor salary data found"
             toolbarActions={
               <>

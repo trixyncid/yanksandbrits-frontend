@@ -52,7 +52,21 @@ export const timetableStatusBadgeClasses: Record<TimetableTone, string> = {
 }
 
 export function toneFromScheduleStatus(status: string | null | undefined): TimetableTone {
-  if (status === '2_FN' || status === 'FINISHED') return 'green'
-  if (status === '3_CN' || status === 'CANCELLED') return 'rose'
+  const normalized = (status ?? '').toLowerCase()
+  if (
+    normalized === '2_fn' ||
+    normalized === 'finished' ||
+    normalized === 'fn'
+  ) {
+    return 'green'
+  }
+  if (
+    normalized === '3_cn' ||
+    normalized === 'cancelled' ||
+    normalized === 'canceled' ||
+    normalized === 'cn'
+  ) {
+    return 'rose'
+  }
   return 'blue'
 }

@@ -5,6 +5,7 @@ import { updateOpenPeriodSalaries } from '../../bookkeeping/api/bookkeeping-api'
 import { fetchUsers, type UserListItem } from '../../users/api/users-api'
 import type { TutorReportListItem } from '../types/tutor-report'
 import type { TutorReportListFilters } from './tutor-report-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type TutorReportListResponse = {
   data: TutorReportListItem[]
@@ -62,7 +63,7 @@ export async function fetchTutorReport(
   const [{ items, total }, tutorsResult] = await Promise.all([
     fetchAllPages<TutorSalaryDto>({
       client: httpClient,
-      path: '/tutor-salary-calculations',
+      path: adminPath('/tutor-salary-calculations'),
       params,
     }),
     fetchUsers({ isTutor: true }),
@@ -87,7 +88,7 @@ export async function downloadTutorSalaryPdf(
   filename?: string,
 ): Promise<void> {
   const { data } = await httpClient.get<Blob>(
-    `/tutor-salary-calculations/${id}/pdf`,
+    adminPath(`/tutor-salary-calculations/${id}/pdf`),
     { responseType: 'blob', timeout: 60000 },
   )
   await downloadBlob(data, filename ?? `tutor-salary-${id}.pdf`)

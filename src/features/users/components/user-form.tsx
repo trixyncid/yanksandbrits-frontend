@@ -8,6 +8,7 @@ import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import {
   STAFF_TYPE_OPTIONS,
   type UserFormErrors,
@@ -68,34 +69,6 @@ function toDateString(date: Date | undefined) {
   return `${year}-${month}-${day}`
 }
 
-function RoleCheckbox({
-  id,
-  label,
-  checked,
-  onChange,
-}: {
-  id: string
-  label: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 text-sm text-slate-600"
-    >
-      <input
-        id={id}
-        type="checkbox"
-        className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
-  )
-}
-
 type UserFormProps = {
   mode: 'create' | 'edit'
   values: UserFormValues
@@ -121,10 +94,26 @@ export function UserForm({
   onCancel,
 }: UserFormProps) {
   const branchesQuery = useBranchesQuery()
+  const rolesQuery = useStaffPermissionsQuery()
+
+  const roleOptions = (rolesQuery.data?.data ?? []).filter(
+    (role) => role.code !== 'student',
+  )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
+  }
+
+  function toggleGroup(id: string, checked: boolean) {
+    if (checked) {
+      onChange('groupIds', [...new Set([...values.groupIds, id])])
+      return
+    }
+    onChange(
+      'groupIds',
+      values.groupIds.filter((groupId) => groupId !== id),
+    )
   }
 
   return (
@@ -266,6 +255,7 @@ export function UserForm({
               onChange={(date) => onChange('birthDate', toDateString(date))}
               placeholder="Pick birth date"
               title="Birth date"
+              captionLayout="dropdown"
               className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
               align="start"
             />
@@ -342,7 +332,7 @@ export function UserForm({
             Workplace & Roles
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Branch assignment, staff type, and role flags.
+            Branch assignment and permission groups (Django roles).
           </p>
         </div>
 
@@ -413,27 +403,50 @@ export function UserForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Roles</Label>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <RoleCheckbox
-              id="isManager"
-              label="Manager"
-              checked={values.isManager}
-              onChange={(checked) => onChange('isManager', checked)}
-            />
-            <RoleCheckbox
-              id="isTutor"
-              label="Tutor"
-              checked={values.isTutor}
-              onChange={(checked) => onChange('isTutor', checked)}
-            />
-            <RoleCheckbox
-              id="isMarketing"
-              label="Marketing"
-              checked={values.isMarketing}
-              onChange={(checked) => onChange('isMarketing', checked)}
-            />
-          </div>
+          <Label>Permission groups</Label>
+          <p className="text-xs text-slate-400">
+            Assign one or more roles. System roles (manager, tutor, marketing)
+            also drive domain lists and portals.
+          </p>
+          {rolesQuery.isLoading ? (
+            <p className="text-sm text-slate-500">Loading roles…</p>
+          ) : roleOptions.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No roles defined yet. Create them under Roles.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {roleOptions.map((role) => (
+                <label
+                  key={role.id}
+                  htmlFor={`role-${role.id}`}
+                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 py-3 text-sm text-slate-600"
+                >
+                  <input
+                    id={`role-${role.id}`}
+                    type="checkbox"
+                    className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                    checked={values.groupIds.includes(role.id)}
+                    onChange={(event) =>
+                      toggleGroup(role.id, event.target.checked)
+                    }
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-slate-800">
+                      {role.name}
+                    </span>
+                    {role.code ? (
+                      <span className="block text-xs text-slate-400">
+                        {role.code}
+                        {role.isSystem ? ' · system' : ''}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          <FieldError message={errors.groupIds} />
         </div>
 
         <div className="space-y-2">

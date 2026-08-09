@@ -36,6 +36,13 @@ type DataTableProps<TData> = {
   maxHeight?: number | string
 }
 
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
+
+const coreRowModel = getCoreRowModel()
+const sortedRowModel = getSortedRowModel()
+const filteredRowModel = getFilteredRowModel()
+const paginationRowModel = getPaginationRowModel()
+
 function getStickyClassName(
   sticky: DataTableColumnMeta['sticky'] | undefined,
   variant: 'header' | 'cell',
@@ -63,7 +70,7 @@ export function DataTable<TData>({
   totalLabel = 'data',
   searchPlaceholder = 'Search...',
   globalFilterFn,
-  pageSizeOptions = [10, 20, 50],
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   initialPageSize = 10,
   toolbarActions,
   emptyMessage = 'No data found',
@@ -105,10 +112,10 @@ export function DataTable<TData>({
     },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getCoreRowModel: coreRowModel,
+    getSortedRowModel: sortedRowModel,
+    getFilteredRowModel: filteredRowModel,
+    getPaginationRowModel: paginationRowModel,
   })
 
   return (

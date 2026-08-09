@@ -12,8 +12,8 @@ import type { StaffEntityConfig } from '../lib/staff-entity-config'
 function detailLink(entity: StaffEntityConfig, id: string) {
   if (entity.kind === 'staff') {
     return {
-      to: '/staff/$staffId' as const,
-      params: { staffId: id },
+      to: '/users/$userId' as const,
+      params: { userId: id },
       label: id,
     }
   }
@@ -83,7 +83,7 @@ export function StaffUserEditPage({
       userId={user.id}
       entity={entity}
       initialValues={userToFormValues(user)}
-      pin={user.pin}
+      pin={user.pin ?? ''}
       fullName={user.fullName}
     />
   )
@@ -121,7 +121,7 @@ function StaffUserEditForm({
               className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
             >
               <ArrowLeft className="size-4" />
-              {pin} | {fullName}
+              {pin || 'Account'} | {fullName}
             </Link>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
               Update {entity.singular}

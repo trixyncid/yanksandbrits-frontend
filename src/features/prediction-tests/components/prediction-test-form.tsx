@@ -1,10 +1,11 @@
 import { ImagePlus } from 'lucide-react'
-import type { FormEvent, ReactNode } from 'react'
+import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
+import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { useProspectiveStudentOptionsQuery } from '../hooks/use-prospective-student-options-query'
@@ -91,6 +92,16 @@ export function PredictionTestForm({
 }: PredictionTestFormProps) {
   const studentsQuery = useProspectiveStudentOptionsQuery()
 
+  const studentOptions = useMemo(
+    () =>
+      (studentsQuery.data ?? []).map((student) => ({
+        value: student.id,
+        label: `${student.fullName} | ${student.phone}`,
+        keywords: `${student.fullName} ${student.phone} ${student.email}`,
+      })),
+    [studentsQuery.data],
+  )
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
@@ -121,19 +132,16 @@ export function PredictionTestForm({
             error={errors.studentId}
             hint="Select the prospective student for this prediction test."
           >
-            <Select
+            <SearchableSelect
               id="studentId"
-              containerClassName="w-full sm:w-full"
               value={values.studentId}
-              onChange={(event) => onChange('studentId', event.target.value)}
-            >
-              <option value="">Select student...</option>
-              {(studentsQuery.data ?? []).map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.fullName} | {student.phone}
-                </option>
-              ))}
-            </Select>
+              options={studentOptions}
+              onChange={(next) => onChange('studentId', next)}
+              placeholder="Select student..."
+              searchPlaceholder="Search students..."
+              disabled={studentsQuery.isLoading}
+              emptyMessage="No prospective students found"
+            />
           </Field>
         ) : (
           <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">

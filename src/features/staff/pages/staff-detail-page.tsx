@@ -4,6 +4,6 @@ import { staffEntityConfig } from '../../users/lib/staff-entity-config'
 import { StaffUserDetailPage } from '../../users/pages/staff-user-detail-page'
 
 export default function StaffDetailPage() {
-  const { staffId } = useParams({ strict: false }) as { staffId: string }
-  return <StaffUserDetailPage userId={staffId} entity={staffEntityConfig} />
+  const { userId } = useParams({ strict: false }) as { userId: string }
+  return <StaffUserDetailPage userId={userId} entity={staffEntityConfig} />
 }

@@ -51,7 +51,6 @@ export default function ClassroomListPage() {
             searchPlaceholder="Search by code, name, branch..."
             globalFilterFn={filterClassroom}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No classrooms found"
             toolbarActions={
               <>

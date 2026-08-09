@@ -4,12 +4,14 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  notFound,
   redirect,
 } from '@tanstack/react-router'
 
 import { useAuthStore } from '../features/auth/store/auth-store'
 import { RootLayout } from './root-layout'
 import { AppLoadingScreen } from './ui/app-loading-screen'
+import { RouteErrorScreen } from './ui/route-error-screen'
 
 function AuthenticatedLayout() {
   return <Outlet />
@@ -18,6 +20,10 @@ function AuthenticatedLayout() {
 const rootRoute = createRootRoute({
   component: RootLayout,
   pendingComponent: AppLoadingScreen,
+  errorComponent: RouteErrorScreen,
+  notFoundComponent: lazyRouteComponent(
+    () => import('../features/not-found/pages/not-found-page'),
+  ),
   beforeLoad: async () => {
     await useAuthStore.getState().hydrate()
   },
@@ -78,6 +84,13 @@ const studentsRoute = createRoute({
 const studentCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/students/new',
+  validateSearch: (search: Record<string, unknown>) => ({
+    prospectiveStudentId:
+      typeof search.prospectiveStudentId === 'string' &&
+      search.prospectiveStudentId.trim()
+        ? search.prospectiveStudentId.trim()
+        : undefined,
+  }),
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-create-page'),
   ),
@@ -96,35 +109,6 @@ const studentEditRoute = createRoute({
   path: '/students/$studentId/edit',
   component: lazyRouteComponent(
     () => import('../features/students/pages/student-edit-page'),
-  ),
-})
-
-const studentResponsesRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/student-responses',
-  component: lazyRouteComponent(
-    () =>
-      import('../features/student-responses/pages/student-response-list-page'),
-  ),
-})
-
-const studentResponseCreateRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/student-responses/new',
-  component: lazyRouteComponent(
-    () =>
-      import(
-        '../features/student-responses/pages/student-response-create-page'
-      ),
-  ),
-})
-
-const studentResponseEditRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/student-responses/$responseId/edit',
-  component: lazyRouteComponent(
-    () =>
-      import('../features/student-responses/pages/student-response-edit-page'),
   ),
 })
 
@@ -184,25 +168,25 @@ const studentPaymentEditRoute = createRoute({
 
 const newStudentsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/new-students',
+  path: '/prospective-students',
   component: lazyRouteComponent(
-    () => import('../features/new-students/pages/new-student-list-page'),
+    () => import('../features/prospective-students/pages/prospective-student-list-page'),
   ),
 })
 
 const newStudentCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/new-students/new',
+  path: '/prospective-students/new',
   component: lazyRouteComponent(
-    () => import('../features/new-students/pages/new-student-create-page'),
+    () => import('../features/prospective-students/pages/prospective-student-create-page'),
   ),
 })
 
 const newStudentEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/new-students/$studentId/edit',
+  path: '/prospective-students/$prospectiveStudentId/edit',
   component: lazyRouteComponent(
-    () => import('../features/new-students/pages/new-student-edit-page'),
+    () => import('../features/prospective-students/pages/prospective-student-edit-page'),
   ),
 })
 
@@ -291,15 +275,23 @@ const fullScheduleRoute = createRoute({
 
 const staffRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/staff',
+  path: '/users',
   component: lazyRouteComponent(
     () => import('../features/staff/pages/staff-list-page'),
   ),
 })
 
+const staffCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/users/new',
+  component: lazyRouteComponent(
+    () => import('../features/staff/pages/staff-create-page'),
+  ),
+})
+
 const staffDetailRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/staff/$staffId',
+  path: '/users/$userId',
   component: lazyRouteComponent(
     () => import('../features/staff/pages/staff-detail-page'),
   ),
@@ -307,7 +299,7 @@ const staffDetailRoute = createRoute({
 
 const staffEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/staff/$staffId/edit',
+  path: '/users/$userId/edit',
   component: lazyRouteComponent(
     () => import('../features/staff/pages/staff-edit-page'),
   ),
@@ -372,6 +364,28 @@ const staffPermissionsRoute = createRoute({
   ),
 })
 
+const staffPermissionCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/staff-permissions/new',
+  component: lazyRouteComponent(
+    () =>
+      import(
+        '../features/staff-permissions/pages/staff-permission-create-page'
+      ),
+  ),
+})
+
+const staffPermissionEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/staff-permissions/$groupId/edit',
+  component: lazyRouteComponent(
+    () =>
+      import(
+        '../features/staff-permissions/pages/staff-permission-edit-page'
+      ),
+  ),
+})
+
 const paidLeavesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/paid-leaves',
@@ -383,6 +397,12 @@ const paidLeavesRoute = createRoute({
 const paidLeaveCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/paid-leaves/new',
+  validateSearch: (search: Record<string, unknown>) => ({
+    userId:
+      typeof search.userId === 'string' && search.userId.trim()
+        ? search.userId.trim()
+        : undefined,
+  }),
   component: lazyRouteComponent(
     () => import('../features/paid-leaves/pages/paid-leave-create-page'),
   ),
@@ -489,6 +509,14 @@ const notificationDetailRoute = createRoute({
   ),
 })
 
+const catchAllRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/$',
+  beforeLoad: () => {
+    throw notFound()
+  },
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -498,9 +526,6 @@ const routeTree = rootRoute.addChildren([
     studentCreateRoute,
     studentDetailRoute,
     studentEditRoute,
-    studentResponsesRoute,
-    studentResponseCreateRoute,
-    studentResponseEditRoute,
     studentGroupsRoute,
     studentGroupCreateRoute,
     studentGroupEditRoute,
@@ -521,6 +546,7 @@ const routeTree = rootRoute.addChildren([
     classroomEditRoute,
     fullScheduleRoute,
     staffRoute,
+    staffCreateRoute,
     staffDetailRoute,
     staffEditRoute,
     tutorsRoute,
@@ -530,6 +556,8 @@ const routeTree = rootRoute.addChildren([
     marketingDetailRoute,
     marketingEditRoute,
     staffPermissionsRoute,
+    staffPermissionCreateRoute,
+    staffPermissionEditRoute,
     paidLeavesRoute,
     paidLeaveCreateRoute,
     paidLeaveEditRoute,
@@ -545,10 +573,15 @@ const routeTree = rootRoute.addChildren([
     notificationsRoute,
     notificationDetailRoute,
   ]),
+  catchAllRoute,
 ])
 
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
   defaultPendingComponent: AppLoadingScreen,
+  defaultErrorComponent: RouteErrorScreen,
+  defaultNotFoundComponent: lazyRouteComponent(
+    () => import('../features/not-found/pages/not-found-page'),
+  ),
 })

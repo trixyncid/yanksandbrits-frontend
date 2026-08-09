@@ -9,6 +9,14 @@ import {
 } from '../lib/token-storage'
 import type { AuthSession, AuthUser } from '../types/auth'
 
+function normalizeAuthUser(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    roles: user.roles ?? [],
+    permissions: user.permissions ?? [],
+  }
+}
+
 type AuthState = {
   user: AuthUser | null
   rememberMe: boolean
@@ -50,7 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const rememberMe = loadRememberMe()
 
       try {
-        const user = await resolveCurrentUser(rememberMe)
+        const user = normalizeAuthUser(await resolveCurrentUser(rememberMe))
         set({
           user,
           rememberMe,
@@ -76,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     saveRememberMe(session.rememberMe)
     clearLegacyTokenKeys()
     set({
-      user: session.user,
+      user: normalizeAuthUser(session.user),
       rememberMe: session.rememberMe,
       isAuthenticated: true,
       hydrated: true,

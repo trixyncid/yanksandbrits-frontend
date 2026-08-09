@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { studentQueryKeys } from '../../students/api/student-query-keys'
 import {
   createClassSchedule,
   deleteClassSchedule,
@@ -50,11 +51,24 @@ export function useScheduleForm({
         } else {
           next.studentId = ''
         }
+        next.programId = ''
+      }
+
+      if (field === 'studentId' || field === 'studentGroupId') {
+        next.programId = ''
       }
 
       return next
     })
-    setErrors((current) => ({ ...current, [field]: undefined }))
+    setErrors((current) => ({
+      ...current,
+      [field]: undefined,
+      ...(field === 'participantType' ||
+      field === 'studentId' ||
+      field === 'studentGroupId'
+        ? { programId: undefined }
+        : {}),
+    }))
   }
 
   function validateForm(nextValues: ScheduleFormValues) {
@@ -98,9 +112,12 @@ export function useScheduleForm({
     try {
       if (mode === 'create') {
         await createClassSchedule(values)
-        await queryClient.invalidateQueries({
-          queryKey: scheduleQueryKeys.days(),
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: scheduleQueryKeys.days(),
+          }),
+          queryClient.invalidateQueries({ queryKey: studentQueryKeys.all }),
+        ])
         notify('success', {
           title: 'Session created',
           description: 'The class session has been added to the timetable.',
@@ -114,9 +131,15 @@ export function useScheduleForm({
       }
 
       await updateClassSchedule(scheduleId, values)
-      await queryClient.invalidateQueries({
-        queryKey: scheduleQueryKeys.days(),
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: scheduleQueryKeys.days(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: scheduleQueryKeys.detail(scheduleId),
+        }),
+        queryClient.invalidateQueries({ queryKey: studentQueryKeys.all }),
+      ])
       notify('success', {
         title: 'Session updated',
         description: 'The class session has been saved.',
@@ -148,9 +171,14 @@ export function useScheduleForm({
         void (async () => {
           try {
             await deleteClassSchedule(scheduleId)
-            await queryClient.invalidateQueries({
-              queryKey: scheduleQueryKeys.days(),
-            })
+            await Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: scheduleQueryKeys.days(),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: studentQueryKeys.all,
+              }),
+            ])
             notify('success', {
               title: 'Session deleted',
               description: 'The class session has been removed.',

@@ -2,6 +2,7 @@ import axios from 'axios'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { httpClient } from '../../../shared/api/http-client'
+import { AUTH_PATHS } from '../../../shared/api/paths'
 import type { AuthUser, LoginResponse } from '../types/auth'
 
 export type LoginCredentials = {
@@ -23,7 +24,7 @@ export async function login(
     success: true
     data: LoginResponse
     meta: unknown
-  }>('/auth/login', credentials)
+  }>(AUTH_PATHS.login, credentials)
 
   return data.data
 }
@@ -33,13 +34,13 @@ export async function fetchMe(): Promise<AuthUser> {
     success: true
     data: { user: AuthUser }
     meta: unknown
-  }>('/auth/me')
+  }>(AUTH_PATHS.me)
 
   return data.data.user
 }
 
 export async function logout(): Promise<void> {
-  await httpClient.post('/auth/logout', {})
+  await httpClient.post(AUTH_PATHS.logout, {})
 }
 
 export type ChangePasswordPayload = {
@@ -50,13 +51,34 @@ export type ChangePasswordPayload = {
 export async function changePassword(
   payload: ChangePasswordPayload,
 ): Promise<void> {
-  await httpClient.post('/auth/change-password', payload)
+  await httpClient.post(AUTH_PATHS.changePassword, payload)
+}
+
+export type UpdateMePayload = {
+  full_name: string
+  gender: 'M' | 'F' | null
+  birth_place: string | null
+  birth_date: string | null
+  address: string | null
+  mobile_phone: string | null
+  home_phone: string | null
+  other_phone: string | null
+}
+
+export async function updateMe(payload: UpdateMePayload): Promise<AuthUser> {
+  const { data } = await httpClient.patch<{
+    success: true
+    data: { user: AuthUser }
+    meta: unknown
+  }>(AUTH_PATHS.me, payload)
+
+  return data.data.user
 }
 
 /** Refresh without the shared httpClient interceptors (avoids 401 loops). */
 export async function refreshSession(rememberMe = true): Promise<void> {
   await axios.post(
-    `${getApiBaseUrl()}/auth/refresh`,
+    `${getApiBaseUrl()}${AUTH_PATHS.refresh}`,
     { remember_me: rememberMe },
     {
       headers: { 'Content-Type': 'application/json' },

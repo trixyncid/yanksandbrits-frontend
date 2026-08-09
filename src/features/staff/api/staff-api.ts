@@ -23,6 +23,8 @@ function mapStaff(user: UserListItem): StaffListItem {
     gender: user.gender,
     position: deriveStaffPosition(user),
     isActive: user.isActive,
+    isStudent: user.isStudent,
+    studentId: user.studentId,
     paidLeaveLeft: user.paidLeaveLeft,
     lastLogin: user.lastLogin,
     dateJoined: user.dateJoined,

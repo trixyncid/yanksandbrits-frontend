@@ -52,7 +52,6 @@ export default function MarketingListPage() {
             searchPlaceholder="Search by pin, name, email, branch..."
             globalFilterFn={filterMarketing}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No marketing accounts found"
             toolbarActions={
               <>

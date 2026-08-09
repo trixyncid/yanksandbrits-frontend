@@ -1,5 +1,6 @@
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
+import { adminPath } from '../../../shared/api/paths'
 
 export type LookupOption = {
   id: string
@@ -23,7 +24,7 @@ type OccupationDto = {
 export async function fetchInstitutionOptions(): Promise<LookupOption[]> {
   const { items } = await fetchAllPages<InstitutionDto>({
     client: httpClient,
-    path: '/institutions',
+    path: adminPath('/institutions'),
   })
   return items.map((item) => ({ id: String(item.id), name: item.name }))
 }
@@ -31,7 +32,7 @@ export async function fetchInstitutionOptions(): Promise<LookupOption[]> {
 export async function fetchOccupationOptions(): Promise<LookupOption[]> {
   const { items } = await fetchAllPages<OccupationDto>({
     client: httpClient,
-    path: '/occupations',
+    path: adminPath('/occupations'),
   })
   return items.map((item) => ({ id: String(item.id), name: item.name }))
 }

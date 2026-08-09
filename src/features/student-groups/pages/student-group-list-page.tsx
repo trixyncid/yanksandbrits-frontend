@@ -52,7 +52,6 @@ export default function StudentGroupListPage() {
             searchPlaceholder="Search by group, member, branch..."
             globalFilterFn={filterStudentGroup}
             initialPageSize={10}
-            pageSizeOptions={[10, 20, 50]}
             emptyMessage="No student groups found"
             toolbarActions={
               <>

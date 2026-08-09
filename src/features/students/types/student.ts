@@ -27,9 +27,24 @@ export type StudentProgramItem = {
   description: string
   period: number
   sessions: number
+  sessionsUsed: number
+  progressPercentage: number
+  isFinished: boolean
   status: StudentProgramStatus
   createdAt: string
 }
+
+export type StudentProgramFormValues = {
+  programId: string
+  description: string
+  period: string
+  sessions: string
+  status: StudentProgramStatus
+}
+
+export type StudentProgramFormErrors = Partial<
+  Record<keyof StudentProgramFormValues, string>
+>
 
 export type StudentDetail = {
   id: string

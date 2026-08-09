@@ -13,6 +13,7 @@ import type {
   StudentPaymentListItem,
 } from '../types/student-payment'
 import type { StudentPaymentListFilters } from './student-payment-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type StudentPaymentListResponse = {
   data: StudentPaymentListItem[]
@@ -89,7 +90,7 @@ export async function fetchStudentPayments(
   const [{ items, total }, studentsById] = await Promise.all([
     fetchAllPages<StudentPaymentDto>({
       client: httpClient,
-      path: '/payments',
+      path: adminPath('/payments'),
       params,
     }),
     loadStudentLookup(),
@@ -112,7 +113,7 @@ export async function fetchStudentPayment(
   id: string,
 ): Promise<StudentPaymentListItem> {
   const [{ data }, studentsById] = await Promise.all([
-    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(`/payments/${id}`),
+    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(adminPath(`/payments/${id}`)),
     loadStudentLookup(),
   ])
   return mapPayment(data.data, studentsById)
@@ -122,7 +123,7 @@ export async function createStudentPayment(
   values: StudentPaymentFormValues,
 ): Promise<StudentPaymentListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
-    '/payments',
+    adminPath('/payments'),
     toWritePayload(values),
   )
   const studentsById = await loadStudentLookup()
@@ -135,13 +136,13 @@ export async function updateStudentPayment(
 ): Promise<StudentPaymentListItem> {
   const { data } = await httpClient.patch<
     ApiSuccessEnvelope<StudentPaymentDto>
-  >(`/payments/${id}`, toWritePayload(values))
+  >(adminPath(`/payments/${id}`), toWritePayload(values))
   const studentsById = await loadStudentLookup()
   return mapPayment(data.data, studentsById)
 }
 
 export async function deleteStudentPayment(id: string): Promise<void> {
-  await httpClient.delete(`/payments/${id}`)
+  await httpClient.delete(adminPath(`/payments/${id}`))
 }
 
 export function studentPaymentToFormValues(

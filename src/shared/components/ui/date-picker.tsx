@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { useState } from 'react'
+import type { Matcher } from 'react-day-picker'
 
 import { cn } from '../../lib/cn'
 import { Button } from './button'
@@ -15,6 +16,13 @@ type DatePickerProps = {
   className?: string
   align?: 'start' | 'center' | 'end'
   title?: string
+  /** Use month/year dropdowns instead of stepping month by month. */
+  captionLayout?: 'label' | 'dropdown' | 'dropdown-months' | 'dropdown-years'
+  /** First year shown in the year dropdown. */
+  fromYear?: number
+  /** Last year shown in the year dropdown. */
+  toYear?: number
+  disabledDays?: Matcher | Matcher[]
 }
 
 export function DatePicker({
@@ -25,8 +33,17 @@ export function DatePicker({
   className,
   align = 'end',
   title = 'Select date',
+  captionLayout = 'label',
+  fromYear,
+  toYear,
+  disabledDays,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
+  const currentYear = new Date().getFullYear()
+  const usesDropdown = captionLayout !== 'label'
+
+  const resolvedFromYear = fromYear ?? (usesDropdown ? currentYear - 100 : undefined)
+  const resolvedToYear = toYear ?? (usesDropdown ? currentYear : undefined)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,6 +79,14 @@ export function DatePicker({
             setOpen(false)
           }}
           defaultMonth={value}
+          captionLayout={captionLayout}
+          startMonth={
+            resolvedFromYear != null ? new Date(resolvedFromYear, 0) : undefined
+          }
+          endMonth={
+            resolvedToYear != null ? new Date(resolvedToYear, 11) : undefined
+          }
+          disabled={disabledDays}
         />
       </PopoverContent>
     </Popover>

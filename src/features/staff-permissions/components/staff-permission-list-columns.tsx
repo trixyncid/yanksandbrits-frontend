@@ -11,7 +11,7 @@ export const staffPermissionListColumns: ColumnDef<StaffPermissionListItem>[] =
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title="Staff Group Name"
+          title="Role"
           align="center"
         />
       ),
@@ -21,8 +21,10 @@ export const staffPermissionListColumns: ColumnDef<StaffPermissionListItem>[] =
             {row.original.name}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
+            {row.original.code ? `${row.original.code} · ` : ''}
             {row.original.permissionCount} permissions ·{' '}
             {row.original.memberCount} members
+            {row.original.isSystem ? ' · system' : ''}
           </p>
         </div>
       ),

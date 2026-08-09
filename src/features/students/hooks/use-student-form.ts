@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { prospectiveStudentQueryKeys } from '../../prospective-students/api/prospective-student-query-keys'
 import {
   createStudent,
   emptyStudentFormValues,
@@ -16,12 +17,14 @@ import type { StudentFormErrors, StudentFormValues } from '../types/student'
 type UseStudentFormOptions = {
   mode: 'create' | 'edit'
   studentId?: string
+  prospectiveStudentId?: string
   initialValues?: StudentFormValues
 }
 
 export function useStudentForm({
   mode,
   studentId,
+  prospectiveStudentId,
   initialValues = emptyStudentFormValues,
 }: UseStudentFormOptions) {
   const navigate = useNavigate()
@@ -75,11 +78,18 @@ export function useStudentForm({
 
     try {
       if (mode === 'create') {
-        const created = await createStudent(values)
+        const created = await createStudent(values, { prospectiveStudentId })
         await queryClient.invalidateQueries({ queryKey: studentQueryKeys.all })
+        if (prospectiveStudentId) {
+          await queryClient.invalidateQueries({
+            queryKey: prospectiveStudentQueryKeys.all,
+          })
+        }
         notify('success', {
-          title: 'Student created',
-          description: `${created.pin} | ${created.fullName} has been added.`,
+          title: prospectiveStudentId ? 'Student enrolled' : 'Student created',
+          description: prospectiveStudentId
+            ? `${created.pin} | ${created.fullName} has been enrolled from the pre-test lead.`
+            : `${created.pin} | ${created.fullName} has been added.`,
         })
         void navigate({
           to: '/students/$studentId',
@@ -118,6 +128,11 @@ export function useStudentForm({
         to: '/students/$studentId',
         params: { studentId },
       })
+      return
+    }
+
+    if (prospectiveStudentId) {
+      void navigate({ to: '/prospective-students' })
       return
     }
 

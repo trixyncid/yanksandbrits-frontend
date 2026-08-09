@@ -7,6 +7,7 @@ import {
 } from '../../users/api/users-api'
 import type { TutorListItem } from '../types/tutor'
 import type { TutorListFilters } from './tutor-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type TutorListResponse = {
   data: TutorListItem[]
@@ -26,7 +27,7 @@ function mapTutor(
 ): TutorListItem {
   return {
     id: user.id,
-    pin: user.pin,
+    pin: user.pin ?? '',
     fullName: user.fullName,
     email: user.email,
     phone: user.phone,
@@ -43,7 +44,7 @@ async function loadScheduleTutorIds(): Promise<Set<string>> {
   try {
     const { items } = await fetchAllPages<TutorWorkingScheduleDto>({
       client: httpClient,
-      path: '/tutor-working-schedules',
+      path: adminPath('/tutor-working-schedules'),
     })
     return new Set(items.map((item) => String(item.tutor)))
   } catch {

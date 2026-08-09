@@ -1,14 +1,20 @@
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
-import { mapProgramStatusFromApi } from '../../../shared/api/choices'
+import {
+  mapProgramStatusFromApi,
+  mapProgramStatusToApi,
+} from '../../../shared/api/choices'
+import { downloadBlob } from '../../../shared/api/download'
 import type {
   StudentDetail,
   StudentFormValues,
   StudentListItem,
+  StudentProgramFormValues,
   StudentProgramItem,
 } from '../types/student'
 import type { StudentListFilters } from './student-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type StudentListResponse = {
   data: StudentListItem[]
@@ -62,8 +68,12 @@ type StudentProgramDto = {
   student: number
   program: number
   program_title: string | null
+  program_code?: string | null
   description: string | null
   session: number
+  sessions_used?: number
+  progress_percentage?: number
+  is_finished?: boolean
   period: number
   status: string
   created_at: string
@@ -88,17 +98,42 @@ function mapListItem(dto: StudentListDto): StudentListItem {
 }
 
 function mapProgram(dto: StudentProgramDto): StudentProgramItem {
+  const sessions = dto.session ?? 0
+  const sessionsUsed = dto.sessions_used ?? 0
+  const progressPercentage =
+    dto.progress_percentage ??
+    (sessions > 0 ? Math.min(100, Math.round((sessionsUsed / sessions) * 100)) : 0)
+
   return {
     id: String(dto.id),
     studentId: String(dto.student),
     programId: String(dto.program),
-    code: '',
+    code: dto.program_code ?? '',
     title: dto.program_title ?? 'Program',
     description: dto.description ?? '',
     period: dto.period,
-    sessions: dto.session,
+    sessions,
+    sessionsUsed,
+    progressPercentage,
+    isFinished: Boolean(
+      dto.is_finished ?? (sessionsUsed >= sessions && sessions > 0),
+    ),
     status: mapProgramStatusFromApi(dto.status),
     createdAt: dto.created_at,
+  }
+}
+
+function programToPayload(
+  studentId: string,
+  values: StudentProgramFormValues,
+) {
+  return {
+    student: Number(studentId),
+    program: Number(values.programId),
+    description: values.description.trim() || null,
+    session: Number(values.sessions) || 0,
+    period: Number(values.period) || 0,
+    status: mapProgramStatusToApi(values.status),
   }
 }
 
@@ -165,7 +200,10 @@ function normalizePhone(value: string) {
   return trimmed
 }
 
-function toWritePayload(values: StudentFormValues) {
+function toWritePayload(
+  values: StudentFormValues,
+  options?: { prospectiveStudentId?: string },
+) {
   return {
     pin: values.pin.trim(),
     full_name: values.fullName.trim(),
@@ -185,6 +223,9 @@ function toWritePayload(values: StudentFormValues) {
     referral_marketing: emptyToNull(values.referralMarketing),
     grn: emptyToNull(values.grn),
     branch: values.branchId ? Number(values.branchId) : null,
+    prospective_student: options?.prospectiveStudentId
+      ? Number(options.prospectiveStudentId)
+      : undefined,
   }
 }
 
@@ -201,7 +242,7 @@ export async function fetchStudents(
 
   const { items, total } = await fetchAllPages<StudentListDto>({
     client: httpClient,
-    path: '/students',
+    path: adminPath('/students'),
     params,
   })
 
@@ -216,15 +257,75 @@ export async function fetchStudentPrograms(
 ): Promise<StudentProgramItem[]> {
   const { items } = await fetchAllPages<StudentProgramDto>({
     client: httpClient,
-    path: '/student-programs',
+    path: adminPath('/student-programs'),
     params: { student: Number(studentId) },
   })
   return items.map(mapProgram)
 }
 
+export async function createStudentProgram(
+  studentId: string,
+  values: StudentProgramFormValues,
+): Promise<StudentProgramItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentProgramDto>>(
+    adminPath('/student-programs'),
+    programToPayload(studentId, values),
+  )
+  return mapProgram(data.data)
+}
+
+export async function updateStudentProgram(
+  enrollmentId: string,
+  studentId: string,
+  values: StudentProgramFormValues,
+): Promise<StudentProgramItem> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<StudentProgramDto>
+  >(adminPath(`/student-programs/${enrollmentId}`), programToPayload(studentId, values))
+  return mapProgram(data.data)
+}
+
+export async function deleteStudentProgram(enrollmentId: string): Promise<void> {
+  await httpClient.delete(adminPath(`/student-programs/${enrollmentId}`))
+}
+
+export async function downloadStudentProgramPdf(
+  enrollmentId: string,
+  filename?: string,
+): Promise<void> {
+  const { data } = await httpClient.get<Blob>(
+    adminPath(`/student-programs/${enrollmentId}/pdf`),
+    {
+      responseType: 'blob',
+      timeout: 60000,
+    },
+  )
+  await downloadBlob(data, filename ?? `student-program-${enrollmentId}.pdf`)
+}
+
+export function studentProgramToFormValues(
+  program: StudentProgramItem,
+): StudentProgramFormValues {
+  return {
+    programId: program.programId,
+    description: program.description,
+    period: String(program.period),
+    sessions: String(program.sessions),
+    status: program.status,
+  }
+}
+
+export const emptyStudentProgramFormValues: StudentProgramFormValues = {
+  programId: '',
+  description: '',
+  period: '0',
+  sessions: '0',
+  status: 'ongoing',
+}
+
 export async function fetchStudent(id: string): Promise<StudentDetail> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<StudentDetailDto>>(
-    `/students/${id}`,
+    adminPath(`/students/${id}`),
   )
   const programs = await fetchStudentPrograms(id)
   return mapDetail(data.data, programs)
@@ -232,10 +333,11 @@ export async function fetchStudent(id: string): Promise<StudentDetail> {
 
 export async function createStudent(
   values: StudentFormValues,
+  options?: { prospectiveStudentId?: string },
 ): Promise<StudentDetail> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<StudentDetailDto>>(
-    '/students',
-    toWritePayload(values),
+    adminPath('/students'),
+    toWritePayload(values, options),
   )
   return mapDetail(data.data, [])
 }
@@ -245,7 +347,7 @@ export async function updateStudent(
   values: StudentFormValues,
 ): Promise<StudentDetail> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<StudentDetailDto>>(
-    `/students/${id}`,
+    adminPath(`/students/${id}`),
     toWritePayload(values),
   )
   const programs = await fetchStudentPrograms(id)
@@ -253,7 +355,7 @@ export async function updateStudent(
 }
 
 export async function deleteStudent(id: string): Promise<void> {
-  await httpClient.delete(`/students/${id}`)
+  await httpClient.delete(adminPath(`/students/${id}`))
 }
 
 export async function suggestStudentPin(params: {
@@ -262,13 +364,79 @@ export async function suggestStudentPin(params: {
 }): Promise<string> {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<{ student_id?: string; pin?: string }>
-  >('/students/suggest-pin', {
+  >(adminPath('/students/suggest-pin'), {
     params: {
       referral: Number(params.referralId),
       branch: Number(params.branchId),
     },
   })
   return String(data.data.student_id ?? data.data.pin ?? '')
+}
+
+export type StudentAccountResult = {
+  userId: string
+  email: string
+  password?: string
+  isActive?: boolean
+  studentId: string
+}
+
+type StudentAccountDto = {
+  user_id: number
+  email: string
+  password?: string
+  is_active?: boolean
+  student_id: number
+}
+
+function mapAccountResult(dto: StudentAccountDto): StudentAccountResult {
+  return {
+    userId: String(dto.user_id),
+    email: dto.email,
+    password: dto.password,
+    isActive: dto.is_active,
+    studentId: String(dto.student_id),
+  }
+}
+
+export async function provisionStudentAccount(
+  studentId: string,
+  password: string,
+): Promise<StudentAccountResult> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
+    adminPath(`/students/${studentId}/provision-account`),
+    { password },
+  )
+  return mapAccountResult(data.data)
+}
+
+export async function resetStudentAccountPassword(
+  studentId: string,
+  password: string,
+): Promise<StudentAccountResult> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
+    adminPath(`/students/${studentId}/reset-password`),
+    { password },
+  )
+  return mapAccountResult(data.data)
+}
+
+export async function deactivateStudentAccount(
+  studentId: string,
+): Promise<StudentAccountResult> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
+    adminPath(`/students/${studentId}/deactivate-account`),
+  )
+  return mapAccountResult(data.data)
+}
+
+export async function activateStudentAccount(
+  studentId: string,
+): Promise<StudentAccountResult> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
+    adminPath(`/students/${studentId}/activate-account`),
+  )
+  return mapAccountResult(data.data)
 }
 
 export function studentToFormValues(student: StudentDetail): StudentFormValues {

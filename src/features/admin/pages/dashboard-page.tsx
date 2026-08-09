@@ -1,10 +1,8 @@
 import { format, startOfDay } from 'date-fns'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Button } from '../../../shared/components/ui/button'
 import { Card } from '../../../shared/components/ui/card'
 import { Select } from '../../../shared/components/ui/select'
-import { notify } from '../../../shared/lib/notify'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useDayScheduleQuery } from '../../schedules/hooks/use-day-schedule-query'
 import { AdminShell } from '../components/admin-shell'
@@ -17,24 +15,19 @@ export default function DashboardPage() {
   const branchesQuery = useBranchesQuery()
   const branches = branchesQuery.data?.data ?? []
   const [branchId, setBranchId] = useState('')
-  const [appliedBranchId, setAppliedBranchId] = useState('')
 
   useEffect(() => {
     if (!branchId && branches.length > 0) {
-      const firstId = branches[0]!.id
-      setBranchId(firstId)
-      setAppliedBranchId(firstId)
+      setBranchId(branches[0]!.id)
     }
   }, [branchId, branches])
 
   const scheduleQuery = useDayScheduleQuery(
-    appliedBranchId
-      ? { date: todayKey, branchId: appliedBranchId }
-      : null,
+    branchId ? { date: todayKey, branchId } : null,
   )
 
   const selectedBranch =
-    branches.find((branch) => branch.id === appliedBranchId) ?? null
+    branches.find((branch) => branch.id === branchId) ?? null
 
   const stats = useMemo(() => {
     const scheduleStats = scheduleQuery.data?.stats
@@ -70,17 +63,6 @@ export default function DashboardPage() {
     ]
   }, [scheduleQuery.data?.stats, selectedBranch])
 
-  function handleSearch() {
-    if (!branchId) {
-      notify('warning', {
-        title: 'Branch required',
-        description: 'Please select a branch first.',
-      })
-      return
-    }
-    setAppliedBranchId(branchId)
-  }
-
   return (
     <AdminShell>
       <div className="space-y-6">
@@ -97,26 +79,22 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-                <Select
-                  value={branchId}
-                  aria-label="Select branch"
-                  disabled={branchesQuery.isLoading || branches.length === 0}
-                  onChange={(event) => setBranchId(event.target.value)}
-                >
-                  {branches.length === 0 ? (
-                    <option value="">Loading branches…</option>
-                  ) : (
-                    branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </option>
-                    ))
-                  )}
-                </Select>
-
-                <Button onClick={handleSearch}>Search</Button>
-              </div>
+              <Select
+                value={branchId}
+                aria-label="Select branch"
+                disabled={branchesQuery.isLoading || branches.length === 0}
+                onChange={(event) => setBranchId(event.target.value)}
+              >
+                {branches.length === 0 ? (
+                  <option value="">Loading branches…</option>
+                ) : (
+                  branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))
+                )}
+              </Select>
             </div>
 
             <DashboardStats stats={stats} />
@@ -127,7 +105,7 @@ export default function DashboardPage() {
           <DashboardTimetable
             columns={scheduleQuery.data?.columns ?? []}
             events={scheduleQuery.data?.events ?? []}
-            branchId={appliedBranchId}
+            branchId={branchId}
             isLoading={scheduleQuery.isLoading || scheduleQuery.isFetching}
             dateLabel="Today"
           />

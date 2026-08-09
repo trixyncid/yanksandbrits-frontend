@@ -6,6 +6,7 @@ import type {
   BrandOption,
 } from '../types/branch'
 import type { BranchListFilters } from './branch-query-keys'
+import { adminPath } from '../../../shared/api/paths'
 
 export type BranchListResponse = {
   data: BranchListItem[]
@@ -75,7 +76,7 @@ async function fetchBranchPage(params: {
 }) {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<BranchDto[]> & { meta: PaginatedMeta | null }
-  >('/branches', { params })
+  >(adminPath('/branches'), { params })
 
   return {
     items: (data.data ?? []).map(mapBranch),
@@ -116,7 +117,7 @@ export async function fetchBranches(
 
 export async function fetchBranch(id: string): Promise<BranchListItem> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<BranchDto>>(
-    `/branches/${id}`,
+    adminPath(`/branches/${id}`),
   )
   return mapBranch(data.data)
 }
@@ -125,7 +126,7 @@ export async function createBranch(
   values: BranchFormValues,
 ): Promise<BranchListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<BranchDto>>(
-    '/branches',
+    adminPath('/branches'),
     toWritePayload(values),
   )
   return mapBranch(data.data)
@@ -136,14 +137,14 @@ export async function updateBranch(
   values: BranchFormValues,
 ): Promise<BranchListItem> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<BranchDto>>(
-    `/branches/${id}`,
+    adminPath(`/branches/${id}`),
     toWritePayload(values),
   )
   return mapBranch(data.data)
 }
 
 export async function deleteBranch(id: string): Promise<void> {
-  await httpClient.delete(`/branches/${id}`)
+  await httpClient.delete(adminPath(`/branches/${id}`))
 }
 
 export function branchToFormValues(branch: BranchListItem): BranchFormValues {
@@ -165,7 +166,7 @@ export const emptyBranchFormValues: BranchFormValues = {
 export async function fetchBrandOptions(): Promise<BrandOption[]> {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<BrandDto[]> & { meta: PaginatedMeta | null }
-  >('/brands', {
+  >(adminPath('/brands'), {
     params: { page_size: 100 },
   })
 

@@ -2,6 +2,7 @@ export type PaidLeaveListFilters = {
   search?: string
   status?: 'pending' | 'approved' | 'void' | 'all'
   branchId?: string
+  userId?: string
 }
 
 export const paidLeaveQueryKeys = {
