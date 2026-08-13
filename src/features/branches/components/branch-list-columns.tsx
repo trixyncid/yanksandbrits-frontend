@@ -25,11 +25,6 @@ export const branchListColumns: ColumnDef<BranchListItem>[] = [
         <p className="text-sm font-semibold text-slate-900">
           {row.original.name}
         </p>
-        {row.original.brandName ? (
-          <p className="mt-0.5 text-[11px] text-slate-400">
-            {row.original.brandName}
-          </p>
-        ) : null}
       </div>
     ),
   },

@@ -52,3 +52,10 @@ export function hasAuthPermission(
   if (perms.includes('*')) return true
   return perms.includes(permission)
 }
+
+export function hasAuthAnyPermission(
+  user: Pick<AuthUser, 'permissions' | 'is_superuser'> | null | undefined,
+  permissions: readonly string[],
+): boolean {
+  return permissions.some((permission) => hasAuthPermission(user, permission))
+}

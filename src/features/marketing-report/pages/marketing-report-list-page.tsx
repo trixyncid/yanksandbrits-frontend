@@ -1,11 +1,16 @@
-import { RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  BookkeepingPeriodSelect,
+  OPEN_BOOKKEEPING_PERIOD,
+  type BookkeepingPeriodValue,
+} from '../../bookkeeping/components/bookkeeping-period-select'
+import { useBookkeepingQuery } from '../../bookkeeping/hooks/use-bookkeeping-query'
 import { refreshMarketingSalaries } from '../api/marketing-report-api'
 import { marketingReportListColumns } from '../components/marketing-report-list-columns'
 import {
@@ -30,8 +35,19 @@ function filterMarketingReport(row: MarketingReportListItem, search: string) {
 }
 
 export default function MarketingReportListPage() {
-  const query = useMarketingReportQuery()
+  const [period, setPeriod] = useState<BookkeepingPeriodValue>(
+    OPEN_BOOKKEEPING_PERIOD,
+  )
+  const periodsQuery = useBookkeepingQuery()
+  const query = useMarketingReportQuery({ bookkeepingId: period })
   const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
+
+  const periods = useMemo(() => {
+    const rows = periodsQuery.data?.data ?? []
+    return [...rows].sort((a, b) => b.endDate.localeCompare(a.endDate))
+  }, [periodsQuery.data?.data])
+
+  const isOpenPeriod = period === OPEN_BOOKKEEPING_PERIOD
 
   async function handleUpdateSalary() {
     setIsUpdatingSalary(true)
@@ -55,7 +71,9 @@ export default function MarketingReportListPage() {
   return (
     <AdminShell>
       <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {query.isLoading ? <MarketingReportListLoadingState /> : null}
+        {query.isLoading || periodsQuery.isLoading ? (
+          <MarketingReportListLoadingState />
+        ) : null}
         {query.isError ? (
           <MarketingReportListErrorState
             onRetry={() => void query.refetch()}
@@ -71,28 +89,26 @@ export default function MarketingReportListPage() {
             searchPlaceholder="Search by marketer, branch..."
             globalFilterFn={filterMarketingReport}
             initialPageSize={10}
-            emptyMessage="No marketing salary data found"
+            emptyMessage={
+              isOpenPeriod
+                ? 'No marketing salary activity in the open period yet'
+                : 'No marketing salary data found for this bookkeeping period'
+            }
             toolbarActions={
               <>
+                <BookkeepingPeriodSelect
+                  value={period}
+                  periods={periods}
+                  disabled={periodsQuery.isLoading}
+                  onChange={setPeriod}
+                />
                 <Button
-                  variant="secondary"
-                  disabled={query.isFetching}
-                  onClick={() => {
-                    void query.refetch().then(() => {
-                      notify('success', {
-                        title: 'Marketing report refreshed',
-                        description: 'Latest salary data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
-                <Button
-                  disabled={isUpdatingSalary}
+                  disabled={isUpdatingSalary || !isOpenPeriod}
+                  title={
+                    isOpenPeriod
+                      ? 'Refresh open-period salary preview'
+                      : 'Update Salary only applies to the open period'
+                  }
                   onClick={() => void handleUpdateSalary()}
                 >
                   {isUpdatingSalary ? 'Updating…' : 'Update Salary'}

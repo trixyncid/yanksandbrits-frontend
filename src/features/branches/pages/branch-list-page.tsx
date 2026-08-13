@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { branchListColumns } from '../components/branch-list-columns'
 import {
   BranchListErrorState,
@@ -16,7 +16,6 @@ import type { BranchListItem } from '../types/branch'
 function filterBranch(row: BranchListItem, search: string) {
   const haystack = [
     row.name,
-    row.brandName ?? '',
     row.phone,
     row.address,
     String(row.totalStudent),
@@ -54,31 +53,14 @@ export default function BranchListPage() {
             initialPageSize={10}
             emptyMessage="No branches found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={branchesQuery.isFetching}
-                  onClick={() => {
-                    void branchesQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Branches refreshed',
-                        description: 'Latest branch data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${branchesQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="branches" action="add">
                 <Button
                   onClick={() => void navigate({ to: '/branches/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Branch
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

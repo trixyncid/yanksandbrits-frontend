@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { Can } from '../../auth/components/can'
 import { deleteProgram } from '../api/programs-api'
 import { programQueryKeys } from '../api/program-query-keys'
 import type { ProgramListItem } from '../types/program'
@@ -15,20 +16,23 @@ export function ProgramActionsCell({ program }: { program: ProgramListItem }) {
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`Edit program ${program.code}`}
-        onClick={() =>
-          void navigate({
-            to: '/programs/$programId/edit',
-            params: { programId: program.id },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-      >
-        <Pencil className="size-3.5" />
-      </button>
-      <button
+      <Can module="programs" action="change">
+        <button
+          type="button"
+          aria-label={`Edit program ${program.code}`}
+          onClick={() =>
+            void navigate({
+              to: '/programs/$programId/edit',
+              params: { programId: program.id },
+            })
+          }
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      </Can>
+      <Can module="programs" action="delete">
+        <button
         type="button"
         aria-label={`Delete program ${program.code}`}
         onClick={() =>
@@ -59,7 +63,8 @@ export function ProgramActionsCell({ program }: { program: ProgramListItem }) {
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
       >
         <Trash2 className="size-3.5" />
-      </button>
+        </button>
+      </Can>
     </div>
   )
 }

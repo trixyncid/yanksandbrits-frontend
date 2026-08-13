@@ -332,7 +332,7 @@ export function UserForm({
             Workplace & Roles
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Branch assignment and permission groups (Django roles).
+            Which branch they work at, and which role controls what they can do.
           </p>
         </div>
 
@@ -403,10 +403,10 @@ export function UserForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Permission groups</Label>
+          <Label>Roles</Label>
           <p className="text-xs text-slate-400">
-            Assign one or more roles. System roles (manager, tutor, marketing)
-            also drive domain lists and portals.
+            Assign one or more roles. Built-in roles (Manager, Tutor, Marketing)
+            also control which lists and portals they can use.
           </p>
           {rolesQuery.isLoading ? (
             <p className="text-sm text-slate-500">Loading roles…</p>

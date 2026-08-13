@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { Can } from '../../auth/components/can'
 import { deleteBranch } from '../api/branches-api'
 import { branchQueryKeys } from '../api/branch-query-keys'
 import type { BranchListItem } from '../types/branch'
@@ -15,20 +16,23 @@ export function BranchActionsCell({ branch }: { branch: BranchListItem }) {
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`Edit branch ${branch.name}`}
-        onClick={() =>
-          void navigate({
-            to: '/branches/$branchId/edit',
-            params: { branchId: branch.id },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-      >
-        <Pencil className="size-3.5" />
-      </button>
-      <button
+      <Can module="branches" action="change">
+        <button
+          type="button"
+          aria-label={`Edit branch ${branch.name}`}
+          onClick={() =>
+            void navigate({
+              to: '/branches/$branchId/edit',
+              params: { branchId: branch.id },
+            })
+          }
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      </Can>
+      <Can module="branches" action="delete">
+        <button
         type="button"
         aria-label={`Delete branch ${branch.name}`}
         onClick={() =>
@@ -59,7 +63,8 @@ export function BranchActionsCell({ branch }: { branch: BranchListItem }) {
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
       >
         <Trash2 className="size-3.5" />
-      </button>
+        </button>
+      </Can>
     </div>
   )
 }

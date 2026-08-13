@@ -1,5 +1,7 @@
 export type TutorReportListFilters = {
   search?: string
+  /** `open` (default) or a bookkeeping id */
+  bookkeepingId?: string
 }
 
 export const tutorReportQueryKeys = {

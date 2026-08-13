@@ -2,6 +2,7 @@ export type StudentPaymentListFilters = {
   search?: string
   status?: 'pending' | 'approved' | 'void' | 'all'
   branchId?: string
+  studentId?: string
 }
 
 export const studentPaymentQueryKeys = {

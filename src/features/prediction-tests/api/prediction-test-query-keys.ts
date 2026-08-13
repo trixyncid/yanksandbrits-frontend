@@ -2,6 +2,7 @@ export type PredictionTestListFilters = {
   search?: string
   status?: 'pending' | 'approved' | 'void' | 'all'
   branchId?: string
+  counsellorId?: string
 }
 
 export const predictionTestQueryKeys = {

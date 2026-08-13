@@ -7,8 +7,9 @@ import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
 import { notify } from '../../../shared/lib/notify'
 import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
+import { filterNavigationForUser } from '../../auth/lib/navigation-access'
+import { useAuthStore } from '../../auth/store/auth-store'
 import {
-  adminNavigation,
   isNavigationGroup,
   type NavigationGroupItem,
   type NavigationLeafItem,
@@ -160,21 +161,33 @@ function SidebarGroup({
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const { requestLogout, logoutDialog } = useLogoutConfirm()
+  const user = useAuthStore((state) => state.user)
   const pathname = useLocation({
     select: (location) => location.pathname,
   })
 
+  const navigation = useMemo(
+    () => filterNavigationForUser(user),
+    [user],
+  )
+
+  const homePath = navigation[0]
+    ? isNavigationGroup(navigation[0])
+      ? navigation[0].children[0]?.to ?? '/profile'
+      : navigation[0].to ?? '/profile'
+    : '/profile'
+
   const routeExpanded = useMemo(() => {
     const expanded = new Set<string>()
 
-    adminNavigation.forEach((item) => {
+    navigation.forEach((item) => {
       if (isNavigationGroup(item) && isGroupActive(item, pathname)) {
         expanded.add(item.id)
       }
     })
 
     return expanded
-  }, [pathname])
+  }, [navigation, pathname])
 
   const [manualExpanded, setManualExpanded] = useState<Set<string>>(new Set())
   const [manualCollapsed, setManualCollapsed] = useState<Set<string>>(new Set())
@@ -227,7 +240,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         )}
       >
         <div className="relative mb-6 flex justify-center">
-          <Link to="/dashboard" className="inline-flex justify-center" onClick={onClose}>
+          <Link to={homePath} className="inline-flex justify-center" onClick={onClose}>
             <img
               src={ynbLogo}
               alt="Yanks and Brits logo"
@@ -253,7 +266,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         <nav className="scrollbar-thin h-[calc(100vh-12rem)] space-y-2 overflow-y-auto pr-1">
-          {adminNavigation.map((item) =>
+          {navigation.map((item) =>
             isNavigationGroup(item) ? (
               <SidebarGroup
                 key={item.id}

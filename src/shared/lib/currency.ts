@@ -18,3 +18,27 @@ export function formatCurrencyDigits(value: string) {
 
   return new Intl.NumberFormat('id-ID').format(Number(digits))
 }
+
+/** Format numeric amount as IDR without decimals. */
+export function formatCurrencyAmount(amount: number) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+/** Compact IDR for charts and dense KPI rows. */
+export function formatCurrencyCompact(amount: number) {
+  const abs = Math.abs(amount)
+  if (abs >= 1_000_000_000) {
+    return `Rp ${(amount / 1_000_000_000).toFixed(1)}B`
+  }
+  if (abs >= 1_000_000) {
+    return `Rp ${(amount / 1_000_000).toFixed(1)}M`
+  }
+  if (abs >= 1_000) {
+    return `Rp ${Math.round(amount / 1_000)}K`
+  }
+  return formatCurrencyAmount(amount)
+}

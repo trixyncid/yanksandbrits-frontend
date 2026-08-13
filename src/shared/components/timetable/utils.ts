@@ -9,10 +9,29 @@ export function buildHourRange(startHour: number, endHour: number) {
 }
 
 export function formatHourLabel(hour: number) {
-  const value = hour % 12 || 12
-  const period = hour < 12 || hour === 24 ? 'AM' : 'PM'
+  const totalMinutes = Math.round(hour * 60)
+  const normalized = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60)
+  const hour24 = Math.floor(normalized / 60)
+  const minutes = normalized % 60
+  const period = hour24 < 12 ? 'AM' : 'PM'
+  const hour12 = hour24 % 12 || 12
 
-  return `${value}:00 ${period}`
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`
+}
+
+/** Compact range for event cards, e.g. "10:30–11:30 AM". */
+export function formatHourRange(startHour: number, durationHours: number) {
+  const endHour = startHour + durationHours
+  const start = formatHourLabel(startHour)
+  const end = formatHourLabel(endHour)
+  const startPeriod = start.slice(-2)
+  const endPeriod = end.slice(-2)
+
+  if (startPeriod === endPeriod) {
+    return `${start.slice(0, -3)}–${end}`
+  }
+
+  return `${start}–${end}`
 }
 
 export function getEventTop(startHour: number, rangeStartHour: number, rowHeight: number) {
@@ -34,7 +53,7 @@ export function groupEventsByColumn(events: TimetableEvent[]) {
   }, {})
 }
 
-/** Status-driven tones keep the same meaning across days and classrooms. */
+/** Status badge tones (ongoing / finished / cancelled). Card body uses program colors. */
 export const timetableToneClasses: Record<TimetableTone, string> = {
   blue: 'border-[#4274B9]/45 bg-[#EDF4FF] text-[#1E3A5F]',
   green: 'border-[#3D9B6E]/45 bg-[#E8F7EF] text-[#1F5A3D]',

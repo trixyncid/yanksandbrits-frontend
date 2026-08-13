@@ -2,13 +2,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Home, SearchX } from 'lucide-react'
 
 import { Button } from '../../../shared/components/ui/button'
+import { getDefaultStaffPath } from '../../auth/lib/route-access'
 import { useAuthStore } from '../../auth/store/auth-store'
 
 export default function NotFoundPage() {
   const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const homeTo = isAuthenticated ? '/dashboard' : '/login'
-  const homeLabel = isAuthenticated ? 'Go to dashboard' : 'Go to login'
+  const homeTo = isAuthenticated ? getDefaultStaffPath(user) : '/login'
+  const homeLabel = isAuthenticated ? 'Go to home' : 'Go to login'
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F7F9FC] px-6 py-16 text-slate-900">

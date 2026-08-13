@@ -22,9 +22,15 @@ export const staffPermissionListColumns: ColumnDef<StaffPermissionListItem>[] =
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
             {row.original.code ? `${row.original.code} · ` : ''}
-            {row.original.permissionCount} permissions ·{' '}
-            {row.original.memberCount} members
-            {row.original.isSystem ? ' · system' : ''}
+            {row.original.permissionCount} action
+            {row.original.permissionCount === 1 ? '' : 's'} ·{' '}
+            {row.original.memberCount} member
+            {row.original.memberCount === 1 ? '' : 's'}
+            {' · '}
+            {row.original.canViewAllData
+              ? 'can see all records'
+              : 'own records only'}
+            {row.original.isSystem ? ' · built-in' : ''}
           </p>
         </div>
       ),

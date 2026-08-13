@@ -50,6 +50,9 @@ type StudentDetailDto = StudentListDto & {
   occupation_name: string | null
   institution: number | null
   institution_name: string | null
+  country: string | null
+  university: string | null
+  major: string | null
   grn: string | null
   referral_marketing: string | null
   created_at: string
@@ -77,6 +80,11 @@ type StudentProgramDto = {
   period: number
   status: string
   created_at: string
+  updated_at?: string
+  created_by?: number | null
+  created_by_name?: string | null
+  updated_by?: number | null
+  updated_by_name?: string | null
 }
 
 function mapListItem(dto: StudentListDto): StudentListItem {
@@ -120,6 +128,9 @@ function mapProgram(dto: StudentProgramDto): StudentProgramItem {
     ),
     status: mapProgramStatusFromApi(dto.status),
     createdAt: dto.created_at,
+    updatedAt: dto.updated_at ?? dto.created_at,
+    createdBy: dto.created_by_name ?? '—',
+    updatedBy: dto.updated_by_name ?? '—',
   }
 }
 
@@ -157,6 +168,9 @@ function mapDetail(
     occupationName: dto.occupation_name ?? '',
     institutionId: dto.institution == null ? null : String(dto.institution),
     institutionName: dto.institution_name ?? '',
+    country: dto.country ?? '',
+    university: dto.university ?? '',
+    major: dto.major ?? '',
     enrollmentDate: dto.enrollment_date,
     status: dto.is_active ? 'active' : 'inactive',
     counsellorId: dto.referral == null ? null : String(dto.referral),
@@ -169,8 +183,8 @@ function mapDetail(
     accountActive: dto.account_active,
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
-    createdBy: dto.created_by_name ?? '',
-    updatedBy: dto.updated_by_name ?? '',
+    createdBy: dto.created_by_name ?? '—',
+    updatedBy: dto.updated_by_name ?? '—',
     programs,
   }
 }
@@ -202,10 +216,9 @@ function normalizePhone(value: string) {
 
 function toWritePayload(
   values: StudentFormValues,
-  options?: { prospectiveStudentId?: string },
+  options?: { prospectiveStudentId?: string; omitIdentityFields?: boolean },
 ) {
-  return {
-    pin: values.pin.trim(),
+  const payload: Record<string, unknown> = {
     full_name: values.fullName.trim(),
     email: emptyToNull(values.email),
     gender: values.gender,
@@ -217,16 +230,25 @@ function toWritePayload(
     other_phone: normalizePhone(values.othersPhone),
     occupation: values.occupationId ? Number(values.occupationId) : null,
     institution: values.institutionId ? Number(values.institutionId) : null,
+    country: emptyToNull(values.country),
+    university: emptyToNull(values.university),
+    major: emptyToNull(values.major),
     enrollment_date: values.enrollmentDate,
     is_active: values.status === 'active',
-    referral: values.counsellorId ? Number(values.counsellorId) : null,
     referral_marketing: emptyToNull(values.referralMarketing),
-    grn: emptyToNull(values.grn),
     branch: values.branchId ? Number(values.branchId) : null,
     prospective_student: options?.prospectiveStudentId
       ? Number(options.prospectiveStudentId)
       : undefined,
   }
+
+  if (!options?.omitIdentityFields) {
+    payload.pin = values.pin.trim()
+    payload.referral = values.counsellorId ? Number(values.counsellorId) : null
+    payload.grn = emptyToNull(values.grn)
+  }
+
+  return payload
 }
 
 export async function fetchStudents(
@@ -235,6 +257,7 @@ export async function fetchStudents(
   const params: Record<string, unknown> = {
     search: filters.search?.trim() || undefined,
     branch: filters.branchId ? Number(filters.branchId) : undefined,
+    referral: filters.counsellorId ? Number(filters.counsellorId) : undefined,
   }
 
   if (filters.status === 'active') params.is_active = true
@@ -345,10 +368,11 @@ export async function createStudent(
 export async function updateStudent(
   id: string,
   values: StudentFormValues,
+  options?: { omitIdentityFields?: boolean },
 ): Promise<StudentDetail> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<StudentDetailDto>>(
     adminPath(`/students/${id}`),
-    toWritePayload(values),
+    toWritePayload(values, options),
   )
   const programs = await fetchStudentPrograms(id)
   return mapDetail(data.data, programs)
@@ -453,6 +477,9 @@ export function studentToFormValues(student: StudentDetail): StudentFormValues {
     othersPhone: student.othersPhone,
     occupationId: student.occupationId ?? '',
     institutionId: student.institutionId ?? '',
+    country: student.country,
+    university: student.university,
+    major: student.major,
     enrollmentDate: student.enrollmentDate,
     counsellorId: student.counsellorId ?? '',
     referralMarketing: student.referralMarketing,
@@ -475,6 +502,9 @@ export const emptyStudentFormValues: StudentFormValues = {
   othersPhone: '',
   occupationId: '',
   institutionId: '',
+  country: '',
+  university: '',
+  major: '',
   enrollmentDate: '',
   counsellorId: '',
   referralMarketing: '',

@@ -1,11 +1,16 @@
-import { RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import {
+  BookkeepingPeriodSelect,
+  OPEN_BOOKKEEPING_PERIOD,
+  type BookkeepingPeriodValue,
+} from '../../bookkeeping/components/bookkeeping-period-select'
+import { useBookkeepingQuery } from '../../bookkeeping/hooks/use-bookkeeping-query'
 import { refreshTutorSalaries } from '../api/tutor-report-api'
 import { tutorReportListColumns } from '../components/tutor-report-list-columns'
 import {
@@ -29,8 +34,19 @@ function filterTutorReport(row: TutorReportListItem, search: string) {
 }
 
 export default function TutorReportListPage() {
-  const query = useTutorReportQuery()
+  const [period, setPeriod] = useState<BookkeepingPeriodValue>(
+    OPEN_BOOKKEEPING_PERIOD,
+  )
+  const periodsQuery = useBookkeepingQuery()
+  const query = useTutorReportQuery({ bookkeepingId: period })
   const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
+
+  const periods = useMemo(() => {
+    const rows = periodsQuery.data?.data ?? []
+    return [...rows].sort((a, b) => b.endDate.localeCompare(a.endDate))
+  }, [periodsQuery.data?.data])
+
+  const isOpenPeriod = period === OPEN_BOOKKEEPING_PERIOD
 
   async function handleUpdateSalary() {
     setIsUpdatingSalary(true)
@@ -54,7 +70,9 @@ export default function TutorReportListPage() {
   return (
     <AdminShell>
       <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {query.isLoading ? <TutorReportListLoadingState /> : null}
+        {query.isLoading || periodsQuery.isLoading ? (
+          <TutorReportListLoadingState />
+        ) : null}
         {query.isError ? (
           <TutorReportListErrorState onRetry={() => void query.refetch()} />
         ) : null}
@@ -68,28 +86,26 @@ export default function TutorReportListPage() {
             searchPlaceholder="Search by tutor, email..."
             globalFilterFn={filterTutorReport}
             initialPageSize={10}
-            emptyMessage="No tutor salary data found"
+            emptyMessage={
+              isOpenPeriod
+                ? 'No tutor salary activity in the open period yet'
+                : 'No tutor salary data found for this bookkeeping period'
+            }
             toolbarActions={
               <>
+                <BookkeepingPeriodSelect
+                  value={period}
+                  periods={periods}
+                  disabled={periodsQuery.isLoading}
+                  onChange={setPeriod}
+                />
                 <Button
-                  variant="secondary"
-                  disabled={query.isFetching}
-                  onClick={() => {
-                    void query.refetch().then(() => {
-                      notify('success', {
-                        title: 'Tutor report refreshed',
-                        description: 'Latest salary data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
-                <Button
-                  disabled={isUpdatingSalary}
+                  disabled={isUpdatingSalary || !isOpenPeriod}
+                  title={
+                    isOpenPeriod
+                      ? 'Recalculate session rates for the open period'
+                      : 'Update Salary only applies to the open period'
+                  }
                   onClick={() => void handleUpdateSalary()}
                 >
                   {isUpdatingSalary ? 'Updating…' : 'Update Salary'}

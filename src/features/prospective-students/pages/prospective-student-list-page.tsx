@@ -1,10 +1,13 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
+import { Select } from '../../../shared/components/ui/select'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
+import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { prospectiveStudentListColumns } from '../components/prospective-student-list-columns'
 import {
   ProspectiveStudentListErrorState,
@@ -32,7 +35,26 @@ function filterProspectiveStudent(row: ProspectiveStudentListItem, search: strin
 
 export default function ProspectiveStudentListPage() {
   const navigate = useNavigate()
-  const studentsQuery = useProspectiveStudentsQuery()
+  const [counsellorId, setCounsellorId] = useState('')
+  const counsellorsQuery = useMarketingOptionsQuery()
+  const studentsQuery = useProspectiveStudentsQuery({
+    counsellorId: counsellorId || undefined,
+  })
+
+  const counsellorFilter = (
+    <Select
+      value={counsellorId}
+      onChange={(event) => setCounsellorId(event.target.value)}
+      containerClassName="w-[240px]"
+    >
+      <option value="">All counsellors</option>
+      {(counsellorsQuery.data ?? []).map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.pin} | {option.fullName}
+        </option>
+      ))}
+    </Select>
+  )
 
   return (
     <AdminShell>
@@ -40,9 +62,12 @@ export default function ProspectiveStudentListPage() {
         {studentsQuery.isLoading ? <ProspectiveStudentListLoadingState /> : null}
 
         {studentsQuery.isError ? (
-          <ProspectiveStudentListErrorState
-            onRetry={() => void studentsQuery.refetch()}
-          />
+          <div className="space-y-3">
+            <div className="flex justify-end">{counsellorFilter}</div>
+            <ProspectiveStudentListErrorState
+              onRetry={() => void studentsQuery.refetch()}
+            />
+          </div>
         ) : null}
 
         {studentsQuery.isSuccess ? (
@@ -57,31 +82,19 @@ export default function ProspectiveStudentListPage() {
             initialPageSize={10}
             emptyMessage="No prospective students found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={studentsQuery.isFetching}
-                  onClick={() => {
-                    void studentsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Prospective students refreshed',
-                        description: 'Latest leads have been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${studentsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
-                <Button
-                  onClick={() => void navigate({ to: '/prospective-students/new' })}
-                >
-                  <Plus className="size-4" />
-                  Add Prospective Student
-                </Button>
-              </>
+              <div className="flex items-center gap-2">
+                {counsellorFilter}
+                <Can module="prospectiveStudents" action="add">
+                  <Button
+                    onClick={() =>
+                      void navigate({ to: '/prospective-students/new' })
+                    }
+                  >
+                    <Plus className="size-4" />
+                    Add Prospective Student
+                  </Button>
+                </Can>
+              </div>
             }
           />
         ) : null}

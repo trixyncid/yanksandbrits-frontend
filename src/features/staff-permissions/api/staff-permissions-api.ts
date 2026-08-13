@@ -24,6 +24,7 @@ type GroupDto = {
   code?: string
   description?: string
   is_system?: boolean
+  can_view_all_data?: boolean
   member_count?: number
 }
 
@@ -44,6 +45,7 @@ function mapGroupListItem(dto: GroupDto): StaffPermissionListItem {
     name: dto.name,
     code: dto.code ?? '',
     isSystem: Boolean(dto.is_system),
+    canViewAllData: dto.can_view_all_data ?? true,
     description: dto.description ?? '',
     permissionCount: dto.permissions?.length ?? 0,
     memberCount: dto.member_count ?? 0,
@@ -57,6 +59,7 @@ function mapGroupDetail(dto: GroupDto): StaffPermissionDetail {
     name: dto.name,
     code: dto.code ?? '',
     isSystem: Boolean(dto.is_system),
+    canViewAllData: dto.can_view_all_data ?? true,
     description: dto.description ?? '',
     permissionIds,
     permissionCount: permissionIds.length,
@@ -79,6 +82,7 @@ function toWritePayload(values: StaffPermissionFormValues) {
     name: values.name.trim(),
     code: values.code.trim() || undefined,
     description: values.description.trim(),
+    can_view_all_data: values.canViewAllData,
     permissions: values.permissionIds.map(Number),
   }
 }
@@ -149,6 +153,7 @@ export function staffPermissionToFormValues(
     name: group.name,
     code: group.code,
     description: group.description,
+    canViewAllData: group.canViewAllData,
     permissionIds: [...group.permissionIds],
   }
 }
@@ -157,5 +162,6 @@ export const emptyStaffPermissionFormValues: StaffPermissionFormValues = {
   name: '',
   code: '',
   description: '',
+  canViewAllData: true,
   permissionIds: [],
 }

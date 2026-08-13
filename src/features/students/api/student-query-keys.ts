@@ -2,6 +2,7 @@ export type StudentListFilters = {
   search?: string
   branchId?: string
   status?: 'active' | 'inactive' | 'all'
+  counsellorId?: string
 }
 
 export const studentQueryKeys = {

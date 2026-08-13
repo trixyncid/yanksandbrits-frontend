@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { Can } from '../../auth/components/can'
 import { deleteStudentPayment } from '../api/student-payments-api'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
 import type { StudentPaymentListItem } from '../types/student-payment'
@@ -19,20 +20,23 @@ export function StudentPaymentActionsCell({
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`Edit payment ${payment.title}`}
-        onClick={() =>
-          void navigate({
-            to: '/student-payments/$paymentId/edit',
-            params: { paymentId: payment.id },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-      >
-        <Pencil className="size-3.5" />
-      </button>
-      <button
+      <Can module="studentPayments" action="change">
+        <button
+          type="button"
+          aria-label={`Edit payment ${payment.title}`}
+          onClick={() =>
+            void navigate({
+              to: '/student-payments/$paymentId/edit',
+              params: { paymentId: payment.id },
+            })
+          }
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      </Can>
+      <Can module="studentPayments" action="delete">
+        <button
         type="button"
         aria-label={`Delete payment ${payment.title}`}
         onClick={() =>
@@ -63,7 +67,8 @@ export function StudentPaymentActionsCell({
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
       >
         <Trash2 className="size-3.5" />
-      </button>
+        </button>
+      </Can>
     </div>
   )
 }

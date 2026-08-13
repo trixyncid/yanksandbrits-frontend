@@ -1,11 +1,8 @@
-import { addDays, format, isSameDay, startOfDay } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, startOfDay } from 'date-fns'
 import { useEffect, useState } from 'react'
 
 import { ClassroomTimetable } from '../../../shared/components/timetable'
-import { Button } from '../../../shared/components/ui/button'
 import { Card } from '../../../shared/components/ui/card'
-import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Select } from '../../../shared/components/ui/select'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
@@ -14,12 +11,11 @@ import {
   useScheduleDialogState,
 } from '../../schedules/components/schedule-form-dialog'
 import { useDayScheduleQuery } from '../../schedules/hooks/use-day-schedule-query'
+import { ScheduleDateNavigator } from '../components/schedule-date-navigator'
 
 export default function FullSchedulePage() {
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()))
   const [branchId, setBranchId] = useState('')
-  const today = startOfDay(new Date())
-  const isToday = isSameDay(selectedDate, today)
   const scheduleDialog = useScheduleDialogState()
 
   const branchesQuery = useBranchesQuery()
@@ -55,104 +51,74 @@ export default function FullSchedulePage() {
       />
       <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
         <Card className="overflow-hidden">
-          <div className="flex flex-col gap-5 border-b border-slate-200 p-6 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">
-                Full Schedule | Branch: {branchLabel}
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Overview schedule for{' '}
-                <span className="font-semibold text-slate-700">
-                  {format(selectedDate, 'MMMM d, yyyy')}
-                </span>
-                . Click and drag across slots to block multiple hours, or click
-                a session card to edit it.
-              </p>
-            </div>
-
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
-              <Select
-                value={branchId}
-                aria-label="Select branch"
-                disabled={branchesQuery.isLoading || branches.length === 0}
-                onChange={(event) => setBranchId(event.target.value)}
-              >
-                {branches.length === 0 ? (
-                  <option value="">Loading branches…</option>
-                ) : (
-                  branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))
-                )}
-              </Select>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label="Previous day"
-                  onClick={() =>
-                    setSelectedDate((current) => addDays(current, -1))
-                  }
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(date) => {
-                    if (date) {
-                      setSelectedDate(startOfDay(date))
-                    }
-                  }}
-                  title="Schedule date"
-                />
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label="Next day"
-                  onClick={() =>
-                    setSelectedDate((current) => addDays(current, 1))
-                  }
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-
-                <Button
-                  variant={isToday ? 'primary' : 'secondary'}
-                  size="sm"
-                  disabled={isToday}
-                  onClick={() => setSelectedDate(today)}
-                >
-                  Today
-                </Button>
+          <div className="flex flex-col gap-5 border-b border-slate-200 p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Full Schedule
+                </h2>
+                <p className="mt-1.5 max-w-xl text-sm text-slate-500">
+                  Classroom timetable for{' '}
+                  <span className="font-semibold text-slate-700">
+                    {branchLabel}
+                  </span>
+                  . Click an empty slot range to create a session, or click a
+                  card to edit.
+                </p>
               </div>
+
+              <label className="flex w-full flex-col gap-1.5 sm:w-56 lg:items-end">
+                <span className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase lg:self-end">
+                  Branch
+                </span>
+                <Select
+                  value={branchId}
+                  aria-label="Select branch"
+                  disabled={branchesQuery.isLoading || branches.length === 0}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  containerClassName="w-full sm:w-full"
+                >
+                  {branches.length === 0 ? (
+                    <option value="">Loading branches…</option>
+                  ) : (
+                    branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </label>
             </div>
+
+            <ScheduleDateNavigator
+              value={selectedDate}
+              onChange={setSelectedDate}
+              sessionCount={
+                scheduleQuery.isLoading || scheduleQuery.isFetching
+                  ? undefined
+                  : events.length
+              }
+            />
           </div>
 
           <div className="space-y-3 p-4 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                Now showing: {format(selectedDate, 'MMM d, yyyy')} ·{' '}
-                {events.length} sessions
-              </p>
-              <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF4FF] px-2.5 py-1 text-[#2F5A94]">
-                  <span className="size-2 rounded-full bg-[#4274B9]" />
-                  Ongoing
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F7EF] px-2.5 py-1 text-[#1F5A3D]">
-                  <span className="size-2 rounded-full bg-[#3D9B6E]" />
-                  Finished
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEEF1] px-2.5 py-1 text-[#6E2433]">
-                  <span className="size-2 rounded-full bg-[#C45B6E]" />
-                  Cancelled
-                </span>
-              </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF4FF] px-2.5 py-1 text-[#2F5A94]">
+                <span className="size-2 rounded-full bg-[#4274B9]" />
+                Ongoing
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F7EF] px-2.5 py-1 text-[#1F5A3D]">
+                <span className="size-2 rounded-full bg-[#3D9B6E]" />
+                Finished
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEEF1] px-2.5 py-1 text-[#6E2433]">
+                <span className="size-2 rounded-full bg-[#C45B6E]" />
+                Cancelled
+              </span>
+              <span className="self-center text-[10px] font-medium text-slate-400">
+                Badge = status · Card = program color
+              </span>
             </div>
 
             {scheduleQuery.isLoading || scheduleQuery.isFetching ? (

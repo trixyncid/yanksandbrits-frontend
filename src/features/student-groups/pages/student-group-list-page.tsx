@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { studentGroupListColumns } from '../components/student-group-list-columns'
 import {
   StudentGroupListErrorState,
@@ -54,31 +54,14 @@ export default function StudentGroupListPage() {
             initialPageSize={10}
             emptyMessage="No student groups found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={groupsQuery.isFetching}
-                  onClick={() => {
-                    void groupsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Student groups refreshed',
-                        description: 'Latest group data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${groupsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="studentGroups" action="add">
                 <Button
                   onClick={() => void navigate({ to: '/student-groups/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Student Group
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

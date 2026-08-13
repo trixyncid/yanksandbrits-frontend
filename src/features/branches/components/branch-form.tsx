@@ -3,13 +3,11 @@ import type { FormEvent, ReactNode } from 'react'
 import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
-import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import type {
   BranchFormErrors,
   BranchFormValues,
   BranchListItem,
-  BrandOption,
 } from '../types/branch'
 
 function FieldError({ message }: { message?: string }) {
@@ -58,8 +56,6 @@ type BranchFormProps = {
   values: BranchFormValues
   errors: BranchFormErrors
   isSubmitting: boolean
-  brandOptions: BrandOption[]
-  brandsLoading?: boolean
   meta?: Pick<
     BranchListItem,
     'createdAt' | 'updatedAt' | 'createdBy' | 'totalStudent'
@@ -78,8 +74,6 @@ export function BranchForm({
   values,
   errors,
   isSubmitting,
-  brandOptions,
-  brandsLoading = false,
   meta,
   onChange,
   onSubmit,
@@ -97,7 +91,7 @@ export function BranchForm({
         <div>
           <h3 className="text-base font-bold text-slate-900">Branch Details</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Set the branch name, contact info, and brand.
+            Set the branch name and contact info.
           </p>
         </div>
 
@@ -110,43 +104,19 @@ export function BranchForm({
           />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Phone Number"
-            htmlFor="phone"
-            error={errors.phone}
-            hint="Optional. Use international format when possible (e.g. +6281234567890)."
-          >
-            <Input
-              id="phone"
-              value={values.phone}
-              onChange={(event) => onChange('phone', event.target.value)}
-              placeholder="+6281234567890"
-            />
-          </Field>
-
-          <Field
-            label="Brand"
-            htmlFor="brandId"
-            error={errors.brandId}
-            hint="Optional. Link this branch to a brand."
-          >
-            <Select
-              id="brandId"
-              containerClassName="w-full sm:w-full"
-              value={values.brandId}
-              disabled={brandsLoading}
-              onChange={(event) => onChange('brandId', event.target.value)}
-            >
-              <option value="">No brand</option>
-              {brandOptions.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        <Field
+          label="Phone Number"
+          htmlFor="phone"
+          error={errors.phone}
+          hint="Optional. Use international format when possible (e.g. +6281234567890)."
+        >
+          <Input
+            id="phone"
+            value={values.phone}
+            onChange={(event) => onChange('phone', event.target.value)}
+            placeholder="+6281234567890"
+          />
+        </Field>
 
         <Field label="Address" htmlFor="address" error={errors.address}>
           <Textarea

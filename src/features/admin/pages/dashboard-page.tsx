@@ -1,115 +1,238 @@
 import { format, startOfDay } from 'date-fns'
-import { useEffect, useMemo, useState } from 'react'
+import { Building2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import type { DateRange } from 'react-day-picker'
 
-import { Card } from '../../../shared/components/ui/card'
-import { Select } from '../../../shared/components/ui/select'
+import { Button } from '../../../shared/components/ui/button'
+import { cn } from '../../../shared/lib/cn'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useDayScheduleQuery } from '../../schedules/hooks/use-day-schedule-query'
 import { AdminShell } from '../components/admin-shell'
-import { DashboardStats } from '../components/dashboard-stats'
+import { DashboardActionItems } from '../components/dashboard-action-items'
+import {
+  DashboardFunnel,
+  DashboardOperationsCard,
+} from '../components/dashboard-insights'
+import { DashboardKpiGrid } from '../components/dashboard-kpi-grid'
+import {
+  DashboardChartSkeleton,
+  DashboardInsightsSkeleton,
+  DashboardKpiSkeleton,
+} from '../components/dashboard-skeleton'
+import {
+  DashboardCourseInterest,
+  DashboardLeadSources,
+} from '../components/dashboard-acquisition'
+import { DashboardBranchComparison } from '../components/dashboard-branch-comparison'
+import {
+  DashboardClassroomUtilization,
+  DashboardDeliveryOverview,
+  DashboardProgramDemand,
+  DashboardTutorUtilization,
+} from '../components/dashboard-capacity'
+import { DashboardMarketingAttribution } from '../components/dashboard-marketing-attribution'
+import { DashboardSection } from '../components/dashboard-section'
+import { DashboardTrendCharts } from '../components/dashboard-trend-charts'
 import { DashboardTimetable } from '../components/dashboard-timetable'
+import { DashboardToolbar } from '../components/dashboard-toolbar'
+import { useDashboardMetricsQuery } from '../hooks/use-dashboard-metrics-query'
+import {
+  ALL_BRANCHES_ID,
+  formatDashboardDateRange,
+  getDefaultDashboardDateRange,
+  isAllBranches,
+} from '../types/dashboard'
 
 export default function DashboardPage() {
   const today = startOfDay(new Date())
   const todayKey = format(today, 'yyyy-MM-dd')
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    getDefaultDashboardDateRange,
+  )
+  const [branchId, setBranchId] = useState(ALL_BRANCHES_ID)
+
   const branchesQuery = useBranchesQuery()
   const branches = branchesQuery.data?.data ?? []
-  const [branchId, setBranchId] = useState('')
 
-  useEffect(() => {
-    if (!branchId && branches.length > 0) {
-      setBranchId(branches[0]!.id)
-    }
-  }, [branchId, branches])
-
-  const scheduleQuery = useDayScheduleQuery(
-    branchId ? { date: todayKey, branchId } : null,
+  const formattedRange = useMemo(
+    () => formatDashboardDateRange(dateRange),
+    [dateRange],
   )
 
-  const selectedBranch =
-    branches.find((branch) => branch.id === branchId) ?? null
+  const metricsQuery = useDashboardMetricsQuery({
+    branchId,
+    startDate: formattedRange?.startDate ?? '',
+    endDate: formattedRange?.endDate ?? '',
+  })
+  const scheduleQuery = useDayScheduleQuery(
+    branchId && !isAllBranches(branchId)
+      ? { date: todayKey, branchId }
+      : null,
+  )
 
-  const stats = useMemo(() => {
-    const scheduleStats = scheduleQuery.data?.stats
-    const studentTotal = selectedBranch?.totalStudent ?? 0
-
-    return [
-      {
-        id: 'sessions',
-        label: 'Today sessions',
-        value: String(scheduleStats?.sessionCount ?? 0),
-        detail: 'Across all classrooms',
-      },
-      {
-        id: 'students',
-        label: 'Total students',
-        value: studentTotal.toLocaleString('en-US'),
-        detail: selectedBranch
-          ? `${selectedBranch.name} enrollments`
-          : 'Branch enrollments',
-      },
-      {
-        id: 'tutors',
-        label: 'Active tutors',
-        value: String(scheduleStats?.tutorCount ?? 0),
-        detail: 'On schedule today',
-      },
-      {
-        id: 'rooms',
-        label: 'Classrooms in use',
-        value: String(scheduleStats?.classroomCount ?? 0),
-        detail: 'With sessions today',
-      },
-    ]
-  }, [scheduleQuery.data?.stats, selectedBranch])
+  const hasBranch = Boolean(branchId)
+  const hasDateRange = Boolean(formattedRange)
+  const isInitialLoading =
+    hasBranch &&
+    hasDateRange &&
+    metricsQuery.isLoading &&
+    !metricsQuery.data
+  const showMetrics =
+    hasBranch && hasDateRange && metricsQuery.data && !metricsQuery.isError
+  const fetchingClass = metricsQuery.isFetching
+    ? 'opacity-70 transition-opacity'
+    : ''
 
   return (
     <AdminShell>
-      <div className="space-y-6">
-        <section className="animate-in fade-in slide-in-from-bottom-2">
-          <Card className="overflow-hidden">
-            <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  Class Schedule | Branch:{' '}
-                  {selectedBranch?.name ?? 'Select branch'}
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Overview schedule for today ({format(today, 'MMMM d, yyyy')}).
+      <div className="space-y-8">
+        <DashboardToolbar
+          dateRange={dateRange}
+          branchId={branchId}
+          branches={branches}
+          branchesLoading={branchesQuery.isLoading}
+          metrics={metricsQuery.data}
+          onDateRangeChange={setDateRange}
+          onBranchChange={setBranchId}
+        />
+
+        {!branchesQuery.isLoading && branches.length === 0 ? (
+          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
+            <div className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+              <Building2 className="size-7" />
+            </div>
+            <p className="mt-4 text-base font-semibold text-slate-900">
+              Add a branch to view business metrics
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              Dashboard KPIs, trends, and today&apos;s timetable are scoped to a
+              branch. Create a branch first, then return here.
+            </p>
+          </div>
+        ) : !hasBranch || !hasDateRange ? (
+          <DashboardKpiSkeleton />
+        ) : (
+          <>
+            {isInitialLoading ? (
+              <DashboardKpiSkeleton />
+            ) : metricsQuery.isError ? (
+              <div className="rounded-[1.5rem] border border-rose-100 bg-rose-50/70 px-6 py-10 text-center">
+                <p className="text-sm font-semibold text-rose-700">
+                  Unable to load business metrics.
+                </p>
+                <p className="mt-1 text-sm text-rose-600">
+                  Check your connection and try again.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => void metricsQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : showMetrics ? (
+              <div className={cn('space-y-8', fetchingClass)}>
+                <DashboardKpiGrid metrics={metricsQuery.data} />
+
+                <DashboardSection title="Needs attention">
+                  <DashboardActionItems metrics={metricsQuery.data} />
+                </DashboardSection>
+              </div>
+            ) : null}
+
+            {isInitialLoading ? (
+              <>
+                <DashboardSection title="Performance">
+                  <DashboardChartSkeleton />
+                </DashboardSection>
+                <DashboardSection title="Pipeline & delivery">
+                  <DashboardInsightsSkeleton />
+                </DashboardSection>
+              </>
+            ) : null}
+
+            {showMetrics ? (
+              <div className={cn('space-y-8', fetchingClass)}>
+                <DashboardSection title="Performance">
+                  <DashboardTrendCharts metrics={metricsQuery.data} />
+                </DashboardSection>
+
+                <DashboardSection title="Pipeline & delivery">
+                  <div className="grid items-stretch gap-4 xl:grid-cols-12">
+                    <DashboardFunnel
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-5"
+                    />
+                    <DashboardOperationsCard
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-4"
+                    />
+                    <DashboardDeliveryOverview
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-3"
+                    />
+                  </div>
+                </DashboardSection>
+
+                <DashboardSection title="Operations & capacity">
+                  <div className="grid items-stretch gap-4 xl:grid-cols-2">
+                    <DashboardProgramDemand metrics={metricsQuery.data} />
+                    <DashboardClassroomUtilization metrics={metricsQuery.data} />
+                  </div>
+                  <div className="mt-4">
+                    <DashboardTutorUtilization metrics={metricsQuery.data} />
+                  </div>
+                </DashboardSection>
+
+                {isAllBranches(branchId) &&
+                metricsQuery.data.branchComparison.length > 0 ? (
+                  <DashboardSection title="Locations">
+                    <DashboardBranchComparison metrics={metricsQuery.data} />
+                  </DashboardSection>
+                ) : null}
+
+                <DashboardSection title="Acquisition">
+                  <div className="grid items-stretch gap-4 xl:grid-cols-12">
+                    <DashboardLeadSources
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-5"
+                    />
+                    <DashboardCourseInterest
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-7"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <DashboardMarketingAttribution metrics={metricsQuery.data} />
+                  </div>
+                </DashboardSection>
+              </div>
+            ) : null}
+
+            {isAllBranches(branchId) ? (
+              <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+                <p className="text-sm font-semibold text-slate-700">
+                  Select a branch to view today&apos;s timetable
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  The schedule is branch-specific. Choose a branch from the
+                  filter above.
                 </p>
               </div>
-
-              <Select
-                value={branchId}
-                aria-label="Select branch"
-                disabled={branchesQuery.isLoading || branches.length === 0}
-                onChange={(event) => setBranchId(event.target.value)}
-              >
-                {branches.length === 0 ? (
-                  <option value="">Loading branches…</option>
-                ) : (
-                  branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))
-                )}
-              </Select>
-            </div>
-
-            <DashboardStats stats={stats} />
-          </Card>
-        </section>
-
-        <section>
-          <DashboardTimetable
-            columns={scheduleQuery.data?.columns ?? []}
-            events={scheduleQuery.data?.events ?? []}
-            branchId={branchId}
-            isLoading={scheduleQuery.isLoading || scheduleQuery.isFetching}
-            dateLabel="Today"
-          />
-        </section>
+            ) : (
+              <DashboardTimetable
+                columns={scheduleQuery.data?.columns ?? []}
+                events={scheduleQuery.data?.events ?? []}
+                branchId={branchId}
+                isLoading={scheduleQuery.isLoading || scheduleQuery.isFetching}
+                dateLabel="Today"
+              />
+            )}
+          </>
+        )}
       </div>
     </AdminShell>
   )

@@ -5,6 +5,7 @@ import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { Can } from '../../auth/components/can'
 import { deleteStudent } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
 import type { StudentListItem } from '../types/student'
@@ -28,20 +29,23 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
       >
         <Eye className="size-3.5" />
       </button>
-      <button
-        type="button"
-        aria-label={`Edit ${student.fullName}`}
-        onClick={() =>
-          void navigate({
-            to: '/students/$studentId/edit',
-            params: { studentId: student.id },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
-      >
-        <Pencil className="size-3.5" />
-      </button>
-      <button
+      <Can module="students" action="change">
+        <button
+          type="button"
+          aria-label={`Edit ${student.fullName}`}
+          onClick={() =>
+            void navigate({
+              to: '/students/$studentId/edit',
+              params: { studentId: student.id },
+            })
+          }
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      </Can>
+      <Can module="students" action="delete">
+        <button
         type="button"
         aria-label={`Delete ${student.fullName}`}
         onClick={() =>
@@ -71,7 +75,8 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
       >
         <Trash2 className="size-3.5" />
-      </button>
+        </button>
+      </Can>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 import { ErrorFallback } from './error-fallback'
+import { getDefaultStaffPath } from '../../features/auth/lib/route-access'
+import { useAuthStore } from '../../features/auth/store/auth-store'
 
 type ErrorBoundaryProps = {
   children: ReactNode
@@ -57,8 +59,9 @@ export class ErrorBoundary extends Component<
         onRetry={this.reset}
         onGoHome={() => {
           this.reset()
-          if (window.location.pathname !== '/dashboard') {
-            window.location.assign('/dashboard')
+          const home = getDefaultStaffPath(useAuthStore.getState().user)
+          if (window.location.pathname !== home) {
+            window.location.assign(home)
           }
         }}
       />

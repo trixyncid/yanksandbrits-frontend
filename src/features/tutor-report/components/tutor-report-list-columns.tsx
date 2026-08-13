@@ -28,7 +28,7 @@ function TutorPdfButton({ item }: { item: TutorReportListItem }) {
           setIsDownloading(true)
           try {
             await downloadTutorSalaryPdf(
-              item.id,
+              item,
               `tutor-salary-${item.tutorPin}.pdf`,
             )
             notify('success', {

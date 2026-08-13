@@ -1,9 +1,10 @@
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { marketingListColumns } from '../components/marketing-list-columns'
 import {
   MarketingListErrorState,
@@ -54,24 +55,7 @@ export default function MarketingListPage() {
             initialPageSize={10}
             emptyMessage="No marketing accounts found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={marketingsQuery.isFetching}
-                  onClick={() => {
-                    void marketingsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Marketing list refreshed',
-                        description: 'Latest marketing data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${marketingsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="users" action="add">
                 <Button
                   onClick={() =>
                     notify('info', {
@@ -84,7 +68,7 @@ export default function MarketingListPage() {
                   <Plus className="size-4" />
                   Add New Marketing
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

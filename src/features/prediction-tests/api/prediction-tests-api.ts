@@ -25,6 +25,11 @@ type PredictionTestDto = {
   id: number
   student: number
   student_name: string | null
+  student_email?: string | null
+  student_phone?: string | null
+  marketing?: number | null
+  marketing_name?: string | null
+  branch_name?: string | null
   score: number | null
   description: string | null
   amount: number
@@ -37,44 +42,29 @@ type PredictionTestDto = {
   updated_by: number | null
 }
 
-type ProspectiveLookupDto = {
-  id: number
-  full_name: string
-  email: string | null
-  phone: string
-  marketing_name: string | null
-  branch: number | null
-  branch_name: string | null
-}
-
 function proofUrl(dto: PredictionTestDto) {
   return dto.imageURL || dto.payment_proof || ''
 }
 
-function mapItem(
-  dto: PredictionTestDto,
-  prospectsById: Map<string, ProspectiveLookupDto>,
-): PredictionTestListItem {
-  const studentId = String(dto.student)
-  const prospect = prospectsById.get(studentId)
+function mapItem(dto: PredictionTestDto): PredictionTestListItem {
   const url = proofUrl(dto)
 
   return {
     id: String(dto.id),
-    studentId,
-    studentName: dto.student_name ?? prospect?.full_name ?? '—',
-    studentEmail: prospect?.email ?? '',
-    studentPhone: prospect?.phone ?? '',
+    studentId: String(dto.student),
+    studentName: dto.student_name ?? '—',
+    studentEmail: dto.student_email ?? '',
+    studentPhone: dto.student_phone ?? '',
     score: dto.score == null || dto.score === 0 ? null : dto.score,
     description: dto.description ?? '',
     amount: dto.amount ?? 0,
     status: mapApprovalStatusFromApi(dto.status),
-    educationCounsellor: prospect?.marketing_name ?? '—',
+    educationCounsellor: dto.marketing_name ?? '—',
     hasPaymentProof: Boolean(url),
     paymentProofUrl: url,
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
-    branch: prospect?.branch_name ?? '—',
+    branch: dto.branch_name ?? '—',
   }
 }
 
@@ -105,60 +95,37 @@ function toFormDataPayload(values: PredictionTestFormValues) {
   return formData
 }
 
-async function loadProspectLookups() {
-  const { items } = await fetchAllPages<ProspectiveLookupDto>({
-    client: httpClient,
-    path: adminPath('/prospective-students'),
-  })
-
-  return new Map(items.map((item) => [String(item.id), item]))
-}
-
 export async function fetchPredictionTests(
   filters: PredictionTestListFilters = {},
 ): Promise<PredictionTestListResponse> {
   const params: Record<string, unknown> = {
     search: filters.search?.trim() || undefined,
+    marketing: filters.counsellorId ? Number(filters.counsellorId) : undefined,
   }
 
   if (filters.status && filters.status !== 'all') {
     params.status = mapApprovalStatusToApi(filters.status)
   }
 
-  const [{ items, total }, prospectsById] = await Promise.all([
-    fetchAllPages<PredictionTestDto>({
-      client: httpClient,
-      path: adminPath('/prediction-tests'),
-      params,
-    }),
-    loadProspectLookups(),
-  ])
-
-  let data = items.map((dto) => mapItem(dto, prospectsById))
-
-  if (filters.branchId) {
-    data = data.filter((item) => {
-      const prospect = prospectsById.get(item.studentId)
-      return prospect != null && String(prospect.branch) === filters.branchId
-    })
-  }
+  const { items, total } = await fetchAllPages<PredictionTestDto>({
+    client: httpClient,
+    path: adminPath('/prediction-tests'),
+    params,
+  })
 
   return {
-    data,
-    meta: { total: filters.branchId ? data.length : total },
+    data: items.map(mapItem),
+    meta: { total },
   }
 }
 
 export async function fetchPredictionTest(
   id: string,
 ): Promise<PredictionTestListItem> {
-  const [{ data }, prospectsById] = await Promise.all([
-    httpClient.get<ApiSuccessEnvelope<PredictionTestDto>>(
-      adminPath(`/prediction-tests/${id}`),
-    ),
-    loadProspectLookups(),
-  ])
-  return mapItem(data.data, prospectsById)
+  const { data } = await httpClient.get<ApiSuccessEnvelope<PredictionTestDto>>(
+    adminPath(`/prediction-tests/${id}`),
+  )
+  return mapItem(data.data)
 }
 
 const multipartHeaders = {
@@ -253,7 +220,12 @@ export type ProspectiveStudentOption = Pick<
 export async function fetchProspectiveStudentOptions(): Promise<
   ProspectiveStudentOption[]
 > {
-  const { items } = await fetchAllPages<ProspectiveLookupDto>({
+  const { items } = await fetchAllPages<{
+    id: number
+    full_name: string
+    email: string | null
+    phone: string
+  }>({
     client: httpClient,
     path: adminPath('/prospective-students'),
   })

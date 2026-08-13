@@ -1,12 +1,14 @@
 import { ImagePlus } from 'lucide-react'
-import type { FormEvent, ReactNode } from 'react'
+import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
+import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import type {
   StudentPaymentFormErrors,
@@ -50,6 +52,7 @@ type StudentPaymentFormProps = {
   values: StudentPaymentFormValues
   errors: StudentPaymentFormErrors
   isSubmitting: boolean
+  lockStudent?: boolean
   meta?: Pick<
     StudentPaymentListItem,
     'createdBy' | 'branch' | 'transactionDate'
@@ -80,14 +83,27 @@ export function StudentPaymentForm({
   values,
   errors,
   isSubmitting,
+  lockStudent = false,
   meta,
   onChange,
   onSubmit,
   onCancel,
   onDelete,
 }: StudentPaymentFormProps) {
-  const studentsQuery = useStudentsQuery({ status: 'active' })
+  const studentsQuery = useStudentsQuery(
+    mode === 'edit' ? {} : { status: 'active' },
+  )
   const students = studentsQuery.data?.data ?? []
+  const studentOptions = useMemo(
+    () =>
+      students.map((option) => ({
+        value: option.id,
+        label: `${option.pin} | ${option.fullName}`,
+        keywords: `${option.pin} ${option.fullName} ${option.email}`,
+      })),
+    [students],
+  )
+  const lockTransactionStatus = useIsRestrictedMarketing()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -111,21 +127,18 @@ export function StudentPaymentForm({
             label="Student Name"
             htmlFor="studentId"
             error={errors.studentId}
+            hint={lockStudent ? 'Student is fixed from the student profile.' : undefined}
           >
-            <Select
+            <SearchableSelect
               id="studentId"
-              containerClassName="w-full sm:w-full"
               value={values.studentId}
-              onChange={(event) => onChange('studentId', event.target.value)}
-              disabled={studentsQuery.isLoading}
-            >
-              <option value="">Select student...</option>
-              {students.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.pin} | {option.fullName}
-                </option>
-              ))}
-            </Select>
+              options={studentOptions}
+              onChange={(next) => onChange('studentId', next)}
+              placeholder="Select student..."
+              searchPlaceholder="Search students..."
+              emptyMessage="No students found"
+              disabled={studentsQuery.isLoading || lockStudent || mode === 'edit'}
+            />
           </Field>
 
           <Field label="Title" htmlFor="title" error={errors.title}>
@@ -150,6 +163,11 @@ export function StudentPaymentForm({
             label="Transaction Status"
             htmlFor="status"
             error={errors.status}
+            hint={
+              lockTransactionStatus
+                ? 'Marketing can view this status but cannot change it.'
+                : undefined
+            }
           >
             <Select
               id="status"
@@ -161,6 +179,7 @@ export function StudentPaymentForm({
                   event.target.value as StudentPaymentFormValues['status'],
                 )
               }
+              disabled={lockTransactionStatus}
             >
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>

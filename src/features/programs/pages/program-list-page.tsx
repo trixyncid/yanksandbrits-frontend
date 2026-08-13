@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { programListColumns } from '../components/program-list-columns'
 import {
   ProgramListErrorState,
@@ -53,29 +53,12 @@ export default function ProgramListPage() {
             initialPageSize={10}
             emptyMessage="No programs found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={programsQuery.isFetching}
-                  onClick={() => {
-                    void programsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Programs refreshed',
-                        description: 'Latest program data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${programsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="programs" action="add">
                 <Button onClick={() => void navigate({ to: '/programs/new' })}>
                   <Plus className="size-4" />
                   Add New Program
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

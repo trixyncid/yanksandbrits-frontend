@@ -98,8 +98,8 @@ export function useStaffPermissionForm({
       notify('error', {
         title:
           mode === 'create'
-            ? 'Unable to create group'
-            : 'Unable to update group',
+            ? 'Unable to create role'
+            : 'Unable to update role',
         description: 'Please check the highlighted fields and try again.',
       })
       return
@@ -114,7 +114,7 @@ export function useStaffPermissionForm({
           queryKey: staffPermissionQueryKeys.all,
         })
         notify('success', {
-          title: 'Group created',
+          title: 'Role created',
           description: `${created.name} has been added.`,
         })
         void navigate({ to: '/staff-permissions' })
@@ -130,7 +130,7 @@ export function useStaffPermissionForm({
         queryKey: staffPermissionQueryKeys.all,
       })
       notify('success', {
-        title: 'Group updated',
+        title: 'Role updated',
         description: `${updated.name} has been saved.`,
       })
       void navigate({ to: '/staff-permissions' })
@@ -138,8 +138,8 @@ export function useStaffPermissionForm({
       notify('error', {
         title:
           mode === 'create'
-            ? 'Unable to create group'
-            : 'Unable to update group',
+            ? 'Unable to create role'
+            : 'Unable to update role',
         description: getApiErrorMessage(error),
       })
     } finally {

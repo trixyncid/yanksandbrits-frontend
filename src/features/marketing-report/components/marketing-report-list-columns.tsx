@@ -28,7 +28,7 @@ function MarketingPdfButton({ item }: { item: MarketingReportListItem }) {
           setIsDownloading(true)
           try {
             await downloadMarketingSalaryPdf(
-              item.id,
+              item,
               `marketing-salary-${item.marketerPin}.pdf`,
             )
             notify('success', {

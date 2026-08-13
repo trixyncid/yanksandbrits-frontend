@@ -19,7 +19,6 @@ import {
 } from '../components/branch-list-states'
 import { useBranchForm } from '../hooks/use-branch-form'
 import { useBranchQuery } from '../hooks/use-branch-query'
-import { useBrandOptionsQuery } from '../hooks/use-brand-options-query'
 import type { BranchFormValues, BranchListItem } from '../types/branch'
 
 export default function BranchEditPage() {
@@ -92,7 +91,6 @@ function BranchEditForm({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const brandsQuery = useBrandOptionsQuery()
   const form = useBranchForm({
     mode: 'edit',
     branchId: branch.id,
@@ -156,8 +154,6 @@ function BranchEditForm({
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
-            brandOptions={brandsQuery.data ?? []}
-            brandsLoading={brandsQuery.isLoading}
             meta={{
               createdAt: branch.createdAt,
               updatedAt: branch.updatedAt,

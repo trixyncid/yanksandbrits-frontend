@@ -9,6 +9,7 @@ export type ProspectiveStudentListFilters = {
     | 'enrolled'
     | 'all'
   branchId?: string
+  counsellorId?: string
 }
 
 export const prospectiveStudentQueryKeys = {

@@ -17,6 +17,7 @@ import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { StudentProgramsTab } from '../components/student-programs-tab'
+import { StudentPaymentsTab } from '../components/student-payments-tab'
 import { StudentAccountCard } from '../components/student-account-card'
 import { deleteStudent, getStudentInitials } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
@@ -336,31 +337,7 @@ export default function StudentDetailPage() {
             {tab === 'programs' ? (
               <StudentProgramsTab student={student} />
             ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      Payment History
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Manage payments from the Student Payments page.
-                    </p>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() =>
-                      void navigate({ to: '/student-payments/new' })
-                    }
-                  >
-                    Add Payment
-                  </Button>
-                </div>
-                <div className="px-6 py-12 text-center text-sm text-slate-500">
-                  Open Student Payments to view and manage payment records for
-                  this student.
-                </div>
-              </>
+              <StudentPaymentsTab student={student} />
             )}
           </div>
         </section>

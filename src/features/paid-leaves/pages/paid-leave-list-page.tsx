@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { paidLeaveListColumns } from '../components/paid-leave-list-columns'
 import {
   PaidLeaveListErrorState,
@@ -56,24 +56,7 @@ export default function PaidLeaveListPage() {
             initialPageSize={10}
             emptyMessage="No paid leave records found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={leavesQuery.isFetching}
-                  onClick={() => {
-                    void leavesQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Paid leave refreshed',
-                        description: 'Latest paid leave data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${leavesQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="paidLeaves" action="add">
                 <Button
                   onClick={() =>
                     void navigate({
@@ -85,7 +68,7 @@ export default function PaidLeaveListPage() {
                   <Plus className="size-4" />
                   Add New Record
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

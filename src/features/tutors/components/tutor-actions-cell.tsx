@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
+import { Can } from '../../auth/components/can'
 import { fetchTutorWorkingSchedule } from '../../users/api/compensation-api'
 import { TutorWorkingScheduleDialog } from '../../users/components/tutor-working-schedule-dialog'
 import { deleteTutor } from '../api/tutors-api'
@@ -38,26 +39,29 @@ export function TutorActionsCell({ tutor }: { tutor: TutorListItem }) {
       >
         <Eye className="size-3.5" />
       </button>
-      <button
-        type="button"
-        aria-label={
-          tutor.hasWorkingSchedule
-            ? `Edit schedule for ${tutor.fullName}`
-            : `Record schedule for ${tutor.fullName}`
-        }
-        onClick={() => {
-          void queryClient
-            .ensureQueryData({
-              queryKey: ['tutor-working-schedules', 'by-tutor', tutor.id],
-              queryFn: () => fetchTutorWorkingSchedule(tutor.id),
-            })
-            .then(() => setDialogOpen(true))
-        }}
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-      >
-        <CalendarClock className="size-3.5" />
-      </button>
-      <button
+      <Can module="users" action="change">
+        <button
+          type="button"
+          aria-label={
+            tutor.hasWorkingSchedule
+              ? `Edit schedule for ${tutor.fullName}`
+              : `Record schedule for ${tutor.fullName}`
+          }
+          onClick={() => {
+            void queryClient
+              .ensureQueryData({
+                queryKey: ['tutor-working-schedules', 'by-tutor', tutor.id],
+                queryFn: () => fetchTutorWorkingSchedule(tutor.id),
+              })
+              .then(() => setDialogOpen(true))
+          }}
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
+        >
+          <CalendarClock className="size-3.5" />
+        </button>
+      </Can>
+      <Can module="users" action="delete">
+        <button
         type="button"
         aria-label={`Delete tutor ${tutor.fullName}`}
         onClick={() =>
@@ -88,7 +92,8 @@ export function TutorActionsCell({ tutor }: { tutor: TutorListItem }) {
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
       >
         <Trash2 className="size-3.5" />
-      </button>
+        </button>
+      </Can>
 
       <TutorWorkingScheduleDialog
         open={dialogOpen}

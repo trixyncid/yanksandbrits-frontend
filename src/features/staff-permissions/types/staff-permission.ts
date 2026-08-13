@@ -3,6 +3,7 @@ export type StaffPermissionListItem = {
   name: string
   code: string
   isSystem: boolean
+  canViewAllData: boolean
   description: string
   permissionCount: number
   memberCount: number
@@ -13,6 +14,7 @@ export type StaffPermissionDetail = {
   name: string
   code: string
   isSystem: boolean
+  canViewAllData: boolean
   description: string
   permissionIds: string[]
   permissionCount: number
@@ -31,6 +33,7 @@ export type StaffPermissionFormValues = {
   name: string
   code: string
   description: string
+  canViewAllData: boolean
   permissionIds: string[]
 }
 

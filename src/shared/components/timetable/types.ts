@@ -12,7 +12,11 @@ export type TimetableEvent = {
   subtitle: string
   startHour: number
   durationHours: number
+  /** Status tone used for the status badge (ongoing / finished / cancelled). */
   tone: TimetableTone
+  /** Program/class card colors. When set, the card body uses these instead of tone. */
+  backgroundColor?: string
+  textColor?: string
   status?: string
   meta?: string
 }

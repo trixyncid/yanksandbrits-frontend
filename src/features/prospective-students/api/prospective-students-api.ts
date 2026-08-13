@@ -147,6 +147,13 @@ function filterListItems(
       return false
     }
 
+    if (
+      filters.counsellorId &&
+      student.marketingId !== filters.counsellorId
+    ) {
+      return false
+    }
+
     return true
   })
 }
@@ -157,6 +164,7 @@ export async function fetchProspectiveStudents(
   const params: Record<string, unknown> = {
     search: filters.search?.trim() || undefined,
     branch: filters.branchId ? Number(filters.branchId) : undefined,
+    marketing: filters.counsellorId ? Number(filters.counsellorId) : undefined,
   }
 
   if (filters.status && filters.status !== 'all') {

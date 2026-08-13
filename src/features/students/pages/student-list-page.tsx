@@ -1,10 +1,13 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
+import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
+import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { studentListColumns } from '../components/student-list-columns'
 import {
   StudentListErrorState,
@@ -32,7 +35,20 @@ function filterStudent(row: StudentListItem, search: string) {
 
 export default function StudentListPage() {
   const navigate = useNavigate()
-  const studentsQuery = useStudentsQuery()
+  const [counsellorId, setCounsellorId] = useState('')
+  const counsellorsQuery = useMarketingOptionsQuery()
+  const counsellorOptions = useMemo(
+    () =>
+      (counsellorsQuery.data ?? []).map((option) => ({
+        value: option.id,
+        label: `${option.pin} | ${option.fullName}`,
+        keywords: `${option.pin} ${option.fullName} ${option.email}`,
+      })),
+    [counsellorsQuery.data],
+  )
+  const studentsQuery = useStudentsQuery({
+    counsellorId: counsellorId || undefined,
+  })
 
   return (
     <AdminShell>
@@ -55,36 +71,32 @@ export default function StudentListPage() {
             initialPageSize={10}
             emptyMessage="No students found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={studentsQuery.isFetching}
-                  onClick={() => {
-                    void studentsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Student list refreshed',
-                        description: 'Latest students have been loaded.',
+              <div className="flex items-center gap-2">
+                <SearchableSelect
+                  value={counsellorId}
+                  options={counsellorOptions}
+                  onChange={setCounsellorId}
+                  placeholder="All counsellors"
+                  searchPlaceholder="Search counsellors..."
+                  emptyMessage="No counsellors found"
+                  disabled={counsellorsQuery.isLoading}
+                  clearable
+                  className="h-11 w-[240px]"
+                />
+                <Can module="students" action="add">
+                  <Button
+                    onClick={() =>
+                      void navigate({
+                        to: '/students/new',
+                        search: { prospectiveStudentId: undefined },
                       })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${studentsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
-                <Button
-                  onClick={() =>
-                    void navigate({
-                      to: '/students/new',
-                      search: { prospectiveStudentId: undefined },
-                    })
-                  }
-                >
-                  <Plus className="size-4" />
-                  Add New Student
-                </Button>
-              </>
+                    }
+                  >
+                    <Plus className="size-4" />
+                    Add New Student
+                  </Button>
+                </Can>
+              </div>
             }
           />
         ) : null}

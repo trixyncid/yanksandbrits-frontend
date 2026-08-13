@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { staffPermissionListColumns } from '../components/staff-permission-list-columns'
 import {
   StaffPermissionListErrorState,
@@ -48,40 +48,23 @@ export default function StaffPermissionListPage() {
         {permissionsQuery.isSuccess ? (
           <DataTable
             title="Roles"
-            description="Create roles, attach Django permissions, then assign roles to user accounts."
+            description="Roles control what each staff member can see and do. Create a role, tick the actions they need, then assign it on their user profile."
             totalLabel="roles"
             columns={staffPermissionListColumns}
             data={permissionsQuery.data.data}
-            searchPlaceholder="Search by name, code..."
+            searchPlaceholder="Search by role name…"
             globalFilterFn={filterStaffPermission}
             initialPageSize={10}
             emptyMessage="No roles found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={permissionsQuery.isFetching}
-                  onClick={() => {
-                    void permissionsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Roles refreshed',
-                        description: 'Latest role definitions have been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${permissionsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can managerOnly>
                 <Button
                   onClick={() => void navigate({ to: '/staff-permissions/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Role
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

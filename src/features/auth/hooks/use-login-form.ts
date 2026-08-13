@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { notify } from '../../../shared/lib/notify'
 import { getApiErrorMessage, login, logout } from '../api/auth-api'
+import { getDefaultStaffPath } from '../lib/route-access'
 import { loginFormSchema } from '../schema/login-form-schema'
 import { useAuthStore } from '../store/auth-store'
 import { hasAuthRole } from '../types/auth'
@@ -106,7 +107,7 @@ export function useLoginForm() {
         description: `Welcome back, ${result.user.full_name || result.user.email}.`,
       })
 
-      await navigate({ to: '/dashboard' })
+      await navigate({ to: getDefaultStaffPath(result.user) })
     } catch (error) {
       notify('error', {
         title: 'Sign in failed',

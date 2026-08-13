@@ -1,5 +1,6 @@
 export type TutorReportListItem = {
   id: string
+  tutorId: string | null
   tutorPin: string
   tutorName: string
   tutorEmail: string
@@ -10,4 +11,6 @@ export type TutorReportListItem = {
   overtimeSessions: number
   overtimeSalary: number
   totalSalary: number
+  /** Stored calculation vs live open-period preview */
+  source: 'bookkeeping' | 'open'
 }

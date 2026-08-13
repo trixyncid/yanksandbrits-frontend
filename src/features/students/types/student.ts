@@ -32,6 +32,9 @@ export type StudentProgramItem = {
   isFinished: boolean
   status: StudentProgramStatus
   createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
 }
 
 export type StudentProgramFormValues = {
@@ -62,6 +65,9 @@ export type StudentDetail = {
   occupationName: string
   institutionId: string | null
   institutionName: string
+  country: string
+  university: string
+  major: string
   enrollmentDate: string
   status: StudentStatus
   counsellorId: string | null
@@ -92,6 +98,9 @@ export type StudentFormValues = {
   othersPhone: string
   occupationId: string
   institutionId: string
+  country: string
+  university: string
+  major: string
   enrollmentDate: string
   counsellorId: string
   referralMarketing: string

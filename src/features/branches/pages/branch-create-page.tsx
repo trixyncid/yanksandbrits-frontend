@@ -5,11 +5,9 @@ import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { BranchForm } from '../components/branch-form'
 import { useBranchForm } from '../hooks/use-branch-form'
-import { useBrandOptionsQuery } from '../hooks/use-brand-options-query'
 
 export default function BranchCreatePage() {
   const form = useBranchForm({ mode: 'create' })
-  const brandsQuery = useBrandOptionsQuery()
 
   return (
     <AdminShell>
@@ -41,8 +39,6 @@ export default function BranchCreatePage() {
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
-            brandOptions={brandsQuery.data ?? []}
-            brandsLoading={brandsQuery.isLoading}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

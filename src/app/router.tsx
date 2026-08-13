@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 
 import { useAuthStore } from '../features/auth/store/auth-store'
+import { canAccessRoute, getDefaultStaffPath } from '../features/auth/lib/route-access'
 import { RootLayout } from './root-layout'
 import { AppLoadingScreen } from './ui/app-loading-screen'
 import { RouteErrorScreen } from './ui/route-error-screen'
@@ -35,7 +36,8 @@ const indexRoute = createRoute({
   beforeLoad: async () => {
     await useAuthStore.getState().hydrate()
     if (useAuthStore.getState().isAuthenticated) {
-      throw redirect({ to: '/dashboard' })
+      const user = useAuthStore.getState().user
+      throw redirect({ to: getDefaultStaffPath(user) })
     }
     throw redirect({ to: '/login' })
   },
@@ -47,7 +49,8 @@ const loginRoute = createRoute({
   beforeLoad: async () => {
     await useAuthStore.getState().hydrate()
     if (useAuthStore.getState().isAuthenticated) {
-      throw redirect({ to: '/dashboard' })
+      const user = useAuthStore.getState().user
+      throw redirect({ to: getDefaultStaffPath(user) })
     }
   },
   component: lazyRouteComponent(() => import('../features/auth/pages/login-page')),
@@ -57,10 +60,18 @@ const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authenticated',
   component: AuthenticatedLayout,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     await useAuthStore.getState().hydrate()
     if (!useAuthStore.getState().isAuthenticated) {
       throw redirect({ to: '/login' })
+    }
+
+    const user = useAuthStore.getState().user
+    const pathname = location.pathname
+
+    if (!canAccessRoute(user, pathname)) {
+      const fallback = getDefaultStaffPath(user)
+      throw redirect({ to: fallback === pathname ? '/forbidden' : fallback })
     }
   },
 })
@@ -151,6 +162,12 @@ const studentPaymentsRoute = createRoute({
 const studentPaymentCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/student-payments/new',
+  validateSearch: (search: Record<string, unknown>) => ({
+    studentId:
+      typeof search.studentId === 'string' && search.studentId.trim()
+        ? search.studentId.trim()
+        : undefined,
+  }),
   component: lazyRouteComponent(
     () =>
       import('../features/student-payments/pages/student-payment-create-page'),
@@ -440,6 +457,22 @@ const branchEditRoute = createRoute({
   ),
 })
 
+const institutionsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/institutions',
+  component: lazyRouteComponent(
+    () => import('../features/lookups/pages/institution-list-page'),
+  ),
+})
+
+const occupationsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/occupations',
+  component: lazyRouteComponent(
+    () => import('../features/lookups/pages/occupation-list-page'),
+  ),
+})
+
 const studentReportRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/student-report',
@@ -453,6 +486,30 @@ const bookkeepingRoute = createRoute({
   path: '/bookkeeping',
   component: lazyRouteComponent(
     () => import('../features/bookkeeping/pages/bookkeeping-list-page'),
+  ),
+})
+
+const bookkeepingCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/bookkeeping/new',
+  component: lazyRouteComponent(
+    () => import('../features/bookkeeping/pages/bookkeeping-create-page'),
+  ),
+})
+
+const bookkeepingDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/bookkeeping/$bookkeepingId',
+  component: lazyRouteComponent(
+    () => import('../features/bookkeeping/pages/bookkeeping-detail-page'),
+  ),
+})
+
+const bookkeepingEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/bookkeeping/$bookkeepingId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/bookkeeping/pages/bookkeeping-edit-page'),
   ),
 })
 
@@ -489,6 +546,14 @@ const profileRoute = createRoute({
   path: '/profile',
   component: lazyRouteComponent(
     () => import('../features/profile/pages/profile-page'),
+  ),
+})
+
+const forbiddenRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/forbidden',
+  component: lazyRouteComponent(
+    () => import('../features/admin/pages/forbidden-page'),
   ),
 })
 
@@ -564,12 +629,18 @@ const routeTree = rootRoute.addChildren([
     branchesRoute,
     branchCreateRoute,
     branchEditRoute,
+    institutionsRoute,
+    occupationsRoute,
     studentReportRoute,
     bookkeepingRoute,
+    bookkeepingCreateRoute,
+    bookkeepingDetailRoute,
+    bookkeepingEditRoute,
     tutorReportRoute,
     marketingReportRoute,
     appointmentByTutorRoute,
     profileRoute,
+    forbiddenRoute,
     notificationsRoute,
     notificationDetailRoute,
   ]),

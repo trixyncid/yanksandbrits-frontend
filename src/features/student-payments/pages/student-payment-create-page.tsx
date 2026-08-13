@@ -1,26 +1,45 @@
-import { Link } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { emptyStudentPaymentFormValues } from '../api/student-payments-api'
 import { StudentPaymentForm } from '../components/student-payment-form'
 import { useStudentPaymentForm } from '../hooks/use-student-payment-form'
 
 export default function StudentPaymentCreatePage() {
-  const form = useStudentPaymentForm({ mode: 'create' })
+  const { studentId: prefilledStudentId } = useSearch({ strict: false }) as {
+    studentId?: string
+  }
+
+  const initialValues = useMemo(
+    () => ({
+      ...emptyStudentPaymentFormValues,
+      studentId: prefilledStudentId ?? '',
+    }),
+    [prefilledStudentId],
+  )
+
+  const form = useStudentPaymentForm({
+    mode: 'create',
+    initialValues,
+    returnToStudentId: prefilledStudentId,
+  })
 
   return (
     <AdminShell>
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link
-              to="/student-payments"
+            <button
+              type="button"
+              onClick={form.cancel}
               className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
             >
               <ArrowLeft className="size-4" />
-              Student Payments
-            </Link>
+              {prefilledStudentId ? 'Student detail' : 'Student Payments'}
+            </button>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
               Record New Transaction
             </h2>
@@ -39,6 +58,7 @@ export default function StudentPaymentCreatePage() {
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
+            lockStudent={Boolean(prefilledStudentId)}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}

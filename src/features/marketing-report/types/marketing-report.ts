@@ -1,5 +1,6 @@
 export type MarketingReportListItem = {
   id: string
+  marketerId: string | null
   marketerPin: string
   marketerName: string
   email: string
@@ -8,4 +9,6 @@ export type MarketingReportListItem = {
   bonusSalary: number
   totalSalary: number
   branch: string
+  /** Stored calculation vs live open-period preview */
+  source: 'bookkeeping' | 'open'
 }

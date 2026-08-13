@@ -9,5 +9,6 @@ export type {
 export {
   buildHourRange,
   formatHourLabel,
+  formatHourRange,
   toneFromScheduleStatus,
 } from './utils'

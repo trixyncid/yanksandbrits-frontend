@@ -25,8 +25,8 @@ export default function StaffPermissionCreatePage() {
               New role
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Build a reusable access pack — name it, set a stable code, then turn
-              on only the actions this role needs.
+              Give the role a name people will recognize, then tick only the
+              pages and actions they should be allowed to use.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>

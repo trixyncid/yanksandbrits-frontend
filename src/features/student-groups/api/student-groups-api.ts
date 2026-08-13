@@ -26,7 +26,9 @@ type StudentGroupDto = {
   created_at: string
   updated_at: string
   created_by: number | null
+  created_by_name?: string | null
   updated_by: number | null
+  updated_by_name?: string | null
 }
 
 function mapMembers(
@@ -60,7 +62,7 @@ function mapGroup(
     status: dto.is_active ? 'active' : 'inactive',
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
-    createdBy: dto.created_by == null ? '—' : String(dto.created_by),
+    createdBy: dto.created_by_name ?? '—',
     branch: firstMember?.branch ?? '—',
   }
 }

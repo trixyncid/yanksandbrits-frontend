@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { classroomListColumns } from '../components/classroom-list-columns'
 import {
   ClassroomListErrorState,
@@ -53,31 +53,14 @@ export default function ClassroomListPage() {
             initialPageSize={10}
             emptyMessage="No classrooms found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={classroomsQuery.isFetching}
-                  onClick={() => {
-                    void classroomsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Classrooms refreshed',
-                        description: 'Latest classroom data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${classroomsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="classrooms" action="add">
                 <Button
                   onClick={() => void navigate({ to: '/classrooms/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Classroom
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

@@ -175,6 +175,7 @@ export function StudentProgramsTab({ student }: StudentProgramsTabProps) {
                 <th className="px-4 py-3">Period</th>
                 <th className="px-4 py-3">Progress</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Created by</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -201,6 +202,9 @@ export function StudentProgramsTab({ student }: StudentProgramsTabProps) {
                   </td>
                   <td className="px-4 py-4">
                     <ProgramStatusBadge status={program.status} />
+                  </td>
+                  <td className="px-4 py-4 text-slate-600">
+                    {program.createdBy || '—'}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-end gap-2">

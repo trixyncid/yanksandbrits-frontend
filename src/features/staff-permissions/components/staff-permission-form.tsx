@@ -45,6 +45,7 @@ type PermissionGroup = {
   model: string
   label: string
   description: string
+  copy: ReturnType<typeof getPermissionModuleCopy>
   permissions: PermissionOption[]
 }
 
@@ -67,6 +68,7 @@ function groupPermissions(permissions: PermissionOption[]): PermissionGroup[] {
       model: permission.model,
       label: copy.label,
       description: copy.description,
+      copy,
       permissions: [permission],
     })
   }
@@ -166,9 +168,14 @@ export function StaffPermissionForm({
           permission.appLabel,
           permission.model,
           moduleCopy.label,
+          moduleCopy.singular,
           moduleCopy.description,
           getPermissionAppLabel(permission.appLabel),
-          getPermissionActionLabel(permission.codename, permission.name),
+          getPermissionActionLabel(
+            permission.codename,
+            moduleCopy.label,
+            permission.name,
+          ),
         ]
           .join(' ')
           .toLowerCase()
@@ -260,11 +267,11 @@ export function StaffPermissionForm({
               <Shield className="size-5" />
             </div>
             <h3 className="mt-4 text-lg font-bold text-slate-900">
-              {mode === 'create' ? 'Compose this pack' : 'Refine this pack'}
+              {mode === 'create' ? 'Name this role' : 'Role details'}
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-slate-500">
-              Give it a clear name, then grant only the actions this role needs
-              day to day.
+              The name is what staff see. Then tick only the actions this role
+              should be allowed to do.
             </p>
 
             <div className="mt-5 space-y-2">
@@ -278,13 +285,13 @@ export function StaffPermissionForm({
                 autoFocus={mode === 'create'}
               />
               <p className="text-xs text-slate-400">
-                Staff will see this name when assigned this role.
+                Shown on staff profiles and in the roles list.
               </p>
               <FieldError message={errors.name} />
             </div>
 
             <div className="mt-4 space-y-2">
-              <Label htmlFor="code">Role code</Label>
+              <Label htmlFor="code">Short code</Label>
               <Input
                 id="code"
                 value={values.code}
@@ -293,24 +300,53 @@ export function StaffPermissionForm({
                 className="bg-white font-mono text-sm"
               />
               <p className="text-xs text-slate-400">
-                Stable identifier used by the system (lowercase, hyphens).
-                System roles cannot change code.
+                Internal id used by the system. Use lowercase letters, numbers,
+                and hyphens. Built-in roles cannot change this.
               </p>
               <FieldError message={errors.code} />
             </div>
 
             <div className="mt-4 space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">What this role is for</Label>
               <Input
                 id="description"
                 value={values.description}
                 onChange={(event) =>
                   onChange('description', event.target.value)
                 }
-                placeholder="Optional short description"
+                placeholder="Optional, e.g. Front-office staff who enroll students"
                 className="bg-white"
               />
               <FieldError message={errors.description} />
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="canViewAllData">Whose records they can see</Label>
+              <label
+                htmlFor="canViewAllData"
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700"
+              >
+                <input
+                  id="canViewAllData"
+                  type="checkbox"
+                  className="mt-0.5 size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                  checked={values.canViewAllData}
+                  onChange={(event) =>
+                    onChange('canViewAllData', event.target.checked)
+                  }
+                />
+                <span>
+                  <span className="block font-semibold text-slate-900">
+                    See all records in the pages they can access
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Turn this off if they should only see records linked to
+                    their own account (for example a tutor seeing only their
+                    classes).
+                  </span>
+                </span>
+              </label>
+              <FieldError message={errors.canViewAllData} />
             </div>
           </div>
 
@@ -337,8 +373,8 @@ export function StaffPermissionForm({
             </div>
             <p className="mt-2 text-xs text-slate-500">
               {totalCount
-                ? `${progress}% of catalog · ${totalCount} permissions total`
-                : 'Loading permission catalog…'}
+                ? `${progress}% of available actions · ${totalCount} total`
+                : 'Loading available actions…'}
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -368,11 +404,11 @@ export function StaffPermissionForm({
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Permission browser
+                  What this role can do
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Browse by module, search by action, or filter to what you’ve
-                  already picked.
+                  Tick an action to allow it. View opens the page; Add, Edit,
+                  and Delete control whether they can change records.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -398,8 +434,8 @@ export function StaffPermissionForm({
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by module, action, or codename…"
-                aria-label="Search permissions"
+                placeholder="Search by page or action, e.g. students, payments…"
+                aria-label="Search role actions"
                 className="h-12 bg-[#F4F6FA] pl-11"
               />
             </div>
@@ -434,7 +470,7 @@ export function StaffPermissionForm({
             {appFilters.length > 1 ? (
               <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
                 <AppChip
-                  label="All apps"
+                  label="All modules"
                   active={appFilter === 'all'}
                   onClick={() => setAppFilter('all')}
                 />
@@ -471,7 +507,7 @@ export function StaffPermissionForm({
               {permissionsQuery.isError ? (
                 <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-5 py-10 text-center">
                   <p className="text-sm font-semibold text-rose-700">
-                    Couldn’t load permissions
+                    Couldn’t load role actions
                   </p>
                   <p className="mt-1 text-sm text-rose-600/80">
                     Check your connection, then try again.
@@ -493,7 +529,7 @@ export function StaffPermissionForm({
                     No matches
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Try another search, switch filters, or clear the app chip.
+                    Try another search, switch filters, or show all modules.
                   </p>
                   <button
                     type="button"
@@ -587,7 +623,7 @@ export function StaffPermissionForm({
                                 )
                               }
                             />
-                            All
+                            Allow all
                           </label>
                         </div>
 
@@ -628,13 +664,14 @@ export function StaffPermissionForm({
                                       <span className="block text-sm font-semibold text-slate-900">
                                         {getPermissionActionLabel(
                                           permission.codename,
+                                          group.label,
                                           permission.name,
                                         )}
                                       </span>
                                       <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
                                         {getPermissionActionHint(
                                           permission.codename,
-                                          group.label,
+                                          group.copy,
                                         )}
                                       </span>
                                     </span>
@@ -665,13 +702,13 @@ export function StaffPermissionForm({
                 onClick={onDelete}
                 disabled={isSubmitting}
               >
-                Delete Group
+                Delete role
               </Button>
             ) : (
               <p className="text-sm text-slate-500">
                 {selectedCount === 0
-                  ? 'You can save with no permissions, then refine later.'
-                  : `${selectedCount} permission${selectedCount === 1 ? '' : 's'} ready to assign.`}
+                  ? 'You can save now and tick actions later.'
+                  : `${selectedCount} action${selectedCount === 1 ? '' : 's'} allowed for this role.`}
               </p>
             )}
           </div>
@@ -690,7 +727,7 @@ export function StaffPermissionForm({
                   ? 'Saving...'
                   : 'Updating...'
                 : mode === 'create'
-                  ? 'Create Group'
+                  ? 'Create role'
                   : 'Save Changes'}
             </Button>
           </div>

@@ -1,4 +1,5 @@
-import { Plus, RefreshCw } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { DataTable } from '../../../shared/components/data-table'
@@ -6,6 +7,7 @@ import { Button } from '../../../shared/components/ui/button'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { updateOpenPeriodSalaries } from '../api/bookkeeping-api'
 import { bookkeepingListColumns } from '../components/bookkeeping-list-columns'
 import {
@@ -24,6 +26,7 @@ function filterBookkeeping(row: BookkeepingListItem, search: string) {
 }
 
 export default function BookkeepingListPage() {
+  const navigate = useNavigate()
   const query = useBookkeepingQuery()
   const [isUpdatingSalary, setIsUpdatingSalary] = useState(false)
 
@@ -66,42 +69,23 @@ export default function BookkeepingListPage() {
             emptyMessage="No bookkeeping periods found"
             toolbarActions={
               <>
-                <Button
-                  variant="secondary"
-                  disabled={query.isFetching}
-                  onClick={() => {
-                    void query.refetch().then(() => {
-                      notify('success', {
-                        title: 'Bookkeeping refreshed',
-                        description: 'Latest bookkeeping data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={isUpdatingSalary}
-                  onClick={() => void handleUpdateSalary()}
-                >
-                  {isUpdatingSalary ? 'Updating…' : 'Update Salary'}
-                </Button>
-                <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add bookkeeping',
-                      description:
-                        'The create bookkeeping form will be added later.',
-                    })
-                  }
-                >
-                  <Plus className="size-4" />
-                  Add New Bookkeeping
-                </Button>
+                <Can module="bookkeeping" action="change">
+                  <Button
+                    variant="secondary"
+                    disabled={isUpdatingSalary}
+                    onClick={() => void handleUpdateSalary()}
+                  >
+                    {isUpdatingSalary ? 'Updating…' : 'Update Salary'}
+                  </Button>
+                </Can>
+                <Can module="bookkeeping" action="add">
+                  <Button
+                    onClick={() => void navigate({ to: '/bookkeeping/new' })}
+                  >
+                    <Plus className="size-4" />
+                    Add New Bookkeeping
+                  </Button>
+                </Can>
               </>
             }
           />

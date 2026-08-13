@@ -1,9 +1,10 @@
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { tutorListColumns } from '../components/tutor-list-columns'
 import {
   TutorListErrorState,
@@ -51,24 +52,7 @@ export default function TutorListPage() {
             initialPageSize={10}
             emptyMessage="No tutors found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={tutorsQuery.isFetching}
-                  onClick={() => {
-                    void tutorsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Tutor list refreshed',
-                        description: 'Latest tutor data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${tutorsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="users" action="add">
                 <Button
                   onClick={() =>
                     notify('info', {
@@ -81,7 +65,7 @@ export default function TutorListPage() {
                   <Plus className="size-4" />
                   Add New Tutor
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

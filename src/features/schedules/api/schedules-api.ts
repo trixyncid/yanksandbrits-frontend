@@ -21,6 +21,8 @@ export type DayScheduleRow = {
   id: number
   program_id: number | null
   program: string | null
+  program_background_color?: string | null
+  program_text_color?: string | null
   classroom_id: number | null
   classroom: string | null
   tutor_id: number | null
@@ -159,6 +161,8 @@ function mapDayRows(
       const participantCount = row.participants?.length ?? 0
 
       const status = mapScheduleStatusFromApi(row.status)
+      const backgroundColor = row.program_background_color?.trim() || undefined
+      const textColor = row.program_text_color?.trim() || undefined
 
       return {
         id: String(row.id),
@@ -168,6 +172,8 @@ function mapDayRows(
         startHour,
         durationHours: Math.max(endHour - startHour, 0.5),
         tone: toneFromScheduleStatus(status),
+        backgroundColor,
+        textColor,
         status: STATUS_LABEL[status],
         meta:
           participantCount > 0

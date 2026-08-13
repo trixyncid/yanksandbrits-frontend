@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQueryClient } from '@tanstack/react-query'
 import { Eye, FileText, Trash2, Users } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 
 import {
   DataTableBadge,
@@ -60,6 +60,7 @@ function statusLabel(status: BookkeepingStatus) {
 }
 
 function BookkeepingActionsCell({ item }: { item: BookkeepingListItem }) {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   return (
@@ -68,9 +69,9 @@ function BookkeepingActionsCell({ item }: { item: BookkeepingListItem }) {
         type="button"
         aria-label="View bookkeeping"
         onClick={() =>
-          notify('info', {
-            title: 'Bookkeeping detail',
-            description: `${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${statusLabel(item.status)}`,
+          void navigate({
+            to: '/bookkeeping/$bookkeepingId',
+            params: { bookkeepingId: item.id },
           })
         }
         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"

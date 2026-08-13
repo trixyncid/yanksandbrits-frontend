@@ -1,12 +1,17 @@
 import { parseISO } from 'date-fns'
-import type { FormEvent, ReactNode } from 'react'
+import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
+import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import {
+  useIsManager,
+  useIsMarketing,
+} from '../../auth/hooks/use-permissions'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import {
   useInstitutionOptionsQuery,
@@ -98,6 +103,34 @@ export function StudentForm({
   const occupationsQuery = useOccupationOptionsQuery()
   const institutionsQuery = useInstitutionOptionsQuery()
   const counsellorsQuery = useMarketingOptionsQuery()
+  const counsellorOptions = useMemo(
+    () =>
+      (counsellorsQuery.data ?? []).map((option) => ({
+        value: option.id,
+        label: `${option.pin} | ${option.fullName}`,
+        keywords: `${option.pin} ${option.fullName} ${option.email}`,
+      })),
+    [counsellorsQuery.data],
+  )
+  const occupationOptions = useMemo(
+    () =>
+      (occupationsQuery.data ?? []).map((option) => ({
+        value: option.id,
+        label: option.name,
+      })),
+    [occupationsQuery.data],
+  )
+  const institutionOptions = useMemo(
+    () =>
+      (institutionsQuery.data ?? []).map((option) => ({
+        value: option.id,
+        label: option.name,
+      })),
+    [institutionsQuery.data],
+  )
+  const isManager = useIsManager()
+  const isMarketing = useIsMarketing()
+  const lockIdentityFields = mode === 'edit' && isMarketing && !isManager
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -121,21 +154,22 @@ export function StudentForm({
             label="Education Counsellor"
             htmlFor="counsellorId"
             error={errors.counsellorId}
-            hint="Counsellor helps generate the student PIN."
+            hint={
+              lockIdentityFields
+                ? 'Marketing cannot change the education counsellor.'
+                : 'Counsellor helps generate the student PIN.'
+            }
           >
-            <Select
+            <SearchableSelect
               id="counsellorId"
-              containerClassName="w-full sm:w-full"
               value={values.counsellorId}
-              onChange={(event) => onChange('counsellorId', event.target.value)}
-            >
-              <option value="">Select counsellor</option>
-              {(counsellorsQuery.data ?? []).map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.pin} | {option.fullName}
-                </option>
-              ))}
-            </Select>
+              options={counsellorOptions}
+              onChange={(next) => onChange('counsellorId', next)}
+              placeholder="Select counsellor"
+              searchPlaceholder="Search counsellors..."
+              emptyMessage="No marketing staff found"
+              disabled={lockIdentityFields || counsellorsQuery.isLoading}
+            />
           </Field>
 
           <Field
@@ -153,12 +187,22 @@ export function StudentForm({
             />
           </Field>
 
-          <Field label="Guest Number (GRN)" htmlFor="grn" error={errors.grn}>
+          <Field
+            label="Guest Number (GRN)"
+            htmlFor="grn"
+            error={errors.grn}
+            hint={
+              lockIdentityFields
+                ? 'Marketing cannot change the guest number.'
+                : undefined
+            }
+          >
             <Input
               id="grn"
               value={values.grn}
               onChange={(event) => onChange('grn', event.target.value)}
               placeholder="GRN-1001"
+              disabled={lockIdentityFields}
             />
           </Field>
 
@@ -166,13 +210,18 @@ export function StudentForm({
             label="Student PIN"
             htmlFor="pin"
             error={errors.pin}
-            hint="PIN must be unique within the selected branch."
+            hint={
+              lockIdentityFields
+                ? 'Marketing cannot change the student PIN.'
+                : 'PIN must be unique within the selected branch.'
+            }
           >
             <Input
               id="pin"
               value={values.pin}
               onChange={(event) => onChange('pin', event.target.value)}
               placeholder="STU-1001"
+              disabled={lockIdentityFields}
             />
           </Field>
 
@@ -306,53 +355,92 @@ export function StudentForm({
       <section className="space-y-4">
         <div>
           <h3 className="text-base font-bold text-slate-900">
-            Education Information
+            Current Education & Work
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Occupation and school or workplace context.
+            Student's current occupation and institution at the time of
+            enrollment.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="Occupation"
+            label="Current Occupation"
             htmlFor="occupationId"
             error={errors.occupationId}
           >
-            <Select
+            <SearchableSelect
               id="occupationId"
-              containerClassName="w-full sm:w-full"
               value={values.occupationId}
-              onChange={(event) => onChange('occupationId', event.target.value)}
-            >
-              <option value="">Select occupation</option>
-              {(occupationsQuery.data ?? []).map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </Select>
+              options={occupationOptions}
+              onChange={(next) => onChange('occupationId', next)}
+              placeholder="Select occupation"
+              searchPlaceholder="Search occupations..."
+              emptyMessage="No occupations found"
+              disabled={occupationsQuery.isLoading}
+            />
           </Field>
           <Field
-            label="Institution"
+            label="Current Institution"
             htmlFor="institutionId"
             error={errors.institutionId}
           >
-            <Select
+            <SearchableSelect
               id="institutionId"
-              containerClassName="w-full sm:w-full"
               value={values.institutionId}
-              onChange={(event) =>
-                onChange('institutionId', event.target.value)
-              }
-            >
-              <option value="">Select institution</option>
-              {(institutionsQuery.data ?? []).map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </Select>
+              options={institutionOptions}
+              onChange={(next) => onChange('institutionId', next)}
+              placeholder="Select institution"
+              searchPlaceholder="Search institutions..."
+              emptyMessage="No institutions found"
+              disabled={institutionsQuery.isLoading}
+              clearable
+            />
+          </Field>
+        </div>
+      </section>
+
+      <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-slate-900">
+            Post-Program Destination
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Student goals after completing the program, including target
+            country, university, and major.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Country" htmlFor="country" error={errors.country}>
+            <Input
+              id="country"
+              value={values.country}
+              onChange={(event) => onChange('country', event.target.value)}
+              placeholder="e.g. Indonesia"
+            />
+          </Field>
+          <Field
+            label="University"
+            htmlFor="university"
+            error={errors.university}
+          >
+            <Input
+              id="university"
+              value={values.university}
+              onChange={(event) => onChange('university', event.target.value)}
+              placeholder="e.g. Universitas Indonesia"
+            />
+          </Field>
+          <Field label="Major" htmlFor="major" error={errors.major}>
+            <Input
+              id="major"
+              value={values.major}
+              onChange={(event) => onChange('major', event.target.value)}
+              placeholder="e.g. Computer Science"
+            />
           </Field>
         </div>
       </section>

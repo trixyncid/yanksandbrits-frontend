@@ -36,11 +36,10 @@ export function StaffPermissionListErrorState({
         <AlertCircle className="size-5" />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-slate-900">
-        Unable to load staff permissions
+        Unable to load roles
       </h2>
       <p className="mt-2 text-sm text-slate-500">
-        Something went wrong while fetching permission groups. You can try
-        again.
+        Something went wrong while fetching roles. You can try again.
       </p>
       {onRetry ? (
         <Button className="mt-6" onClick={onRetry}>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import {
   createStudentPayment,
   emptyStudentPaymentFormValues,
@@ -20,15 +21,19 @@ type UseStudentPaymentFormOptions = {
   mode: 'create' | 'edit'
   paymentId?: string
   initialValues?: StudentPaymentFormValues
+  /** After create, return to this student's detail page instead of the payments list. */
+  returnToStudentId?: string
 }
 
 export function useStudentPaymentForm({
   mode,
   paymentId,
   initialValues = emptyStudentPaymentFormValues,
+  returnToStudentId,
 }: UseStudentPaymentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const lockTransactionStatus = useIsRestrictedMarketing()
   const [values, setValues] = useState<StudentPaymentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentPaymentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -63,6 +68,17 @@ export function useStudentPaymentForm({
     return false
   }
 
+  function navigateAfterSave() {
+    if (returnToStudentId) {
+      void navigate({
+        to: '/students/$studentId',
+        params: { studentId: returnToStudentId },
+      })
+      return
+    }
+    void navigate({ to: '/student-payments' })
+  }
+
   async function submit() {
     const isValid = validateForm(values)
 
@@ -81,7 +97,9 @@ export function useStudentPaymentForm({
 
     try {
       if (mode === 'create') {
-        const created = await createStudentPayment(values)
+        const created = await createStudentPayment(values, {
+          omitStatus: lockTransactionStatus,
+        })
         await queryClient.invalidateQueries({
           queryKey: studentPaymentQueryKeys.all,
         })
@@ -89,7 +107,7 @@ export function useStudentPaymentForm({
           title: 'Payment recorded',
           description: `${created.title} for ${created.studentName} has been added.`,
         })
-        void navigate({ to: '/student-payments' })
+        navigateAfterSave()
         return
       }
 
@@ -97,7 +115,9 @@ export function useStudentPaymentForm({
         return
       }
 
-      const updated = await updateStudentPayment(paymentId, values)
+      const updated = await updateStudentPayment(paymentId, values, {
+        omitStatus: lockTransactionStatus,
+      })
       await queryClient.invalidateQueries({
         queryKey: studentPaymentQueryKeys.all,
       })
@@ -105,7 +125,7 @@ export function useStudentPaymentForm({
         title: 'Payment updated',
         description: `${updated.title} has been saved.`,
       })
-      void navigate({ to: '/student-payments' })
+      navigateAfterSave()
     } catch (error) {
       notify('error', {
         title:
@@ -120,7 +140,7 @@ export function useStudentPaymentForm({
   }
 
   function cancel() {
-    void navigate({ to: '/student-payments' })
+    navigateAfterSave()
   }
 
   return {

@@ -34,7 +34,9 @@ type StudentPaymentDto = {
   created_at: string
   updated_at: string
   created_by: number | null
+  created_by_name?: string | null
   updated_by: number | null
+  updated_by_name?: string | null
 }
 
 function mapPayment(
@@ -54,21 +56,27 @@ function mapPayment(
     amount: dto.amount ?? 0,
     transactionDate: dto.created_at,
     status: mapApprovalStatusFromApi(dto.status),
-    createdBy: dto.created_by == null ? '—' : String(dto.created_by),
+    createdBy: dto.created_by_name ?? '—',
     hasPaymentProof: Boolean(dto.payment_proof),
     paymentProofUrl: dto.payment_proof || null,
     branch: student?.branch ?? '—',
   }
 }
 
-function toWritePayload(values: StudentPaymentFormValues) {
-  return {
+function toWritePayload(
+  values: StudentPaymentFormValues,
+  options?: { omitStatus?: boolean },
+) {
+  const payload: Record<string, unknown> = {
     student: Number(values.studentId),
     title: values.title.trim(),
     description: values.description.trim() || null,
     amount: parseCurrencyValue(values.amount),
-    status: mapApprovalStatusToApi(values.status),
   }
+  if (!options?.omitStatus) {
+    payload.status = mapApprovalStatusToApi(values.status)
+  }
+  return payload
 }
 
 async function loadStudentLookup() {
@@ -85,6 +93,10 @@ export async function fetchStudentPayments(
 
   if (filters.status && filters.status !== 'all') {
     params.status = mapApprovalStatusToApi(filters.status)
+  }
+
+  if (filters.studentId) {
+    params.student = Number(filters.studentId)
   }
 
   const [{ items, total }, studentsById] = await Promise.all([
@@ -121,10 +133,11 @@ export async function fetchStudentPayment(
 
 export async function createStudentPayment(
   values: StudentPaymentFormValues,
+  options?: { omitStatus?: boolean },
 ): Promise<StudentPaymentListItem> {
   const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
     adminPath('/payments'),
-    toWritePayload(values),
+    toWritePayload(values, options),
   )
   const studentsById = await loadStudentLookup()
   return mapPayment(data.data, studentsById)
@@ -133,10 +146,11 @@ export async function createStudentPayment(
 export async function updateStudentPayment(
   id: string,
   values: StudentPaymentFormValues,
+  options?: { omitStatus?: boolean },
 ): Promise<StudentPaymentListItem> {
   const { data } = await httpClient.patch<
     ApiSuccessEnvelope<StudentPaymentDto>
-  >(adminPath(`/payments/${id}`), toWritePayload(values))
+  >(adminPath(`/payments/${id}`), toWritePayload(values, options))
   const studentsById = await loadStudentLookup()
   return mapPayment(data.data, studentsById)
 }

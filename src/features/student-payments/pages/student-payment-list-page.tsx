@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { Can } from '../../auth/components/can'
 import { studentPaymentListColumns } from '../components/student-payment-list-columns'
 import {
   StudentPaymentListErrorState,
@@ -57,33 +57,19 @@ export default function StudentPaymentListPage() {
             initialPageSize={10}
             emptyMessage="No payment transactions found"
             toolbarActions={
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={paymentsQuery.isFetching}
-                  onClick={() => {
-                    void paymentsQuery.refetch().then(() => {
-                      notify('success', {
-                        title: 'Student payments refreshed',
-                        description: 'Latest payment data has been loaded.',
-                      })
-                    })
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-4 ${paymentsQuery.isFetching ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
-                </Button>
+              <Can module="studentPayments" action="add">
                 <Button
                   onClick={() =>
-                    void navigate({ to: '/student-payments/new' })
+                    void navigate({
+                      to: '/student-payments/new',
+                      search: { studentId: undefined },
+                    })
                   }
                 >
                   <Plus className="size-4" />
                   Record New Transaction
                 </Button>
-              </>
+              </Can>
             }
           />
         ) : null}

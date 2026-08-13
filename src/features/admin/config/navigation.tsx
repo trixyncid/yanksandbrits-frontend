@@ -39,8 +39,11 @@ export type AppPath =
   | '/staff-permissions'
   | '/paid-leaves'
   | '/branches'
+  | '/institutions'
+  | '/occupations'
   | '/student-report'
   | '/bookkeeping'
+  | '/bookkeeping/new'
   | '/tutor-report'
   | '/marketing-report'
   | '/appointment-by-tutor'
@@ -104,6 +107,18 @@ export const adminNavigation: NavigationItem[] = [
         label: 'Student Report',
         icon: PieChart,
         to: '/student-report',
+      },
+      {
+        id: 'institution',
+        label: 'Institutions',
+        icon: School,
+        to: '/institutions',
+      },
+      {
+        id: 'occupation',
+        label: 'Occupations',
+        icon: ClipboardList,
+        to: '/occupations',
       },
     ],
   },

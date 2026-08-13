@@ -4,6 +4,10 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import {
+  useIsManager,
+  useIsMarketing,
+} from '../../auth/hooks/use-permissions'
 import { prospectiveStudentQueryKeys } from '../../prospective-students/api/prospective-student-query-keys'
 import {
   createStudent,
@@ -29,6 +33,9 @@ export function useStudentForm({
 }: UseStudentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isManager = useIsManager()
+  const isMarketing = useIsMarketing()
+  const lockIdentityFields = mode === 'edit' && isMarketing && !isManager
   const [values, setValues] = useState<StudentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -102,7 +109,9 @@ export function useStudentForm({
         return
       }
 
-      const updated = await updateStudent(studentId, values)
+      const updated = await updateStudent(studentId, values, {
+        omitIdentityFields: lockIdentityFields,
+      })
       await queryClient.invalidateQueries({ queryKey: studentQueryKeys.all })
       notify('success', {
         title: 'Student updated',

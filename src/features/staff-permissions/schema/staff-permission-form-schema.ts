@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const staffPermissionFormSchema = z.object({
-  name: z.string().trim().min(1, 'Group name is required.'),
+  name: z.string().trim().min(1, 'Role name is required.'),
   code: z
     .string()
     .trim()
@@ -11,5 +11,6 @@ export const staffPermissionFormSchema = z.object({
       'Use lowercase letters, numbers, and hyphens only.',
     ),
   description: z.string(),
+  canViewAllData: z.boolean(),
   permissionIds: z.array(z.string()),
 })

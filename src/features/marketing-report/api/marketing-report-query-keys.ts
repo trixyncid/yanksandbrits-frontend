@@ -1,5 +1,7 @@
 export type MarketingReportListFilters = {
   search?: string
+  /** `open` (default) or a bookkeeping id */
+  bookkeepingId?: string
 }
 
 export const marketingReportQueryKeys = {

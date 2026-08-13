@@ -1,10 +1,6 @@
 import { httpClient } from '../../../shared/api/http-client'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
-import type {
-  BranchFormValues,
-  BranchListItem,
-  BrandOption,
-} from '../types/branch'
+import type { BranchFormValues, BranchListItem } from '../types/branch'
 import type { BranchListFilters } from './branch-query-keys'
 import { adminPath } from '../../../shared/api/paths'
 
@@ -18,8 +14,6 @@ export type BranchListResponse = {
 type BranchDto = {
   id: number
   name: string
-  brand: number | null
-  brand_name: string | null
   address: string | null
   phone: string | null
   created_at: string
@@ -29,11 +23,6 @@ type BranchDto = {
   updated_by: number | null
   updated_by_name: string | null
   total_student: number
-}
-
-type BrandDto = {
-  id: number
-  name: string
 }
 
 type PaginatedMeta = {
@@ -48,8 +37,6 @@ function mapBranch(dto: BranchDto): BranchListItem {
   return {
     id: String(dto.id),
     name: dto.name,
-    brandId: dto.brand == null ? null : String(dto.brand),
-    brandName: dto.brand_name,
     phone: dto.phone ?? '',
     address: dto.address ?? '',
     totalStudent: dto.total_student,
@@ -65,7 +52,6 @@ function toWritePayload(values: BranchFormValues) {
     name: values.name.trim(),
     phone: values.phone.trim() || null,
     address: values.address.trim() || null,
-    brand: values.brandId ? Number(values.brandId) : null,
   }
 }
 
@@ -152,7 +138,6 @@ export function branchToFormValues(branch: BranchListItem): BranchFormValues {
     name: branch.name,
     phone: branch.phone,
     address: branch.address,
-    brandId: branch.brandId ?? '',
   }
 }
 
@@ -160,18 +145,4 @@ export const emptyBranchFormValues: BranchFormValues = {
   name: '',
   phone: '',
   address: '',
-  brandId: '',
-}
-
-export async function fetchBrandOptions(): Promise<BrandOption[]> {
-  const { data } = await httpClient.get<
-    ApiSuccessEnvelope<BrandDto[]> & { meta: PaginatedMeta | null }
-  >(adminPath('/brands'), {
-    params: { page_size: 100 },
-  })
-
-  return (data.data ?? []).map((brand) => ({
-    id: String(brand.id),
-    name: brand.name,
-  }))
 }

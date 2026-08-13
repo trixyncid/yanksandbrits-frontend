@@ -10,9 +10,3 @@ export const branchQueryKeys = {
   details: () => [...branchQueryKeys.all, 'detail'] as const,
   detail: (id: string) => [...branchQueryKeys.details(), id] as const,
 }
-
-export const brandQueryKeys = {
-  all: ['brands'] as const,
-  lists: () => [...brandQueryKeys.all, 'list'] as const,
-  options: () => [...brandQueryKeys.lists(), 'options'] as const,
-}

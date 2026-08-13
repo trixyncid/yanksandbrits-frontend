@@ -54,7 +54,7 @@ export default function StaffPermissionEditPage() {
               onClick={() => void navigate({ to: '/staff-permissions' })}
             >
               <ArrowLeft className="size-3.5" />
-              Back to staff permissions
+              Back to roles
             </Button>
             {groupQuery.isError ? (
               <Button size="sm" onClick={() => void groupQuery.refetch()}>
@@ -99,8 +99,8 @@ function StaffPermissionEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete staff permission?',
-      description: `This will permanently remove ${group.name}. This action cannot be undone.`,
+      title: 'Delete this role?',
+      description: `This will permanently remove ${group.name}. Staff who only had this role will lose that access.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -109,13 +109,13 @@ function StaffPermissionEditForm({
               queryKey: staffPermissionQueryKeys.all,
             })
             notify('success', {
-              title: 'Staff permission deleted',
+              title: 'Role deleted',
               description: `${group.name} has been removed.`,
             })
             void navigate({ to: '/staff-permissions' })
           } catch (error) {
             notify('error', {
-              title: 'Unable to delete staff permission',
+              title: 'Unable to delete role',
               description: getApiErrorMessage(error),
             })
           }
@@ -140,7 +140,7 @@ function StaffPermissionEditForm({
               Edit role
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Adjust what <span className="font-semibold text-slate-700">{group.name}</span> can do across the admin.
+              Choose which pages <span className="font-semibold text-slate-700">{group.name}</span> can open, and whether they can add, edit, or delete records.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
