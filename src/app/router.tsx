@@ -56,6 +56,22 @@ const loginRoute = createRoute({
   component: lazyRouteComponent(() => import('../features/auth/pages/login-page')),
 })
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: lazyRouteComponent(
+    () => import('../features/auth/pages/forgot-password-page'),
+  ),
+})
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password/$uid/$token',
+  component: lazyRouteComponent(
+    () => import('../features/auth/pages/reset-password-page'),
+  ),
+})
+
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authenticated',
@@ -585,6 +601,8 @@ const catchAllRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   authenticatedRoute.addChildren([
     dashboardRoute,
     studentsRoute,

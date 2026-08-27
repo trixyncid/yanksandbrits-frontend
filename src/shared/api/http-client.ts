@@ -30,8 +30,16 @@ async function renewSession(): Promise<void> {
   }
 }
 
+function isPublicAppPath(pathname: string): boolean {
+  return (
+    pathname === '/login' ||
+    pathname === '/forgot-password' ||
+    pathname.startsWith('/reset-password')
+  )
+}
+
 function redirectToLogin(): void {
-  if (window.location.pathname !== '/login') {
+  if (!isPublicAppPath(window.location.pathname)) {
     window.location.assign('/login')
   }
 }
@@ -47,7 +55,9 @@ httpClient.interceptors.response.use(
       original._retry ||
       original.url?.includes('/auth/login') ||
       original.url?.includes('/auth/refresh') ||
-      original.url?.includes('/auth/me')
+      original.url?.includes('/auth/me') ||
+      original.url?.includes('/auth/forgot-password') ||
+      original.url?.includes('/auth/reset-password')
     ) {
       return Promise.reject(error)
     }
