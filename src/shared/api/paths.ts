@@ -13,6 +13,8 @@ export const AUTH_PATHS = {
   refresh: '/auth/refresh',
   me: '/auth/me',
   changePassword: '/auth/change-password',
+  forgotPassword: '/auth/forgot-password',
+  resetPassword: '/auth/reset-password',
 } as const
 
 export const ADMIN_PREFIX = '/admin' as const

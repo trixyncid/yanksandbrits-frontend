@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { FormEvent } from 'react'
 
@@ -64,12 +65,12 @@ export function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-3">
             <Label htmlFor="password">Password</Label>
-            <button
-              type="button"
+            <Link
+              to="/forgot-password"
               className="text-xs font-semibold text-brand-500 transition hover:text-brand-700"
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <PasswordInput
             id="password"

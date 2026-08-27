@@ -54,6 +54,22 @@ export async function changePassword(
   await httpClient.post(AUTH_PATHS.changePassword, payload)
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  await httpClient.post(AUTH_PATHS.forgotPassword, { email })
+}
+
+export type ResetPasswordPayload = {
+  uid: string
+  token: string
+  new_password: string
+}
+
+export async function resetPassword(
+  payload: ResetPasswordPayload,
+): Promise<void> {
+  await httpClient.post(AUTH_PATHS.resetPassword, payload)
+}
+
 export type UpdateMePayload = {
   full_name: string
   gender: 'M' | 'F' | null
