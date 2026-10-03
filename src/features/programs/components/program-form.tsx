@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import type {
   ProgramFormErrors,
@@ -70,14 +71,14 @@ function ColorField({
         <input
           id={id}
           type="color"
-          value={value || '#4274B9'}
+          value={value || '#253CA1'}
           onChange={(event) => onChange(event.target.value.toUpperCase())}
           className="size-12 cursor-pointer rounded-xl border border-slate-200 bg-white p-1"
         />
         <Input
           value={value}
           onChange={(event) => onChange(event.target.value.toUpperCase())}
-          placeholder="#4274B9"
+          placeholder="#253CA1"
           className="font-mono uppercase"
         />
       </div>
@@ -159,27 +160,17 @@ export function ProgramForm({
           />
         </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="isActive">Active Status</Label>
-          <label
-            htmlFor="isActive"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 text-sm text-slate-600"
-          >
-            <input
-              id="isActive"
-              type="checkbox"
-              className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-              checked={values.isActive}
-              onChange={(event) => onChange('isActive', event.target.checked)}
-            />
-            <span>
-              {values.isActive
-                ? 'Program is active and available for scheduling'
-                : 'Program is inactive'}
-            </span>
-          </label>
-          <FieldError message={errors.isActive} />
-        </div>
+        <StatusToggle
+          id="program-is-active"
+          value={values.isActive}
+          onChange={(next) => onChange('isActive', next)}
+          description={
+            values.isActive
+              ? 'Program is available for enrollment and scheduling.'
+              : 'Program is hidden from new enrollments.'
+          }
+          error={errors.isActive}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <ColorField

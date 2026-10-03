@@ -39,7 +39,7 @@ export function TimetableEventCard({
       type="button"
       onClick={() => onClick?.(event)}
       className={cn(
-        'absolute inset-x-1.5 z-10 flex min-h-0 flex-col overflow-hidden rounded-xl border px-2 py-1.5 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4274B9]/40',
+        'absolute inset-x-1.5 z-10 flex min-h-0 flex-col overflow-hidden rounded-xl border px-2 py-1.5 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/40',
         !hasProgramColors && timetableToneClasses[event.tone],
       )}
       style={{

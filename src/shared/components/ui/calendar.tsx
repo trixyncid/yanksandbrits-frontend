@@ -12,7 +12,7 @@ import { cn } from '../../lib/cn'
 type CalendarProps = DayPickerProps
 
 const navButtonClassName =
-  'inline-flex size-(--cell-size) items-center justify-center rounded-xl border-0 bg-transparent p-0 text-slate-500 transition-colors select-none hover:bg-[#EDF4FF] hover:text-[#2F5A94] aria-disabled:opacity-50'
+  'inline-flex size-(--cell-size) items-center justify-center rounded-xl border-0 bg-transparent p-0 text-slate-500 transition-colors select-none hover:bg-[#E8EEFF] hover:text-[#253CA1] aria-disabled:opacity-50'
 
 function CalendarDayButton({
   className,
@@ -45,12 +45,12 @@ function CalendarDayButton({
       data-range-middle={modifiers.range_middle}
       className={cn(
         'flex aspect-square size-auto w-full min-w-(--cell-size) flex-col items-center justify-center gap-1 rounded-xl border-0 bg-transparent text-sm leading-none font-medium text-slate-700 transition-colors',
-        'hover:bg-[#EDF4FF] hover:text-[#2F5A94]',
-        'data-[selected-single=true]:bg-[#4274B9] data-[selected-single=true]:text-white data-[selected-single=true]:hover:bg-[#2F5A94] data-[selected-single=true]:hover:text-white',
-        'data-[range-start=true]:bg-[#4274B9] data-[range-start=true]:text-white',
-        'data-[range-end=true]:bg-[#4274B9] data-[range-end=true]:text-white',
-        'data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-[#EDF4FF] data-[range-middle=true]:text-[#2F5A94]',
-        'group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-[#4274B9]/35',
+        'hover:bg-[#E8EEFF] hover:text-[#253CA1]',
+        'data-[selected-single=true]:bg-[#253CA1] data-[selected-single=true]:text-white data-[selected-single=true]:hover:bg-[#1f3190] data-[selected-single=true]:hover:text-white',
+        'data-[range-start=true]:bg-[#253CA1] data-[range-start=true]:text-white',
+        'data-[range-end=true]:bg-[#253CA1] data-[range-end=true]:text-white',
+        'data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-[#E8EEFF] data-[range-middle=true]:text-[#253CA1]',
+        'group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-[#253CA1]/35',
         '[&>span]:text-[10px] [&>span]:opacity-70',
         defaultClassNames.day,
         className,
@@ -111,7 +111,7 @@ export function Calendar({
           defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
-          'relative rounded-xl border border-slate-200 shadow-sm has-focus:border-[#4274B9] has-focus:ring-2 has-focus:ring-[#4274B9]/20',
+          'relative rounded-full border border-slate-200/80 bg-white shadow-sm has-focus:border-slate-300 has-focus:ring-2 has-focus:ring-[#253CA1]/20',
           defaultClassNames.dropdown_root,
         ),
         dropdown: cn(
@@ -119,7 +119,7 @@ export function Calendar({
           defaultClassNames.dropdown,
         ),
         caption_label: cn(
-          'select-none font-semibold text-slate-800',
+          'select-none font-semibold text-[#1B2A5A]',
           captionLayout === 'label'
             ? 'text-sm'
             : 'flex h-8 items-center gap-1 rounded-xl pr-1 pl-2 text-sm [&>svg]:size-3.5 [&>svg]:text-slate-400',
@@ -144,11 +144,11 @@ export function Calendar({
           'group/day relative aspect-square h-full w-full select-none p-0 text-center',
           defaultClassNames.day,
         ),
-        range_start: cn('rounded-l-xl bg-[#EDF4FF]', defaultClassNames.range_start),
+        range_start: cn('rounded-l-xl bg-[#E8EEFF]', defaultClassNames.range_start),
         range_middle: cn('rounded-none', defaultClassNames.range_middle),
-        range_end: cn('rounded-r-xl bg-[#EDF4FF]', defaultClassNames.range_end),
+        range_end: cn('rounded-r-xl bg-[#E8EEFF]', defaultClassNames.range_end),
         today: cn(
-          'rounded-xl bg-[#EDF4FF] text-[#2F5A94]',
+          'rounded-xl bg-[#E8EEFF] text-[#253CA1]',
           defaultClassNames.today,
         ),
         outside: cn(

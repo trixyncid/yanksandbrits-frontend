@@ -1,6 +1,7 @@
 import {
   mapApprovalStatusFromApi,
   mapApprovalStatusToApi,
+  mapPaymentPlanStatusFromApi,
 } from '../../../shared/api/choices'
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
@@ -8,9 +9,13 @@ import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { parseCurrencyValue } from '../../../shared/lib/currency'
 import { fetchStudents } from '../../students/api/students-api'
 import type { StudentListItem } from '../../students/types/student'
+import { summarizePaymentBranches } from '../lib/payment-display'
 import type {
   StudentPaymentFormValues,
   StudentPaymentListItem,
+  StudentPaymentTerm,
+  StudentPaymentTermAttachment,
+  StudentPaymentTermStatus,
 } from '../types/student-payment'
 import type { StudentPaymentListFilters } from './student-payment-query-keys'
 import { adminPath } from '../../../shared/api/paths'
@@ -22,44 +27,122 @@ export type StudentPaymentListResponse = {
   }
 }
 
-type StudentPaymentDto = {
+type StudentPaymentTermAttachmentDto = {
   id: number
-  student: number
-  student_name?: string | null
-  title: string | null
-  description: string | null
+  file_key: string
+  file_url: string
+}
+
+type StudentPaymentTermDto = {
+  id: number
   amount: number
   status: string
-  payment_proof: string | null
+  description: string | null
+  payment_date: string
+  branch?: number | null
+  branch_name?: string | null
+  attachments?: StudentPaymentTermAttachmentDto[]
   created_at: string
-  updated_at: string
-  created_by: number | null
   created_by_name?: string | null
-  updated_by: number | null
-  updated_by_name?: string | null
+}
+
+type StudentPaymentDto = {
+  id: number
+  student: number | null
+  student_name?: string | null
+  prospective_student?: number | null
+  prospective_student_name?: string | null
+  title: string | null
+  full_amount: number
+  paid_amount: number
+  status: string
+  linked_prediction_test_amount?: number
+  linked_prediction_tests?: Array<{
+    id: number
+    amount: number
+    status: string
+    created_at: string
+  }>
+  commission_base_amount?: number
+  prediction_folded_into_commission?: boolean
+  prediction_claimed_elsewhere?: boolean
+  terms?: StudentPaymentTermDto[]
+  created_at: string
+  created_by_name?: string | null
+}
+
+function mapAttachment(
+  dto: StudentPaymentTermAttachmentDto,
+): StudentPaymentTermAttachment {
+  return {
+    id: String(dto.id),
+    fileKey: dto.file_key,
+    fileUrl: dto.file_url,
+  }
+}
+
+function mapTerm(dto: StudentPaymentTermDto): StudentPaymentTerm {
+  return {
+    id: String(dto.id),
+    amount: dto.amount ?? 0,
+    status: mapApprovalStatusFromApi(dto.status),
+    description: dto.description ?? '',
+    paymentDate: dto.payment_date ?? dto.created_at.slice(0, 10),
+    createdAt: dto.created_at,
+    createdBy: dto.created_by_name ?? '—',
+    branchId: dto.branch == null ? null : String(dto.branch),
+    branch: dto.branch_name ?? '—',
+    attachments: (dto.attachments ?? []).map(mapAttachment),
+  }
 }
 
 function mapPayment(
   dto: StudentPaymentDto,
   studentsById: Map<string, StudentListItem>,
 ): StudentPaymentListItem {
-  const studentId = String(dto.student)
-  const student = studentsById.get(studentId)
+  const studentId = dto.student == null ? null : String(dto.student)
+  const prospectiveStudentId =
+    dto.prospective_student == null ? null : String(dto.prospective_student)
+  const student = studentId ? studentsById.get(studentId) : undefined
+  const terms = (dto.terms ?? []).map(mapTerm)
+  const branches = summarizePaymentBranches(terms)
+  const displayName =
+    dto.student_name ??
+    dto.prospective_student_name ??
+    student?.fullName ??
+    '—'
 
   return {
     id: String(dto.id),
     studentId,
+    prospectiveStudentId,
     studentPin: student?.pin ?? '',
-    studentName: dto.student_name ?? student?.fullName ?? '—',
+    studentName: displayName,
     title: dto.title ?? '',
-    description: dto.description ?? '',
-    amount: dto.amount ?? 0,
-    transactionDate: dto.created_at,
-    status: mapApprovalStatusFromApi(dto.status),
+    fullAmount: dto.full_amount ?? 0,
+    paidAmount: dto.paid_amount ?? 0,
+    status: mapPaymentPlanStatusFromApi(dto.status),
+    terms,
+    createdAt: dto.created_at,
     createdBy: dto.created_by_name ?? '—',
-    hasPaymentProof: Boolean(dto.payment_proof),
-    paymentProofUrl: dto.payment_proof || null,
-    branch: student?.branch ?? '—',
+    branchId: branches.branchId,
+    branch:
+      branches.branch !== '—'
+        ? branches.branch
+        : (student?.branch ?? '—'),
+    linkedPredictionTestAmount: dto.linked_prediction_test_amount ?? 0,
+    linkedPredictionTests: (dto.linked_prediction_tests ?? []).map((item) => ({
+      id: String(item.id),
+      amount: item.amount ?? 0,
+      status: item.status,
+      createdAt: item.created_at,
+    })),
+    commissionBaseAmount:
+      dto.commission_base_amount ??
+      (dto.full_amount ?? 0) + (dto.linked_prediction_test_amount ?? 0),
+    predictionFoldedIntoCommission:
+      dto.prediction_folded_into_commission ?? false,
+    predictionClaimedElsewhere: dto.prediction_claimed_elsewhere ?? false,
   }
 }
 
@@ -68,13 +151,30 @@ function toWritePayload(
   options?: { omitStatus?: boolean },
 ) {
   const payload: Record<string, unknown> = {
-    student: Number(values.studentId),
     title: values.title.trim(),
-    description: values.description.trim() || null,
-    amount: parseCurrencyValue(values.amount),
+    full_amount: parseCurrencyValue(values.fullAmount),
+    terms: values.terms.map((term) => {
+      const termPayload: Record<string, unknown> = {
+        amount: parseCurrencyValue(term.amount),
+        description: term.description.trim() || null,
+        payment_date: term.paymentDate,
+        branch: term.branchId ? Number(term.branchId) : null,
+      }
+      if (term.id) {
+        termPayload.id = Number(term.id)
+      }
+      if (!options?.omitStatus) {
+        termPayload.status = mapApprovalStatusToApi(term.status)
+      }
+      return termPayload
+    }),
   }
-  if (!options?.omitStatus) {
-    payload.status = mapApprovalStatusToApi(values.status)
+  if (values.studentId) {
+    payload.student = Number(values.studentId)
+    payload.prospective_student = null
+  } else if (values.prospectiveStudentId) {
+    payload.prospective_student = Number(values.prospectiveStudentId)
+    payload.student = null
   }
   return payload
 }
@@ -92,11 +192,24 @@ export async function fetchStudentPayments(
   }
 
   if (filters.status && filters.status !== 'all') {
-    params.status = mapApprovalStatusToApi(filters.status)
+    if (filters.status === 'incomplete' || filters.status === 'complete') {
+      params.status = filters.status === 'complete' ? '2_CP' : '1_IN'
+    } else {
+      params.status =
+        filters.status === 'approved'
+          ? '2_AP'
+          : filters.status === 'void'
+            ? '3_VD'
+            : '1_PD'
+    }
   }
 
   if (filters.studentId) {
     params.student = Number(filters.studentId)
+  }
+
+  if (filters.branchId) {
+    params.branch = Number(filters.branchId)
   }
 
   const [{ items, total }, studentsById] = await Promise.all([
@@ -108,16 +221,11 @@ export async function fetchStudentPayments(
     loadStudentLookup(),
   ])
 
-  let data = items.map((dto) => mapPayment(dto, studentsById))
-
-  if (filters.branchId) {
-    const branchId = filters.branchId.toLowerCase()
-    data = data.filter((payment) => payment.branch.toLowerCase() === branchId)
-  }
+  const data = items.map((dto) => mapPayment(dto, studentsById))
 
   return {
     data,
-    meta: { total: filters.branchId ? data.length : total },
+    meta: { total },
   }
 }
 
@@ -125,7 +233,9 @@ export async function fetchStudentPayment(
   id: string,
 ): Promise<StudentPaymentListItem> {
   const [{ data }, studentsById] = await Promise.all([
-    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(adminPath(`/payments/${id}`)),
+    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(
+      adminPath(`/payments/${id}`),
+    ),
     loadStudentLookup(),
   ])
   return mapPayment(data.data, studentsById)
@@ -159,24 +269,149 @@ export async function deleteStudentPayment(id: string): Promise<void> {
   await httpClient.delete(adminPath(`/payments/${id}`))
 }
 
+const multipartHeaders = {
+  // Let the browser set multipart boundary (override JSON default).
+  'Content-Type': undefined as unknown as string,
+}
+
+export async function uploadStudentPaymentTermProof(
+  paymentId: string,
+  termId: string,
+  file: File,
+): Promise<StudentPaymentListItem> {
+  const formData = new FormData()
+  formData.append('payment_proof', file)
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<StudentPaymentDto>
+  >(
+    adminPath(`/payments/${paymentId}/terms/${termId}/attachments`),
+    formData,
+    { headers: multipartHeaders },
+  )
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function deleteStudentPaymentTerm(
+  paymentId: string,
+  termId: string,
+): Promise<StudentPaymentListItem> {
+  const { data } = await httpClient.delete<
+    ApiSuccessEnvelope<StudentPaymentDto>
+  >(adminPath(`/payments/${paymentId}/terms/${termId}`))
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function bulkUpdateStudentPaymentTermStatus(
+  paymentId: string,
+  termIds: string[],
+  status: StudentPaymentTermStatus,
+): Promise<StudentPaymentListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
+    adminPath(`/payments/${paymentId}/terms/bulk-status`),
+    {
+      ids: termIds.map((id) => Number(id)),
+      status: mapApprovalStatusToApi(status),
+    },
+  )
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function fetchLinkedPredictionTest(params: {
+  studentId?: string
+  prospectiveStudentId?: string
+  paymentId?: string
+  fullAmount?: string | number
+}): Promise<{
+  linkedPredictionTestAmount: number
+  linkedPredictionTests: StudentPaymentListItem['linkedPredictionTests']
+  commissionBaseAmount: number
+  predictionFoldedIntoCommission: boolean
+  predictionClaimedElsewhere: boolean
+}> {
+  const fullAmount =
+    typeof params.fullAmount === 'string'
+      ? parseCurrencyValue(params.fullAmount)
+      : (params.fullAmount ?? 0)
+  const query: Record<string, number> = { full_amount: fullAmount }
+  if (params.studentId) {
+    query.student = Number(params.studentId)
+  }
+  if (params.prospectiveStudentId) {
+    query.prospective_student = Number(params.prospectiveStudentId)
+  }
+  if (params.paymentId) {
+    query.payment = Number(params.paymentId)
+  }
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<{
+      linked_prediction_test_amount: number
+      linked_prediction_tests: Array<{
+        id: number
+        amount: number
+        status: string
+        created_at: string
+      }>
+      commission_base_amount: number
+      prediction_folded_into_commission?: boolean
+      prediction_claimed_elsewhere?: boolean
+    }>
+  >(adminPath('/payments/linked-prediction-test'), {
+    params: query,
+  })
+  const payload = data.data
+  return {
+    linkedPredictionTestAmount: payload.linked_prediction_test_amount ?? 0,
+    linkedPredictionTests: (payload.linked_prediction_tests ?? []).map(
+      (item) => ({
+        id: String(item.id),
+        amount: item.amount ?? 0,
+        status: item.status,
+        createdAt: item.created_at,
+      }),
+    ),
+    commissionBaseAmount:
+      payload.commission_base_amount ??
+      fullAmount + (payload.linked_prediction_test_amount ?? 0),
+    predictionFoldedIntoCommission:
+      payload.prediction_folded_into_commission ?? false,
+    predictionClaimedElsewhere: payload.prediction_claimed_elsewhere ?? false,
+  }
+}
+
 export function studentPaymentToFormValues(
   payment: StudentPaymentListItem,
 ): StudentPaymentFormValues {
   return {
-    studentId: payment.studentId,
+    studentId: payment.studentId ?? '',
+    prospectiveStudentId: payment.prospectiveStudentId ?? '',
     title: payment.title,
-    description: payment.description,
-    amount: String(payment.amount),
-    status: payment.status,
-    hasPaymentProof: payment.hasPaymentProof,
+    fullAmount: String(payment.fullAmount || ''),
+    terms:
+      payment.terms.length > 0
+        ? payment.terms.map((term) => ({
+            key: term.id,
+            id: term.id,
+            amount: String(term.amount || ''),
+            status: term.status,
+            description: term.description,
+            paymentDate: term.paymentDate,
+            branchId: term.branchId ?? '',
+          }))
+        : [],
   }
 }
 
-export const emptyStudentPaymentFormValues: StudentPaymentFormValues = {
-  studentId: '',
-  title: '',
-  description: '',
-  amount: '',
-  status: 'pending',
-  hasPaymentProof: false,
+export function createEmptyStudentPaymentFormValues(): StudentPaymentFormValues {
+  return {
+    studentId: '',
+    prospectiveStudentId: '',
+    title: '',
+    fullAmount: '',
+    terms: [],
+  }
 }
+
+export const emptyStudentPaymentFormValues = createEmptyStudentPaymentFormValues()

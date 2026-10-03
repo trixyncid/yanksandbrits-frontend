@@ -7,13 +7,11 @@ import {
   DashboardPanel,
 } from './dashboard-section'
 
-const FUNNEL_ORDER = ['1_WT', '2_FU', '3_CO', '4_PT', '6_EN', '5_CA']
+const FUNNEL_ORDER = ['3_CO', '4_PT', '6_EN', '5_CA']
 
 const FUNNEL_TONES: Record<string, string> = {
-  '1_WT': 'bg-slate-500',
-  '2_FU': 'bg-[#6B9FD4]',
-  '3_CO': 'bg-[#4274B9]',
-  '4_PT': 'bg-[#2F5A94]',
+  '3_CO': 'bg-[#253CA1]',
+  '4_PT': 'bg-[#1B2A5A]',
   '6_EN': 'bg-[#3D9B6E]',
   '5_CA': 'bg-[#C45B6E]',
 }
@@ -59,7 +57,7 @@ export function DashboardFunnel({
           items={ordered.map((item) => ({
             label: item.label,
             value: item.count,
-            tone: FUNNEL_TONES[item.status] ?? 'bg-[#4274B9]',
+            tone: FUNNEL_TONES[item.status] ?? 'bg-[#253CA1]',
           }))}
         />
       )}
@@ -98,11 +96,11 @@ export function DashboardOperationsCard({
       {operations.sessionsTotal === 0 ? (
         <DashboardEmptyState message="No sessions scheduled in this period." />
       ) : (
-        <div className="flex flex-1 flex-col items-center gap-6 sm:flex-row sm:items-start xl:flex-col xl:items-stretch">
+        <div className="flex flex-1 flex-col items-center gap-3 sm:flex-row sm:items-start xl:flex-col xl:items-stretch">
           <DashboardDonutChart
             className="self-center"
-            size={156}
-            strokeWidth={18}
+            size={132}
+            strokeWidth={14}
             centerValue={`${completionRate}%`}
             centerLabel="completed"
             segments={[
@@ -124,41 +122,41 @@ export function DashboardOperationsCard({
             ]}
           />
 
-          <dl className="grid w-full flex-1 gap-3">
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+          <dl className="grid w-full flex-1 gap-2">
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <div>
-                <dt className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
                   Scheduled
                 </dt>
-                <dd className="mt-1 text-lg font-bold text-slate-900 tabular-nums">
+                <dd className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
                   {operations.sessionsTotal.toLocaleString('en-US')}
                 </dd>
               </div>
-              <span className="size-2.5 rounded-full bg-[#93B8E8]" />
+              <span className="size-2 rounded-full bg-[#93B8E8]" />
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#F4FBF7] px-4 py-3">
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-[#F4FBF7] px-3 py-2">
               <div>
-                <dt className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
                   Delivered
                 </dt>
-                <dd className="mt-1 text-lg font-bold text-slate-900 tabular-nums">
+                <dd className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
                   {operations.sessionsFinished.toLocaleString('en-US')}
                 </dd>
               </div>
-              <span className="size-2.5 rounded-full bg-[#3D9B6E]" />
+              <span className="size-2 rounded-full bg-[#3D9B6E]" />
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <div>
-                <dt className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
                   Cancelled
                 </dt>
-                <dd className="mt-1 flex items-center gap-2">
-                  <span className="text-lg font-bold text-slate-900 tabular-nums">
+                <dd className="mt-0.5 flex items-center gap-2">
+                  <span className="text-base font-bold text-slate-900 tabular-nums">
                     {operations.sessionsCancelled.toLocaleString('en-US')}
                   </span>
                   <span
                     className={cn(
-                      'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                      'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
                       cancellationTone(operations.cancellationRate),
                     )}
                   >
@@ -166,7 +164,7 @@ export function DashboardOperationsCard({
                   </span>
                 </dd>
               </div>
-              <span className="size-2.5 rounded-full bg-[#C45B6E]" />
+              <span className="size-2 rounded-full bg-[#C45B6E]" />
             </div>
           </dl>
         </div>

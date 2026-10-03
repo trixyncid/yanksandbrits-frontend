@@ -31,7 +31,7 @@ export function DashboardBranchComparison({
       {items.length === 0 ? (
         <DashboardEmptyState message="No branches to compare." />
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-2">
           {items.map((item) => {
             const width = Math.max(
               (item.revenue / maxRevenue) * 100,
@@ -58,7 +58,7 @@ export function DashboardBranchComparison({
                 </div>
                 <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className="h-full rounded-full bg-[#2F5A94]"
+                    className="h-full rounded-full bg-[#1B2A5A]"
                     style={{ width: `${width}%` }}
                   />
                 </div>
@@ -72,7 +72,7 @@ export function DashboardBranchComparison({
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 tabular-nums">
                     {item.leads.toLocaleString('en-US')} leads
                   </span>
-                  <span className="rounded-full bg-[#EDF4FF] px-2 py-0.5 text-[#2F5A94] tabular-nums">
+                  <span className="rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[#1B2A5A] tabular-nums">
                     {item.conversionRate == null
                       ? '— conversion'
                       : `${item.conversionRate.toFixed(1)}% conversion`}

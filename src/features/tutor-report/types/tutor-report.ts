@@ -10,6 +10,7 @@ export type TutorReportListItem = {
   sessionSalary: number
   overtimeSessions: number
   overtimeSalary: number
+  bonusSalary: number
   totalSalary: number
   /** Stored calculation vs live open-period preview */
   source: 'bookkeeping' | 'open'

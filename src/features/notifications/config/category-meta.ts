@@ -25,7 +25,7 @@ export const notificationCategoryMeta: Record<
   schedule: {
     label: 'Schedule',
     icon: CalendarDays,
-    tone: 'bg-[#EDF4FF] text-[#2F5A94] ring-[#BED2F2]',
+    tone: 'bg-[#E8EEFF] text-[#1B2A5A] ring-[#C8D4F5]',
   },
   student: {
     label: 'Student',

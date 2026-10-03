@@ -56,11 +56,11 @@ function positionLabel(position: StaffPosition) {
   }
 
   if (position === 'manager') {
-    return 'Manager'
+    return 'Branch Manager'
   }
 
   if (position === 'marketing') {
-    return 'Marketing'
+    return 'Education Counsellor'
   }
 
   if (position === 'tutor') {
@@ -96,15 +96,19 @@ export const staffListColumns: ColumnDef<StaffListItem>[] = [
     ),
     cell: ({ row }) => (
       <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {accountTitle(row.original)}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
-        {!row.original.isStudent ? (
-          <p className="text-xs text-slate-500">
-            {genderLabel(row.original.gender)}
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">
+            {accountTitle(row.original)}
           </p>
-        ) : null}
+          {!row.original.isStudent ? (
+            <DataTableBadge
+              tone={row.original.gender === 'male' ? 'info' : 'primary'}
+            >
+              {genderLabel(row.original.gender)}
+            </DataTableBadge>
+          ) : null}
+        </div>
+        <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
       </div>
     ),
   },

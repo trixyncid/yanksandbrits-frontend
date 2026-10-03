@@ -42,6 +42,44 @@ export function hasAuthRole(
   return (user.roles ?? []).some((role) => role.code === code)
 }
 
+/** Education Counsellor or Branch Manager (Marketing List family). */
+export function isMarketingFamilyUser(
+  user: Pick<AuthUser, 'roles' | 'is_marketing'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return (
+    hasAuthRole(user, 'education-counsellor') ||
+    hasAuthRole(user, 'branch-manager') ||
+    // Legacy codes from older sessions / cached payloads
+    hasAuthRole(user, 'marketing') ||
+    hasAuthRole(user, 'manager') ||
+    Boolean(user.is_marketing)
+  )
+}
+
+/**
+ * Personal "My Performance" (marketing dashboard).
+ * Education Counsellor only — CRO does not get this home.
+ */
+export function canViewMarketingPerformance(
+  user: Pick<AuthUser, 'roles'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return (
+    hasAuthRole(user, 'education-counsellor') ||
+    // Legacy code from older sessions / cached payloads
+    hasAuthRole(user, 'marketing')
+  )
+}
+
+/** Tutor role users who get the personal performance home. */
+export function isTutorUser(
+  user: Pick<AuthUser, 'roles' | 'is_tutor'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return hasAuthRole(user, 'tutor') || Boolean(user.is_tutor)
+}
+
 export function hasAuthPermission(
   user: Pick<AuthUser, 'permissions' | 'is_superuser'> | null | undefined,
   permission: string,

@@ -32,14 +32,14 @@ export function MarketingActionsCell({
     <div className="flex items-center justify-center gap-2">
       <button
         type="button"
-        aria-label={`View marketing ${marketing.fullName}`}
+        aria-label={`View education counsellor ${marketing.fullName}`}
         onClick={() =>
           void navigate({
             to: '/marketings/$marketingId',
             params: { marketingId: marketing.id },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
       >
         <Eye className="size-3.5" />
       </button>
@@ -67,10 +67,10 @@ export function MarketingActionsCell({
       <Can module="users" action="delete">
         <button
         type="button"
-        aria-label={`Delete marketing ${marketing.fullName}`}
+        aria-label={`Delete education counsellor ${marketing.fullName}`}
         onClick={() =>
           requestDeleteConfirm({
-            title: 'Delete marketing?',
+            title: 'Delete education counsellor?',
             description: `This will permanently remove ${marketing.fullName}. This action cannot be undone.`,
             onConfirm: () => {
               void (async () => {
@@ -80,12 +80,12 @@ export function MarketingActionsCell({
                     queryKey: marketingQueryKeys.all,
                   })
                   notify('success', {
-                    title: 'Marketing deleted',
+                    title: 'Education counsellor deleted',
                     description: `${marketing.fullName} has been removed.`,
                   })
                 } catch (error) {
                   notify('error', {
-                    title: 'Unable to delete marketing',
+                    title: 'Unable to delete education counsellor',
                     description: getApiErrorMessage(error),
                   })
                 }

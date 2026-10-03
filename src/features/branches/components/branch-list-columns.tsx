@@ -1,6 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
-import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import {
+  DataTableBadge,
+  DataTableColumnHeader,
+} from '../../../shared/components/data-table'
 import type { BranchListItem } from '../types/branch'
 import { BranchActionsCell } from './branch-actions-cell'
 
@@ -21,10 +24,13 @@ export const branchListColumns: ColumnDef<BranchListItem>[] = [
       <DataTableColumnHeader column={column} title="Branch Name" />
     ),
     cell: ({ row }) => (
-      <div className="ps-1">
+      <div className="flex items-center gap-2 ps-1">
         <p className="text-sm font-semibold text-slate-900">
           {row.original.name}
         </p>
+        {row.original.isMain ? (
+          <DataTableBadge tone="info">Main</DataTableBadge>
+        ) : null}
       </div>
     ),
   },

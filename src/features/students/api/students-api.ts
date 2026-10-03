@@ -397,72 +397,6 @@ export async function suggestStudentPin(params: {
   return String(data.data.student_id ?? data.data.pin ?? '')
 }
 
-export type StudentAccountResult = {
-  userId: string
-  email: string
-  password?: string
-  isActive?: boolean
-  studentId: string
-}
-
-type StudentAccountDto = {
-  user_id: number
-  email: string
-  password?: string
-  is_active?: boolean
-  student_id: number
-}
-
-function mapAccountResult(dto: StudentAccountDto): StudentAccountResult {
-  return {
-    userId: String(dto.user_id),
-    email: dto.email,
-    password: dto.password,
-    isActive: dto.is_active,
-    studentId: String(dto.student_id),
-  }
-}
-
-export async function provisionStudentAccount(
-  studentId: string,
-  password: string,
-): Promise<StudentAccountResult> {
-  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
-    adminPath(`/students/${studentId}/provision-account`),
-    { password },
-  )
-  return mapAccountResult(data.data)
-}
-
-export async function resetStudentAccountPassword(
-  studentId: string,
-  password: string,
-): Promise<StudentAccountResult> {
-  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
-    adminPath(`/students/${studentId}/reset-password`),
-    { password },
-  )
-  return mapAccountResult(data.data)
-}
-
-export async function deactivateStudentAccount(
-  studentId: string,
-): Promise<StudentAccountResult> {
-  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
-    adminPath(`/students/${studentId}/deactivate-account`),
-  )
-  return mapAccountResult(data.data)
-}
-
-export async function activateStudentAccount(
-  studentId: string,
-): Promise<StudentAccountResult> {
-  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentAccountDto>>(
-    adminPath(`/students/${studentId}/activate-account`),
-  )
-  return mapAccountResult(data.data)
-}
-
 export function studentToFormValues(student: StudentDetail): StudentFormValues {
   return {
     pin: student.pin,
@@ -510,7 +444,7 @@ export const emptyStudentFormValues: StudentFormValues = {
   referralMarketing: '',
   grn: '',
   branchId: '',
-  status: 'active',
+  status: 'inactive',
 }
 
 export function getStudentInitials(fullName: string) {

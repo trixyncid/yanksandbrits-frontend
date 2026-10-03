@@ -21,6 +21,16 @@ export type OccupationItem = {
   totalStudent: number
 }
 
+export type ResourceItem = {
+  id: string
+  name: string
+  isCommission: boolean
+  createdAt: string
+  updatedAt: string
+  createdBy: string | null
+  updatedBy: string | null
+}
+
 type InstitutionDto = {
   id: number
   name: string
@@ -33,6 +43,18 @@ type OccupationDto = {
   id: number
   name: string
   total_student?: number
+}
+
+type ResourceDto = {
+  id: number
+  name: string
+  is_commission: boolean
+  created_at: string
+  updated_at: string
+  created_by?: number | null
+  created_by_name?: string | null
+  updated_by?: number | null
+  updated_by_name?: string | null
 }
 
 function mapInstitution(item: InstitutionDto): InstitutionItem {
@@ -53,6 +75,18 @@ function mapOccupation(item: OccupationDto): OccupationItem {
   }
 }
 
+function mapResource(item: ResourceDto): ResourceItem {
+  return {
+    id: String(item.id),
+    name: item.name,
+    isCommission: Boolean(item.is_commission),
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    createdBy: item.created_by_name ?? null,
+    updatedBy: item.updated_by_name ?? null,
+  }
+}
+
 export async function fetchInstitutionOptions(): Promise<LookupOption[]> {
   const items = await fetchInstitutions()
   return items.map((item) => ({ id: item.id, name: item.name }))
@@ -60,6 +94,11 @@ export async function fetchInstitutionOptions(): Promise<LookupOption[]> {
 
 export async function fetchOccupationOptions(): Promise<LookupOption[]> {
   const items = await fetchOccupations()
+  return items.map((item) => ({ id: item.id, name: item.name }))
+}
+
+export async function fetchResourceOptions(): Promise<LookupOption[]> {
+  const items = await fetchResources()
   return items.map((item) => ({ id: item.id, name: item.name }))
 }
 
@@ -77,6 +116,14 @@ export async function fetchOccupations(): Promise<OccupationItem[]> {
     path: adminPath('/occupations'),
   })
   return items.map(mapOccupation)
+}
+
+export async function fetchResources(): Promise<ResourceItem[]> {
+  const { items } = await fetchAllPages<ResourceDto>({
+    client: httpClient,
+    path: adminPath('/resources'),
+  })
+  return items.map(mapResource)
 }
 
 export async function createInstitution(values: {
@@ -141,4 +188,36 @@ export async function updateOccupation(
 
 export async function deleteOccupation(id: string): Promise<void> {
   await httpClient.delete(adminPath(`/occupations/${id}`))
+}
+
+export async function createResource(values: {
+  name: string
+  isCommission: boolean
+}): Promise<ResourceItem> {
+  const { data } = await httpClient.post<{ data: ResourceDto }>(
+    adminPath('/resources'),
+    {
+      name: values.name.trim(),
+      is_commission: values.isCommission,
+    },
+  )
+  return mapResource(data.data)
+}
+
+export async function updateResource(
+  id: string,
+  values: { name: string; isCommission: boolean },
+): Promise<ResourceItem> {
+  const { data } = await httpClient.patch<{ data: ResourceDto }>(
+    adminPath(`/resources/${id}`),
+    {
+      name: values.name.trim(),
+      is_commission: values.isCommission,
+    },
+  )
+  return mapResource(data.data)
+}
+
+export async function deleteResource(id: string): Promise<void> {
+  await httpClient.delete(adminPath(`/resources/${id}`))
 }

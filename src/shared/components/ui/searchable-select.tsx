@@ -20,6 +20,9 @@ type SearchableSelectProps = {
   emptyMessage?: string
   disabled?: boolean
   clearable?: boolean
+  /** Short category shown inside the trigger, before the selected value. */
+  leadingLabel?: string
+  ariaLabel?: string
   className?: string
   align?: 'start' | 'center' | 'end'
 }
@@ -34,6 +37,8 @@ export function SearchableSelect({
   emptyMessage = 'No results found',
   disabled = false,
   clearable = false,
+  leadingLabel,
+  ariaLabel,
   className,
   align = 'start',
 }: SearchableSelectProps) {
@@ -87,16 +92,38 @@ export function SearchableSelect({
           aria-expanded={open}
           aria-controls={listId}
           data-empty={!selected}
+          aria-label={
+            ariaLabel
+              ? `${ariaLabel}, ${selected?.label ?? placeholder}`
+              : leadingLabel
+                ? `${leadingLabel}, ${selected?.label ?? placeholder}`
+                : undefined
+          }
           className={cn(
-            'flex h-12 w-full items-center gap-2 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 text-left text-sm font-medium text-slate-700 shadow-sm transition-colors',
-            'hover:border-[#BED2F2] hover:bg-white',
-            'focus:border-[#4274B9] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4274B9]/15',
+            'flex h-12 w-full items-center gap-2 rounded-full border border-slate-200/80 bg-white px-4 text-left text-sm font-medium text-slate-800 shadow-sm transition-colors',
+            'hover:border-slate-300',
+            'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
             'disabled:cursor-not-allowed disabled:opacity-60',
-            'data-[empty=true]:text-slate-400',
+            'data-[empty=true]:font-normal data-[empty=true]:text-slate-400',
+            open && 'border-slate-300 ring-2 ring-[#253CA1]/20',
             className,
           )}
         >
-          <span className="min-w-0 flex-1 truncate">
+          {leadingLabel ? (
+            <>
+              <span
+                aria-hidden
+                className="shrink-0 text-xs font-medium text-slate-500"
+              >
+                {leadingLabel}
+              </span>
+              <span aria-hidden className="h-4 w-px shrink-0 bg-slate-200" />
+            </>
+          ) : null}
+          <span
+            className="min-w-0 flex-1 truncate"
+            title={leadingLabel ? selected?.label : undefined}
+          >
             {selected?.label ?? placeholder}
           </span>
           {clearable && value ? (
@@ -104,7 +131,7 @@ export function SearchableSelect({
               role="button"
               tabIndex={-1}
               aria-label="Clear selection"
-              className="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200/70 hover:text-slate-600"
+              className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -132,10 +159,10 @@ export function SearchableSelect({
       </PopoverTrigger>
       <PopoverContent
         align={align}
-        className="w-[var(--radix-popover-trigger-width)] overflow-hidden p-0"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border-slate-200/80 p-0 shadow-lg shadow-slate-900/10 sm:w-max"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-3.5 py-2.5">
           <Search className="size-4 shrink-0 text-slate-400" />
           <input
             ref={searchRef}
@@ -165,18 +192,18 @@ export function SearchableSelect({
                   <button
                     type="button"
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
+                      'flex w-full items-start gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors',
                       isSelected
-                        ? 'bg-[#F0F5FC] font-semibold text-[#2F5A94]'
+                        ? 'bg-[#E8EEFF] font-semibold text-[#253CA1]'
                         : 'text-slate-700 hover:bg-slate-50',
                     )}
                     onClick={() => selectOption(option.value)}
                   >
-                    <span className="min-w-0 flex-1 truncate">
+                    <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
                       {option.label}
                     </span>
                     {isSelected ? (
-                      <Check className="size-4 shrink-0 text-[#4274B9]" />
+                      <Check className="mt-0.5 size-4 shrink-0 text-[#253CA1]" />
                     ) : null}
                   </button>
                 </li>

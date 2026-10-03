@@ -183,7 +183,7 @@ function EmptyScheduleState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+      <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
         <CalendarClock className="size-5" />
       </div>
       <h4 className="mt-4 text-base font-bold text-slate-900">{title}</h4>

@@ -262,8 +262,8 @@ export function StaffPermissionForm({
     <form className="space-y-6" onSubmit={handleSubmit} noValidate>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
         <aside className="animate-in fade-in slide-in-from-left-2 space-y-4 xl:sticky xl:top-6 xl:self-start">
-          <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-[#F8FBFF] via-white to-white p-5 shadow-sm">
-            <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-[#F5F8FF] via-white to-white p-5 shadow-sm">
+            <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
               <Shield className="size-5" />
             </div>
             <h3 className="mt-4 text-lg font-bold text-slate-900">
@@ -329,7 +329,7 @@ export function StaffPermissionForm({
                 <input
                   id="canViewAllData"
                   type="checkbox"
-                  className="mt-0.5 size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                  className="mt-0.5 size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
                   checked={values.canViewAllData}
                   onChange={(event) =>
                     onChange('canViewAllData', event.target.checked)
@@ -360,14 +360,14 @@ export function StaffPermissionForm({
                   {selectedCount}
                 </p>
               </div>
-              <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#2F5A94]">
+              <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#1B2A5A]">
                 <KeyRound className="size-5" />
               </div>
             </div>
 
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-[#4274B9] transition-[width] duration-300"
+                className="h-full rounded-full bg-[#253CA1] transition-[width] duration-300"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               />
             </div>
@@ -390,7 +390,7 @@ export function StaffPermissionForm({
               <button
                 type="button"
                 onClick={() => setSelectionFilter('selected')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
               >
                 <Check className="size-3.5" />
                 Review selected
@@ -436,7 +436,7 @@ export function StaffPermissionForm({
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by page or action, e.g. students, payments…"
                 aria-label="Search role actions"
-                className="h-12 bg-[#F4F6FA] pl-11"
+                className="h-12 pl-11"
               />
             </div>
 
@@ -457,7 +457,7 @@ export function StaffPermissionForm({
                     className={cn(
                       'rounded-full px-3.5 py-1.5 text-xs font-semibold transition',
                       active
-                        ? 'bg-[#4274B9] text-white shadow-sm shadow-[#4274B9]/25'
+                        ? 'bg-[#253CA1] text-white shadow-sm shadow-[#253CA1]/25'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80',
                     )}
                   >
@@ -533,7 +533,7 @@ export function StaffPermissionForm({
                   </p>
                   <button
                     type="button"
-                    className="mt-4 text-sm font-semibold text-[#4274B9] hover:underline"
+                    className="mt-4 text-sm font-semibold text-[#253CA1] hover:underline"
                     onClick={() => {
                       setSearch('')
                       setSelectionFilter('all')
@@ -563,7 +563,7 @@ export function StaffPermissionForm({
                         className={cn(
                           'overflow-hidden rounded-2xl border transition',
                           groupSelectedCount > 0
-                            ? 'border-[#BED2F2] bg-[#F8FBFF]/60'
+                            ? 'border-[#C8D4F5] bg-[#F5F8FF]/60'
                             : 'border-slate-200 bg-white',
                         )}
                       >
@@ -578,7 +578,7 @@ export function StaffPermissionForm({
                               className={cn(
                                 'inline-flex size-8 shrink-0 items-center justify-center rounded-xl transition',
                                 isOpen
-                                  ? 'bg-[#4274B9] text-white'
+                                  ? 'bg-[#253CA1] text-white'
                                   : 'bg-slate-100 text-slate-500',
                               )}
                             >
@@ -595,7 +595,7 @@ export function StaffPermissionForm({
                                   {group.label}
                                 </span>
                                 {groupSelectedCount > 0 ? (
-                                  <span className="shrink-0 rounded-full bg-[#EDF4FF] px-2 py-0.5 text-[10px] font-semibold text-[#2F5A94]">
+                                  <span className="shrink-0 rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#1B2A5A]">
                                     {groupSelectedCount}/{groupIds.length}
                                   </span>
                                 ) : null}
@@ -606,10 +606,10 @@ export function StaffPermissionForm({
                             </span>
                           </button>
 
-                          <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#BED2F2]">
+                          <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#C8D4F5]">
                             <input
                               type="checkbox"
-                              className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                              className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
                               checked={allSelected}
                               ref={(element) => {
                                 if (element) {
@@ -636,25 +636,26 @@ export function StaffPermissionForm({
                                   <label
                                     key={permission.id}
                                     className={cn(
-                                      'group flex cursor-pointer items-start gap-3 rounded-2xl border px-3.5 py-3 transition',
+                                      'group relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3.5 py-3 transition',
                                       checked
-                                        ? 'border-[#4274B9] bg-[#EDF4FF] shadow-sm shadow-[#4274B9]/10'
-                                        : 'border-slate-200 bg-[#F4F6FA]/70 hover:border-[#BED2F2] hover:bg-white',
+                                        ? 'border-[#253CA1] bg-[#E8EEFF] shadow-sm shadow-[#253CA1]/10'
+                                        : 'border-slate-200 bg-[#F5F8FF]/70 hover:border-[#C8D4F5] hover:bg-white',
                                     )}
                                   >
                                     <span
                                       className={cn(
                                         'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md border transition',
                                         checked
-                                          ? 'border-[#4274B9] bg-[#4274B9] text-white'
+                                          ? 'border-[#253CA1] bg-[#253CA1] text-white'
                                           : 'border-slate-300 bg-white text-transparent',
                                       )}
+                                      aria-hidden
                                     >
                                       <Check className="size-3" />
                                     </span>
                                     <input
                                       type="checkbox"
-                                      className="sr-only"
+                                      className="absolute inset-0 cursor-pointer opacity-0"
                                       checked={checked}
                                       onChange={() =>
                                         onTogglePermission(permission.id)

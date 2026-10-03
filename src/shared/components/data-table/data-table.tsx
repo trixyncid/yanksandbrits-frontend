@@ -6,9 +6,10 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
   type SortingState,
 } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 
 import { Card } from '../ui/card'
 import { cn } from '../../lib/cn'
@@ -18,6 +19,12 @@ import { DataTableToolbar } from './data-table-toolbar'
 type DataTableColumnMeta = {
   sticky?: 'left' | 'right'
   align?: 'left' | 'center' | 'right'
+}
+
+export type DataTableSelectionContext<TData> = {
+  selectedRows: TData[]
+  selectedCount: number
+  clearSelection: () => void
 }
 
 type DataTableProps<TData> = {
@@ -30,13 +37,24 @@ type DataTableProps<TData> = {
   globalFilterFn?: (row: TData, search: string) => boolean
   pageSizeOptions?: number[]
   initialPageSize?: number
-  toolbarActions?: React.ReactNode
+  toolbarActions?: ReactNode
+  /** Renders above the title/search header row (e.g. list filters). */
+  toolbarFilters?: ReactNode
   emptyMessage?: string
   /** Enables vertical scrolling with sticky headers. */
   maxHeight?: number | string
+  enableRowSelection?: boolean
+  getRowId?: (originalRow: TData, index: number) => string
+  selectionToolbar?: (ctx: DataTableSelectionContext<TData>) => ReactNode
+  className?: string
+  variant?: 'default' | 'glass'
+  /** `pill` matches Steadi-style capsule search inputs. */
+  searchVariant?: 'default' | 'pill'
 }
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
+const CHECKBOX_CLASS =
+  'size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40'
 
 const coreRowModel = getCoreRowModel()
 const sortedRowModel = getSortedRowModel()
@@ -62,6 +80,34 @@ function getStickyClassName(
     : 'sticky left-0 z-10 shadow-[8px_0_12px_-10px_rgba(15,23,42,0.25)]'
 }
 
+function SelectionCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean
+  indeterminate?: boolean
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+  ariaLabel: string
+}) {
+  return (
+    <input
+      type="checkbox"
+      className={CHECKBOX_CLASS}
+      checked={checked}
+      ref={(element) => {
+        if (element) {
+          element.indeterminate = Boolean(indeterminate)
+        }
+      }}
+      onChange={onChange}
+      onClick={(event) => event.stopPropagation()}
+      aria-label={ariaLabel}
+    />
+  )
+}
+
 export function DataTable<TData>({
   columns,
   data,
@@ -73,11 +119,19 @@ export function DataTable<TData>({
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   initialPageSize = 10,
   toolbarActions,
+  toolbarFilters,
   emptyMessage = 'No data found',
   maxHeight = '65vh',
+  enableRowSelection = false,
+  getRowId,
+  selectionToolbar,
+  className,
+  variant = 'default',
+  searchVariant = 'default',
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [search, setSearch] = useState('')
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: initialPageSize,
@@ -103,23 +157,78 @@ export function DataTable<TData>({
     )
   }, [data, globalFilterFn, search])
 
+  const selectionColumn = useMemo<ColumnDef<TData, unknown> | null>(() => {
+    if (!enableRowSelection) {
+      return null
+    }
+
+    return {
+      id: '__select',
+      size: 48,
+      enableSorting: false,
+      header: ({ table }) => (
+        <SelectionCheckbox
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+          ariaLabel="Select all rows on this page"
+        />
+      ),
+      cell: ({ row }) => (
+        <SelectionCheckbox
+          checked={row.getIsSelected()}
+          indeterminate={row.getIsSomeSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          ariaLabel="Select row"
+        />
+      ),
+    }
+  }, [enableRowSelection])
+
+  const tableColumns = useMemo(() => {
+    if (!selectionColumn) {
+      return columns
+    }
+    return [selectionColumn, ...columns]
+  }, [columns, selectionColumn])
+
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: tableColumns,
     state: {
       sorting,
       pagination,
+      rowSelection,
     },
+    enableRowSelection,
+    getRowId,
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: coreRowModel,
     getSortedRowModel: sortedRowModel,
     getFilteredRowModel: filteredRowModel,
     getPaginationRowModel: paginationRowModel,
   })
 
+  const selectedRows = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original)
+  const selectedCount = selectedRows.length
+
+  function clearSelection() {
+    setRowSelection({})
+  }
+
   return (
-    <Card className="overflow-hidden">
+    <Card
+      className={cn(
+        'overflow-hidden',
+        variant === 'glass' &&
+          'border-white/70 bg-white/70 shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)] backdrop-blur-xl',
+        className,
+      )}
+    >
       <DataTableToolbar
         title={title}
         description={description}
@@ -132,7 +241,18 @@ export function DataTable<TData>({
         }}
         searchPlaceholder={searchPlaceholder}
         actions={toolbarActions}
+        filters={toolbarFilters}
+        variant={variant}
+        searchVariant={searchVariant}
       />
+
+      {enableRowSelection && selectedCount > 0 && selectionToolbar
+        ? selectionToolbar({
+            selectedRows,
+            selectedCount,
+            clearSelection,
+          })
+        : null}
 
       <div className="overflow-auto overscroll-contain" style={{ maxHeight }}>
         <table className="min-w-full border-collapse">
@@ -175,7 +295,11 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="group border-b border-slate-100 transition-colors hover:bg-[#F8FBFF]"
+                  className={cn(
+                    'group border-b border-slate-100 transition-colors hover:bg-[#F5F7FF]',
+                    row.getIsSelected() && 'bg-[#F5F7FF]',
+                  )}
+                  data-state={row.getIsSelected() ? 'selected' : undefined}
                 >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as
@@ -186,7 +310,8 @@ export function DataTable<TData>({
                       <td
                         key={cell.id}
                         className={cn(
-                          'bg-white px-4 py-4 align-middle group-hover:bg-[#F8FBFF] sm:px-6',
+                          'bg-white px-4 py-4 align-middle group-hover:bg-[#F5F7FF] sm:px-6',
+                          row.getIsSelected() && 'bg-[#F5F7FF]',
                           getStickyClassName(meta?.sticky, 'cell'),
                         )}
                       >
@@ -202,7 +327,7 @@ export function DataTable<TData>({
             ) : (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={tableColumns.length}
                   className="px-6 py-16 text-center text-sm text-slate-500"
                 >
                   {emptyMessage}
@@ -228,8 +353,8 @@ export function DataTableBadge({
   return (
     <span
       className={cn(
-        'inline-flex rounded-md px-2 py-1 text-[11px] font-semibold',
-        tone === 'info' && 'bg-[#EDF4FF] text-[#2F5A94]',
+        'inline-flex w-fit max-w-full whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold',
+        tone === 'info' && 'bg-[#E8EEFF] text-[#253CA1]',
         tone === 'primary' && 'bg-[#FFE8F0] text-[#9D174D]',
         tone === 'success' && 'bg-emerald-50 text-emerald-700',
         tone === 'danger' && 'bg-rose-50 text-rose-700',

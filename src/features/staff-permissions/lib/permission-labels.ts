@@ -25,9 +25,19 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     description: 'Class groups and which students belong to them.',
   },
   studentpayment: {
-    label: 'Student payments',
-    singular: 'student payment',
-    description: 'Tuition payments, amounts, and approval status.',
+    label: 'Payments',
+    singular: 'payment',
+    description: 'Tuition payment plans, planned amount, and completion status.',
+  },
+  studentpaymentterm: {
+    label: 'Payment terms',
+    singular: 'payment term',
+    description: 'Individual installments on a payment, with amount and approval status.',
+  },
+  studentpaymenttermattachment: {
+    label: 'Payment term attachments',
+    singular: 'payment term attachment',
+    description: 'Receipt files attached to a payment term.',
   },
   studentprogram: {
     label: 'Student programs',
@@ -104,6 +114,11 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     singular: 'occupation',
     description: 'Job titles used on student profiles.',
   },
+  resource: {
+    label: 'Resources',
+    singular: 'resource',
+    description: 'Lead sources used on prospective student records.',
+  },
   branch: {
     label: 'Branches',
     singular: 'branch',
@@ -128,6 +143,12 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     label: 'Tutor program rates',
     singular: 'tutor rate',
     description: 'How much a tutor is paid per program.',
+  },
+  tutorsalarybonustier: {
+    label: 'Tutor salary bonus tiers',
+    singular: 'tutor bonus tier',
+    description:
+      'Global session-count bonus brackets by full-time/part-time, working days, and period weeks.',
   },
   tutorworkingschedule: {
     label: 'Tutor working hours',
@@ -178,16 +199,16 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
 
 const APP_COPY: Record<string, PermissionAppCopy> = {
   students: { label: 'Students' },
-  prospects: { label: 'Marketing' },
+  prospects: { label: 'Leads' },
   programs: { label: 'Academics' },
   classrooms: { label: 'Academics' },
   schedules: { label: 'Academics' },
-  account: { label: 'Staff' },
-  auth: { label: 'Staff' },
-  lookups: { label: 'Students' },
-  organization: { label: 'Organization' },
-  leave: { label: 'Staff' },
-  compensation: { label: 'Staff' },
+  account: { label: 'Access' },
+  auth: { label: 'Access' },
+  lookups: { label: 'Settings' },
+  organization: { label: 'Settings' },
+  leave: { label: 'People' },
+  compensation: { label: 'Finance' },
   payroll: { label: 'Finance' },
   api_dashboard: { label: 'Pages' },
   admin: { label: 'System' },
@@ -196,10 +217,12 @@ const APP_COPY: Record<string, PermissionAppCopy> = {
   token_blacklist: { label: 'System' },
 }
 
-/** Internal Django apps shown as one "System" filter chip. */
+/**
+ * Internal Django apps shown as one "System" filter chip.
+ * `auth` stays out so Roles / permissions land under Access with Users.
+ */
 export const SYSTEM_APP_LABELS = new Set([
   'admin',
-  'auth',
   'contenttypes',
   'sessions',
   'token_blacklist',
@@ -285,6 +308,7 @@ export function buildPermissionAppFilters(
 
 const CODENAME_LABEL_OVERRIDES: Record<string, string> = {
   view_dashboard: 'Open the dashboard',
+  view_marketing_dashboard: 'Open marketing performance',
   view_student_report: 'Open student reports',
   view_appointment_by_tutor: 'Open tutor sessions',
 }
@@ -292,6 +316,8 @@ const CODENAME_LABEL_OVERRIDES: Record<string, string> = {
 const CODENAME_HINT_OVERRIDES: Record<string, string> = {
   view_dashboard:
     'Allows this role to open the business dashboard and see KPIs.',
+  view_marketing_dashboard:
+    'Allows this role to open the personal marketing performance dashboard.',
   view_student_report:
     'Allows this role to open the student registration report.',
   view_appointment_by_tutor:

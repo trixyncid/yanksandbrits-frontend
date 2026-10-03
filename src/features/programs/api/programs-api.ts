@@ -206,6 +206,6 @@ export const emptyProgramFormValues: ProgramFormValues = {
   title: '',
   description: '',
   isActive: true,
-  backgroundColor: '#4274B9',
+  backgroundColor: '#253CA1',
   textColor: '#FFFFFF',
 }

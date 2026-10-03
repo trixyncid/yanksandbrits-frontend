@@ -26,16 +26,16 @@ export function DashboardTrendCharts({ metrics }: { metrics: DashboardMetrics })
   const hasEnrollments = enrollments.some((item) => item.value > 0)
 
   return (
-    <div className="grid items-stretch gap-4 xl:grid-cols-5">
+    <div className="grid items-stretch gap-2 xl:grid-cols-5">
       <DashboardPanel className="xl:col-span-3">
         <DashboardCardHeader
           title="Revenue trend"
-          description="Approved tuition and prediction test payments"
+          description="Last 6 months of approved tuition and prediction test payments"
         />
         {hasRevenue ? (
           <DashboardAreaChart
             data={revenue}
-            color="#4274B9"
+            color="#253CA1"
             formatTick={formatCurrencyCompact}
           />
         ) : (
@@ -46,7 +46,7 @@ export function DashboardTrendCharts({ metrics }: { metrics: DashboardMetrics })
       <DashboardPanel variant="tint" className="xl:col-span-2">
         <DashboardCardHeader
           title="Enrollment trend"
-          description="New students by month"
+          description="New students by month over the last 6 months"
         />
         {hasEnrollments ? (
           <DashboardColumnChart

@@ -41,7 +41,11 @@ export function CurrencyInput({
           onValueChange(parseCurrencyDigits(event.target.value))
         }}
         className={cn(
-          'flex h-12 w-full rounded-xl border border-slate-200 bg-[#F4F6FA] py-0 pr-4 pl-11 text-sm font-semibold tabular-nums text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:border-[#4274B9] focus:outline-none focus:ring-2 focus:ring-[#4274B9]/15 disabled:cursor-not-allowed disabled:opacity-60',
+          'flex h-12 w-full rounded-full border border-slate-200/80 bg-white py-0 pr-4 pl-11 text-sm font-semibold tabular-nums text-slate-800 shadow-sm',
+          'placeholder:font-medium placeholder:text-slate-400',
+          'transition-colors hover:border-slate-300',
+          'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+          'disabled:cursor-not-allowed disabled:opacity-60',
           className,
         )}
       />

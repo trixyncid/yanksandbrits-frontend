@@ -2,7 +2,6 @@ import { ChevronDown, LogOut, X } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import ynbLogo from '../../../assets/branding/ynb-logo.png'
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
 import { notify } from '../../../shared/lib/notify'
@@ -10,15 +9,50 @@ import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
 import { filterNavigationForUser } from '../../auth/lib/navigation-access'
 import { useAuthStore } from '../../auth/store/auth-store'
 import {
+  badgeCountForNavItem,
+  type NavBadges,
+} from '../api/nav-badges-api'
+import {
   isNavigationGroup,
   type NavigationGroupItem,
   type NavigationLeafItem,
   type NavigationItem,
 } from '../config/navigation'
+import { useNavBadgesQuery } from '../hooks/use-nav-badges-query'
 
 type AdminSidebarProps = {
   isOpen: boolean
   onClose: () => void
+}
+
+function formatBadgeCount(count: number) {
+  if (count <= 0) return null
+  return count > 99 ? '99+' : String(count)
+}
+
+function NavCountBadge({
+  count,
+  active,
+}: {
+  count: number
+  active?: boolean
+}) {
+  const label = formatBadgeCount(count)
+  if (!label) return null
+
+  return (
+    <span
+      className={cn(
+        'ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums',
+        active
+          ? 'bg-white/20 text-white'
+          : 'bg-[#253CA1] text-white',
+      )}
+      aria-label={`${count} pending`}
+    >
+      {label}
+    </span>
+  )
 }
 
 function isLeafActive(item: NavigationLeafItem, pathname: string) {
@@ -29,13 +63,25 @@ function isGroupActive(item: NavigationGroupItem, pathname: string) {
   return item.children.some((child) => isLeafActive(child, pathname))
 }
 
+function groupBadgeCount(
+  item: NavigationGroupItem,
+  badges: NavBadges | undefined,
+) {
+  return item.children.reduce(
+    (sum, child) => sum + badgeCountForNavItem(child.id, badges),
+    0,
+  )
+}
+
 function SidebarLeaf({
   item,
   isActive,
+  badgeCount,
   onNavigate,
 }: {
   item: NavigationLeafItem
   isActive: boolean
+  badgeCount: number
   onNavigate: () => void
 }) {
   const Icon = item.icon
@@ -48,7 +94,7 @@ function SidebarLeaf({
         className={cn(
           'group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5',
           isActive
-            ? 'bg-gradient-to-r from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] text-white shadow-lg shadow-[#4274B9]/20'
+            ? 'bg-gradient-to-r from-[#3D56C4] via-[#253CA1] to-[#1B2A5A] text-white shadow-lg shadow-[#253CA1]/25'
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
         )}
       >
@@ -57,12 +103,13 @@ function SidebarLeaf({
             'flex size-9 items-center justify-center rounded-xl border text-xs transition-colors',
             isActive
               ? 'border-white/20 bg-white/15 text-white'
-              : 'border-slate-200 bg-white text-[#4274B9]',
+              : 'border-slate-200 bg-white text-[#253CA1]',
           )}
         >
           <Icon className="size-4" />
         </span>
-        <span>{item.label}</span>
+        <span className="min-w-0 truncate">{item.label}</span>
+        <NavCountBadge count={badgeCount} active={isActive} />
       </Link>
     )
   }
@@ -79,10 +126,11 @@ function SidebarLeaf({
       }}
       className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-900"
     >
-      <span className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#4274B9]">
+      <span className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#253CA1]">
         <Icon className="size-4" />
       </span>
-      <span>{item.label}</span>
+      <span className="min-w-0 truncate">{item.label}</span>
+      <NavCountBadge count={badgeCount} />
     </button>
   )
 }
@@ -91,12 +139,16 @@ function SidebarGroup({
   item,
   pathname,
   isExpanded,
+  badgeCount,
+  badges,
   onToggle,
   onNavigate,
 }: {
   item: NavigationGroupItem
   pathname: string
   isExpanded: boolean
+  badgeCount: number
+  badges: NavBadges | undefined
   onToggle: () => void
   onNavigate: () => void
 }) {
@@ -111,26 +163,27 @@ function SidebarGroup({
         className={cn(
           'flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold transition-all duration-200',
           isActive
-            ? 'bg-[#EDF4FF] text-[#2F5A94]'
+            ? 'bg-[#E8EEFF] text-[#253CA1]'
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
         )}
       >
-        <span className="flex items-center gap-3">
+        <span className="flex min-w-0 flex-1 items-center gap-3">
           <span
             className={cn(
-              'flex size-9 items-center justify-center rounded-xl border text-xs transition-colors',
+              'flex size-9 shrink-0 items-center justify-center rounded-xl border text-xs transition-colors',
               isActive
-                ? 'border-[#BED2F2] bg-white text-[#4274B9]'
-                : 'border-slate-200 bg-white text-[#4274B9]',
+                ? 'border-[#C8D4F5] bg-white text-[#253CA1]'
+                : 'border-slate-200 bg-white text-[#253CA1]',
             )}
           >
             <Icon className="size-4" />
           </span>
-          <span>{item.label}</span>
+          <span className="min-w-0 truncate">{item.label}</span>
+          {!isExpanded ? <NavCountBadge count={badgeCount} /> : null}
         </span>
         <ChevronDown
           className={cn(
-            'size-4 transition-transform duration-200',
+            'size-4 shrink-0 transition-transform duration-200',
             isExpanded ? 'rotate-180' : 'rotate-0',
           )}
         />
@@ -149,6 +202,7 @@ function SidebarGroup({
                 key={child.id}
                 item={child}
                 isActive={isLeafActive(child, pathname)}
+                badgeCount={badgeCountForNavItem(child.id, badges)}
                 onNavigate={onNavigate}
               />
             ))}
@@ -162,6 +216,8 @@ function SidebarGroup({
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const { requestLogout, logoutDialog } = useLogoutConfirm()
   const user = useAuthStore((state) => state.user)
+  const navBadgesQuery = useNavBadgesQuery()
+  const badges = navBadgesQuery.data
   const pathname = useLocation({
     select: (location) => location.pathname,
   })
@@ -242,7 +298,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div className="relative mb-6 flex justify-center">
           <Link to={homePath} className="inline-flex justify-center" onClick={onClose}>
             <img
-              src={ynbLogo}
+              src="/logo.svg"
               alt="Yanks and Brits logo"
               className="h-14 w-auto object-contain"
             />
@@ -273,6 +329,8 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 item={item}
                 pathname={pathname}
                 isExpanded={isExpanded(item.id)}
+                badgeCount={groupBadgeCount(item, badges)}
+                badges={badges}
                 onToggle={() => toggleGroup(item)}
                 onNavigate={onClose}
               />
@@ -281,6 +339,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 key={item.id}
                 item={item}
                 isActive={isLeafActive(item, pathname)}
+                badgeCount={badgeCountForNavItem(item.id, badges)}
                 onNavigate={onClose}
               />
             ),

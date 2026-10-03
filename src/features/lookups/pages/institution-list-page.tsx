@@ -191,7 +191,7 @@ export default function InstitutionListPage() {
                 type="button"
                 aria-label={`Edit institution ${row.original.name}`}
                 onClick={() => openEditDialog(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
               >
                 <Pencil className="size-3.5" />
               </button>
@@ -240,57 +240,86 @@ export default function InstitutionListPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <DialogHeader>
-              <DialogTitle>
-                {editing ? 'Update Institution' : 'Add New Institution'}
-              </DialogTitle>
-              <DialogDescription>
-                Manage institution details used on student records.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-2">
-              <Label htmlFor="institution-name">Institution Name</Label>
-              <Input
-                id="institution-name"
-                value={values.name}
-                onChange={(event) => setValues((v) => ({ ...v, name: event.target.value }))}
-                placeholder="e.g. Universitas Indonesia"
-              />
+        <DialogContent
+          showClose
+          className="max-h-[90vh] overflow-hidden p-0 sm:max-w-2xl"
+        >
+          <form
+            onSubmit={handleSubmit}
+            className="flex max-h-[90vh] flex-col"
+          >
+            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+                {editing ? (
+                  <Pencil className="size-5" />
+                ) : (
+                  <Plus className="size-5" />
+                )}
+              </div>
+              <DialogHeader className="pr-0">
+                <DialogTitle>
+                  {editing ? 'Update Institution' : 'Add New Institution'}
+                </DialogTitle>
+                <DialogDescription>
+                  Manage institution details used on student records.
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="institution-phone">Phone</Label>
-              <Input
-                id="institution-phone"
-                value={values.phone}
-                onChange={(event) => setValues((v) => ({ ...v, phone: event.target.value }))}
-                placeholder="e.g. +6221..."
-              />
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              <div className="space-y-2">
+                <Label htmlFor="institution-name">Institution Name</Label>
+                <Input
+                  id="institution-name"
+                  value={values.name}
+                  onChange={(event) =>
+                    setValues((v) => ({ ...v, name: event.target.value }))
+                  }
+                  placeholder="e.g. Universitas Indonesia"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="institution-phone">Phone</Label>
+                <Input
+                  id="institution-phone"
+                  value={values.phone}
+                  onChange={(event) =>
+                    setValues((v) => ({ ...v, phone: event.target.value }))
+                  }
+                  placeholder="e.g. +6221..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="institution-address">Address</Label>
+                <Textarea
+                  id="institution-address"
+                  value={values.address}
+                  onChange={(event) =>
+                    setValues((v) => ({ ...v, address: event.target.value }))
+                  }
+                  placeholder="Street, city, postal code"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="institution-address">Address</Label>
-              <Textarea
-                id="institution-address"
-                value={values.address}
-                onChange={(event) => setValues((v) => ({ ...v, address: event.target.value }))}
-                placeholder="Street, city, postal code"
-              />
-            </div>
-
-            <DialogFooter>
+            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
               <Button
                 type="button"
                 variant="secondary"
+                size="sm"
                 onClick={() => setDialogOpen(false)}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {editing ? (
+                  <Pencil className="size-3.5" />
+                ) : (
+                  <Plus className="size-3.5" />
+                )}
                 {isSubmitting
                   ? editing
                     ? 'Updating...'

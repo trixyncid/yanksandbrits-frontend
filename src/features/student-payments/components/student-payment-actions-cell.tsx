@@ -30,7 +30,7 @@ export function StudentPaymentActionsCell({
               params: { paymentId: payment.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -41,8 +41,8 @@ export function StudentPaymentActionsCell({
         aria-label={`Delete payment ${payment.title}`}
         onClick={() =>
           requestDeleteConfirm({
-            title: 'Delete payment?',
-            description: `This will permanently remove ${payment.title}. This action cannot be undone.`,
+            title: 'Delete payment plan?',
+            description: `This will permanently remove ${payment.title} and its installments. This action cannot be undone.`,
             onConfirm: () => {
               void (async () => {
                 try {

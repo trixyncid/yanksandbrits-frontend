@@ -45,16 +45,53 @@ export type TutorWorkingScheduleFormValues = {
   sundayOut: string
 }
 
+export const COMMISSION_PERIOD_TYPES = ['4W', '5W'] as const
+
+export type CommissionPeriodType = (typeof COMMISSION_PERIOD_TYPES)[number]
+
+export const commissionPeriodLabels: Record<CommissionPeriodType, string> = {
+  '4W': '4 weeks period',
+  '5W': '5 weeks period',
+}
+
+export type MarketingCommissionTier = {
+  id: string
+  marketingSalaryId: string
+  periodType: CommissionPeriodType
+  minAmount: number
+  /** null means the tier is open-ended upwards. */
+  maxAmount: number | null
+  percentage: number
+}
+
+export type MarketingCommissionTierFormValues = {
+  minAmount: string
+  maxAmount: string
+  percentage: string
+}
+
+export type MarketingBonusTier = {
+  id: string
+  marketingSalaryId: string
+  periodType: CommissionPeriodType
+  minAmount: number
+  /** null means the tier is open-ended upwards. */
+  maxAmount: number | null
+  bonusAmount: number
+}
+
+export type MarketingBonusTierFormValues = {
+  minAmount: string
+  maxAmount: string
+  bonusAmount: string
+}
+
 export type MarketingSalary = {
   id: string
   marketingId: string
   mainSalary: number
-  bonusTiers: Array<{
-    id: string
-    minAmount: number
-    maxAmount: number
-    percentage: number
-  }>
+  commissionTiers: MarketingCommissionTier[]
+  bonusTiers: MarketingBonusTier[]
 }
 
 export type MarketingSalaryFormValues = {
@@ -83,16 +120,30 @@ type TutorWorkingScheduleDto = {
   sunday_out: string | null
 }
 
+type MarketingCommissionTierDto = {
+  id: number
+  marketing_salary: number
+  period_type: CommissionPeriodType
+  min_amount: number
+  max_amount: number | null
+  percentage: number
+}
+
+type MarketingBonusTierDto = {
+  id: number
+  marketing_salary: number
+  period_type: CommissionPeriodType
+  min_amount: number
+  max_amount: number | null
+  bonus_amount: number
+}
+
 type MarketingSalaryDto = {
   id: number
   marketing: number
   main_salary: number
-  bonus_tiers?: Array<{
-    id: number
-    min_amount: number
-    max_amount: number
-    percentage: number
-  }>
+  commission_tiers?: MarketingCommissionTierDto[]
+  bonus_tiers?: MarketingBonusTierDto[]
 }
 
 function timeValue(value: string | null | undefined) {
@@ -128,17 +179,37 @@ function mapSchedule(dto: TutorWorkingScheduleDto): TutorWorkingSchedule {
   }
 }
 
+function mapCommissionTier(
+  dto: MarketingCommissionTierDto,
+): MarketingCommissionTier {
+  return {
+    id: String(dto.id),
+    marketingSalaryId: String(dto.marketing_salary),
+    periodType: dto.period_type,
+    minAmount: dto.min_amount ?? 0,
+    maxAmount: dto.max_amount ?? null,
+    percentage: dto.percentage ?? 0,
+  }
+}
+
+function mapBonusTier(dto: MarketingBonusTierDto): MarketingBonusTier {
+  return {
+    id: String(dto.id),
+    marketingSalaryId: String(dto.marketing_salary),
+    periodType: dto.period_type,
+    minAmount: dto.min_amount ?? 0,
+    maxAmount: dto.max_amount ?? null,
+    bonusAmount: dto.bonus_amount ?? 0,
+  }
+}
+
 function mapMarketingSalary(dto: MarketingSalaryDto): MarketingSalary {
   return {
     id: String(dto.id),
     marketingId: String(dto.marketing),
     mainSalary: dto.main_salary ?? 0,
-    bonusTiers: (dto.bonus_tiers ?? []).map((tier) => ({
-      id: String(tier.id),
-      minAmount: tier.min_amount,
-      maxAmount: tier.max_amount,
-      percentage: tier.percentage,
-    })),
+    commissionTiers: (dto.commission_tiers ?? []).map(mapCommissionTier),
+    bonusTiers: (dto.bonus_tiers ?? []).map(mapBonusTier),
   }
 }
 
@@ -197,9 +268,9 @@ export function scheduleToFormValues(
 }
 
 export const emptyScheduleFormValues: TutorWorkingScheduleFormValues = {
-  mainSalary: '0',
-  salaryPerSession: '0',
-  overtimeMultiplier: '0',
+  mainSalary: '',
+  salaryPerSession: '',
+  overtimeMultiplier: '',
   mondayIn: '',
   mondayOut: '',
   tuesdayIn: '',
@@ -298,6 +369,106 @@ export function marketingSalaryToFormValues(
   }
 }
 
+function commissionTierToPayload(values: MarketingCommissionTierFormValues) {
+  const maxAmount = values.maxAmount.trim()
+  return {
+    min_amount: Number(values.minAmount) || 0,
+    max_amount: maxAmount ? Number(maxAmount) : null,
+    percentage: Number(values.percentage) || 0,
+  }
+}
+
+export async function createMarketingCommissionTier(
+  marketingSalaryId: string,
+  periodType: CommissionPeriodType,
+  values: MarketingCommissionTierFormValues,
+): Promise<MarketingCommissionTier> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<MarketingCommissionTierDto>
+  >(adminPath('/marketing-commission-tiers'), {
+    marketing_salary: Number(marketingSalaryId),
+    period_type: periodType,
+    ...commissionTierToPayload(values),
+  })
+  return mapCommissionTier(data.data)
+}
+
+export async function updateMarketingCommissionTier(
+  tierId: string,
+  values: MarketingCommissionTierFormValues,
+): Promise<MarketingCommissionTier> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<MarketingCommissionTierDto>
+  >(adminPath(`/marketing-commission-tiers/${tierId}`), commissionTierToPayload(values))
+  return mapCommissionTier(data.data)
+}
+
+export async function deleteMarketingCommissionTier(
+  tierId: string,
+): Promise<void> {
+  await httpClient.delete(adminPath(`/marketing-commission-tiers/${tierId}`))
+}
+
+export function commissionTierToFormValues(
+  tier: MarketingCommissionTier | null | undefined,
+): MarketingCommissionTierFormValues {
+  return {
+    minAmount: String(tier?.minAmount ?? 0),
+    maxAmount: tier?.maxAmount == null ? '' : String(tier.maxAmount),
+    percentage: String(tier?.percentage ?? 0),
+  }
+}
+
+function bonusTierToPayload(values: MarketingBonusTierFormValues) {
+  const maxAmount = values.maxAmount.trim()
+  return {
+    min_amount: Number(values.minAmount) || 0,
+    max_amount: maxAmount ? Number(maxAmount) : null,
+    bonus_amount: Number(values.bonusAmount) || 0,
+  }
+}
+
+export async function createMarketingBonusTier(
+  marketingSalaryId: string,
+  periodType: CommissionPeriodType,
+  values: MarketingBonusTierFormValues,
+): Promise<MarketingBonusTier> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<MarketingBonusTierDto>
+  >(adminPath('/marketing-bonus-tiers'), {
+    marketing_salary: Number(marketingSalaryId),
+    period_type: periodType,
+    ...bonusTierToPayload(values),
+  })
+  return mapBonusTier(data.data)
+}
+
+export async function updateMarketingBonusTier(
+  tierId: string,
+  values: MarketingBonusTierFormValues,
+): Promise<MarketingBonusTier> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<MarketingBonusTierDto>
+  >(adminPath(`/marketing-bonus-tiers/${tierId}`), bonusTierToPayload(values))
+  return mapBonusTier(data.data)
+}
+
+export async function deleteMarketingBonusTier(
+  tierId: string,
+): Promise<void> {
+  await httpClient.delete(adminPath(`/marketing-bonus-tiers/${tierId}`))
+}
+
+export function bonusTierToFormValues(
+  tier: MarketingBonusTier | null | undefined,
+): MarketingBonusTierFormValues {
+  return {
+    minAmount: String(tier?.minAmount ?? 0),
+    maxAmount: tier?.maxAmount == null ? '' : String(tier.maxAmount),
+    bonusAmount: String(tier?.bonusAmount ?? 0),
+  }
+}
+
 export type TutorProgramSalary = {
   id: string
   tutorId: string
@@ -343,6 +514,22 @@ export async function fetchTutorProgramSalaries(
   return items.map(mapProgramSalary)
 }
 
+export async function createTutorProgramSalary(
+  tutorId: string,
+  programId: string,
+  values: TutorProgramSalaryFormValues,
+): Promise<TutorProgramSalary> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<TutorProgramSalaryDto>
+  >(adminPath('/tutor-salary-class-based'), {
+    tutor: Number(tutorId),
+    program: Number(programId),
+    salary_per_session: Number(values.salaryPerSession) || 0,
+    overtime_multiplier: Number(values.overtimeMultiplier) || 0,
+  })
+  return mapProgramSalary(data.data)
+}
+
 export async function updateTutorProgramSalary(
   salaryId: string,
   tutorId: string,
@@ -360,11 +547,17 @@ export async function updateTutorProgramSalary(
   return mapProgramSalary(data.data)
 }
 
+export async function deleteTutorProgramSalary(salaryId: string): Promise<void> {
+  await httpClient.delete(adminPath(`/tutor-salary-class-based/${salaryId}`))
+}
+
 export function programSalaryToFormValues(
-  salary: TutorProgramSalary,
+  salary: TutorProgramSalary | null | undefined,
 ): TutorProgramSalaryFormValues {
   return {
-    salaryPerSession: String(salary.salaryPerSession),
-    overtimeMultiplier: String(salary.overtimeMultiplier),
+    salaryPerSession:
+      salary == null ? '' : String(salary.salaryPerSession),
+    overtimeMultiplier:
+      salary == null ? '' : String(salary.overtimeMultiplier),
   }
 }

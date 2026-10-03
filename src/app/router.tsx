@@ -84,6 +84,26 @@ const dashboardRoute = createRoute({
   ),
 })
 
+const marketingDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/marketing-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import(
+        '../features/marketing-dashboard/pages/marketing-dashboard-page'
+      ),
+  ),
+})
+
+const tutorDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutor-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/tutor-dashboard/pages/tutor-dashboard-page'),
+  ),
+})
+
 const studentsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/students',
@@ -166,6 +186,11 @@ const studentPaymentCreateRoute = createRoute({
     studentId:
       typeof search.studentId === 'string' && search.studentId.trim()
         ? search.studentId.trim()
+        : undefined,
+    prospectiveStudentId:
+      typeof search.prospectiveStudentId === 'string' &&
+      search.prospectiveStudentId.trim()
+        ? search.prospectiveStudentId.trim()
         : undefined,
   }),
   component: lazyRouteComponent(
@@ -330,6 +355,14 @@ const tutorsRoute = createRoute({
   ),
 })
 
+const tutorCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutors/new',
+  component: lazyRouteComponent(
+    () => import('../features/tutors/pages/tutor-create-page'),
+  ),
+})
+
 const tutorDetailRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/tutors/$tutorId',
@@ -351,6 +384,14 @@ const marketingsRoute = createRoute({
   path: '/marketings',
   component: lazyRouteComponent(
     () => import('../features/marketings/pages/marketing-list-page'),
+  ),
+})
+
+const marketingCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/marketings/new',
+  component: lazyRouteComponent(
+    () => import('../features/marketings/pages/marketing-create-page'),
   ),
 })
 
@@ -473,6 +514,14 @@ const occupationsRoute = createRoute({
   ),
 })
 
+const resourcesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/resources',
+  component: lazyRouteComponent(
+    () => import('../features/lookups/pages/resource-list-page'),
+  ),
+})
+
 const studentReportRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/student-report',
@@ -518,6 +567,15 @@ const tutorReportRoute = createRoute({
   path: '/tutor-report',
   component: lazyRouteComponent(
     () => import('../features/tutor-report/pages/tutor-report-list-page'),
+  ),
+})
+
+const tutorSalaryBonusRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutor-salary-bonus',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/tutor-salary-bonus/pages/tutor-salary-bonus-page'),
   ),
 })
 
@@ -587,6 +645,8 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
     dashboardRoute,
+    marketingDashboardRoute,
+    tutorDashboardRoute,
     studentsRoute,
     studentCreateRoute,
     studentDetailRoute,
@@ -615,9 +675,11 @@ const routeTree = rootRoute.addChildren([
     staffDetailRoute,
     staffEditRoute,
     tutorsRoute,
+    tutorCreateRoute,
     tutorDetailRoute,
     tutorEditRoute,
     marketingsRoute,
+    marketingCreateRoute,
     marketingDetailRoute,
     marketingEditRoute,
     staffPermissionsRoute,
@@ -631,12 +693,14 @@ const routeTree = rootRoute.addChildren([
     branchEditRoute,
     institutionsRoute,
     occupationsRoute,
+    resourcesRoute,
     studentReportRoute,
     bookkeepingRoute,
     bookkeepingCreateRoute,
     bookkeepingDetailRoute,
     bookkeepingEditRoute,
     tutorReportRoute,
+    tutorSalaryBonusRoute,
     marketingReportRoute,
     appointmentByTutorRoute,
     profileRoute,

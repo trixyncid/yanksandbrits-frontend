@@ -1,12 +1,18 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
 
-import { DataTable } from '../../../shared/components/data-table'
+import {
+  ClearListFiltersButton,
+  DataTable,
+  ListToolbarFilters,
+} from '../../../shared/components/data-table'
+import { FeaturePageAtmosphere } from '../../../shared/components/feature-page'
 import { Button } from '../../../shared/components/ui/button'
-import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
+import { Select } from '../../../shared/components/ui/select'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { studentListColumns } from '../components/student-list-columns'
 import {
@@ -33,58 +39,88 @@ function filterStudent(row: StudentListItem, search: string) {
   return haystack.includes(search)
 }
 
+const EMPTY_FILTERS = { counsellorId: '' } as const
+
+type StudentListFilterState = {
+  counsellorId: string
+}
+
 export default function StudentListPage() {
   const navigate = useNavigate()
-  const [counsellorId, setCounsellorId] = useState('')
-  const counsellorsQuery = useMarketingOptionsQuery()
-  const counsellorOptions = useMemo(
-    () =>
-      (counsellorsQuery.data ?? []).map((option) => ({
-        value: option.id,
-        label: `${option.pin} | ${option.fullName}`,
-        keywords: `${option.pin} ${option.fullName} ${option.email}`,
-      })),
-    [counsellorsQuery.data],
+  const [filters, setFilters] = useSessionState<StudentListFilterState>(
+    'list-filters:students',
+    { ...EMPTY_FILTERS },
   )
+  const hideCounsellorFilter = useIsRestrictedMarketing()
+  const counsellorsQuery = useMarketingOptionsQuery()
+  const hasActiveFilters = !hideCounsellorFilter && Boolean(filters.counsellorId)
   const studentsQuery = useStudentsQuery({
-    counsellorId: counsellorId || undefined,
+    counsellorId: hideCounsellorFilter
+      ? undefined
+      : filters.counsellorId || undefined,
   })
+
+  const clearFilters = () => setFilters({ ...EMPTY_FILTERS })
+
+  const listFilters = hideCounsellorFilter ? undefined : (
+    <ListToolbarFilters>
+      <Select
+        value={filters.counsellorId}
+        onChange={(event) =>
+          setFilters((current) => ({
+            ...current,
+            counsellorId: event.target.value,
+          }))
+        }
+        containerClassName="w-full sm:w-[220px]"
+        className="h-9 border-white/80 bg-white/80 py-1.5 shadow-sm backdrop-blur-md"
+        aria-label="Filter by counsellor"
+      >
+        <option value="">All counsellors</option>
+        {(counsellorsQuery.data ?? []).map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.pin} | {option.fullName}
+          </option>
+        ))}
+      </Select>
+      <ClearListFiltersButton visible={hasActiveFilters} onClear={clearFilters} />
+    </ListToolbarFilters>
+  )
 
   return (
     <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {studentsQuery.isLoading ? <StudentListLoadingState /> : null}
+      <FeaturePageAtmosphere>
+        <div className="animate-in fade-in slide-in-from-bottom-2 space-y-2">
+          {studentsQuery.isLoading ? <StudentListLoadingState /> : null}
 
-        {studentsQuery.isError ? (
-          <StudentListErrorState onRetry={() => void studentsQuery.refetch()} />
-        ) : null}
+          {studentsQuery.isError ? (
+            <div className="space-y-2">
+              {listFilters ? (
+                <div className="flex justify-end">{listFilters}</div>
+              ) : null}
+              <StudentListErrorState
+                onRetry={() => void studentsQuery.refetch()}
+              />
+            </div>
+          ) : null}
 
-        {studentsQuery.isSuccess ? (
-          <DataTable
-            title="Student List"
-            description="Browse, search, and manage enrolled students."
-            totalLabel="students"
-            columns={studentListColumns}
-            data={studentsQuery.data.data}
-            searchPlaceholder="Search by name, PIN, email, branch..."
-            globalFilterFn={filterStudent}
-            initialPageSize={10}
-            emptyMessage="No students found"
-            toolbarActions={
-              <div className="flex items-center gap-2">
-                <SearchableSelect
-                  value={counsellorId}
-                  options={counsellorOptions}
-                  onChange={setCounsellorId}
-                  placeholder="All counsellors"
-                  searchPlaceholder="Search counsellors..."
-                  emptyMessage="No counsellors found"
-                  disabled={counsellorsQuery.isLoading}
-                  clearable
-                  className="h-11 w-[240px]"
-                />
+          {studentsQuery.isSuccess ? (
+            <DataTable
+              variant="glass"
+              title="Student List"
+              description="Browse, search, and manage enrolled students."
+              totalLabel="students"
+              columns={studentListColumns}
+              data={studentsQuery.data.data}
+              searchPlaceholder="Search by name, PIN, email, branch..."
+              globalFilterFn={filterStudent}
+              initialPageSize={10}
+              emptyMessage="No students found"
+              toolbarFilters={listFilters}
+              toolbarActions={
                 <Can module="students" action="add">
                   <Button
+                    size="sm"
                     onClick={() =>
                       void navigate({
                         to: '/students/new',
@@ -96,11 +132,11 @@ export default function StudentListPage() {
                     Add New Student
                   </Button>
                 </Can>
-              </div>
-            }
-          />
-        ) : null}
-      </div>
+              }
+            />
+          ) : null}
+        </div>
+      </FeaturePageAtmosphere>
     </AdminShell>
   )
 }

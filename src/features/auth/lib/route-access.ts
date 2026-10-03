@@ -1,6 +1,8 @@
 import {
   hasAuthPermission,
   hasAuthRole,
+  canViewMarketingPerformance,
+  isTutorUser,
   type AuthUser,
 } from '../types/auth'
 import {
@@ -26,6 +28,10 @@ type RoutePrefixRule = {
 
 const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
   { prefix: '/dashboard', viewPermission: PAGE_VIEW_PERMISSIONS.dashboard },
+  {
+    prefix: '/marketing-dashboard',
+    viewPermission: PAGE_VIEW_PERMISSIONS.marketingDashboard,
+  },
   { prefix: '/students', module: 'students' },
   { prefix: '/student-groups', module: 'studentGroups' },
   { prefix: '/student-payments', module: 'studentPayments' },
@@ -50,8 +56,10 @@ const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
   { prefix: '/branches', module: 'branches' },
   { prefix: '/institutions', module: 'institutions' },
   { prefix: '/occupations', module: 'occupations' },
+  { prefix: '/resources', module: 'resources' },
   { prefix: '/bookkeeping', module: 'bookkeeping' },
   { prefix: '/tutor-report', module: 'tutorSalary' },
+  { prefix: '/tutor-salary-bonus', module: 'tutorSalaryBonus' },
   { prefix: '/marketing-report', module: 'marketingSalary' },
 ]
 
@@ -105,11 +113,33 @@ export function resolveRouteRequirement(pathname: string): RouteRequirement | nu
 }
 
 export function canAccessRoute(
-  user: Pick<AuthUser, 'permissions' | 'is_superuser' | 'roles'> | null | undefined,
+  user:
+    | Pick<
+        AuthUser,
+        'permissions' | 'is_superuser' | 'roles' | 'is_marketing' | 'is_tutor'
+      >
+    | null
+    | undefined,
   pathname: string,
 ): boolean {
   if (!user) {
     return false
+  }
+
+  // Personal tutor dashboard — tutors only (superusers can preview).
+  if (
+    pathname === '/tutor-dashboard' ||
+    pathname.startsWith('/tutor-dashboard/')
+  ) {
+    return Boolean(user.is_superuser) || isTutorUser(user)
+  }
+
+  // Personal marketing dashboard — Education Counsellor only (not CRO).
+  if (
+    pathname === '/marketing-dashboard' ||
+    pathname.startsWith('/marketing-dashboard/')
+  ) {
+    return canViewMarketingPerformance(user)
   }
 
   if (user.is_superuser) {
@@ -122,7 +152,10 @@ export function canAccessRoute(
   }
 
   if (requirement.managerOnly) {
-    return hasAuthRole(user, 'manager')
+    return (
+      hasAuthRole(user, 'branch-manager') ||
+      hasAuthRole(user, 'manager') // legacy code
+    )
   }
 
   if (requirement.add) {
@@ -169,9 +202,14 @@ export function canDeleteModule(
 }
 
 export function getDefaultStaffPath(
-  user: Pick<AuthUser, 'permissions' | 'is_superuser' | 'roles'> | null | undefined,
+  user: Pick<
+    AuthUser,
+    'permissions' | 'is_superuser' | 'roles' | 'is_marketing' | 'is_tutor'
+  > | null | undefined,
 ): string {
   const candidates = [
+    '/tutor-dashboard',
+    '/marketing-dashboard',
     '/dashboard',
     '/prospective-students',
     '/prediction-tests',
@@ -186,10 +224,18 @@ export function getDefaultStaffPath(
     '/branches',
     '/institutions',
     '/occupations',
+    '/resources',
     '/bookkeeping',
     '/profile',
   ]
 
-  const match = candidates.find((path) => canAccessRoute(user, path))
+  const match = candidates.find((path) => {
+    // Don't land system admins / superusers on personal performance homes.
+    if (path === '/tutor-dashboard' && !isTutorUser(user)) return false
+    if (path === '/marketing-dashboard' && !canViewMarketingPerformance(user)) {
+      return false
+    }
+    return canAccessRoute(user, path)
+  })
   return match ?? '/profile'
 }

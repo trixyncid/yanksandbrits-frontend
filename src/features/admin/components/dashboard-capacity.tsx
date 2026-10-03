@@ -16,7 +16,7 @@ function attendanceColor(rate: number | null) {
 
 function utilizationBarClass(rate: number) {
   if (rate >= 70) return 'bg-[#3D9B6E]'
-  if (rate >= 40) return 'bg-[#4274B9]'
+  if (rate >= 40) return 'bg-[#253CA1]'
   if (rate >= 20) return 'bg-[#D97706]'
   return 'bg-slate-300'
 }
@@ -47,41 +47,41 @@ export function DashboardDeliveryOverview({
         description="Attendance and scheduling gaps."
       />
 
-      <div className="flex flex-1 flex-col items-center gap-5">
+      <div className="flex flex-1 flex-col items-center gap-3">
         <DashboardGauge
           value={delivery.attendanceRate}
-          size={136}
-          strokeWidth={12}
+          size={120}
+          strokeWidth={11}
           color={attendanceColor(delivery.attendanceRate)}
           label="Attendance"
         />
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-xs text-slate-500">
           {delivery.attendanceTotal > 0
             ? `${delivery.attendancePresent} of ${delivery.attendanceTotal} present`
             : 'No attendance records'}
         </p>
 
-        <dl className="grid w-full grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#D8E6FA]">
-            <dt className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+        <dl className="grid w-full grid-cols-2 gap-2">
+          <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-[#D8E6FA]">
+            <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
               Overtime
             </dt>
             <dd
               className={cn(
-                'mt-1 text-2xl font-bold tabular-nums',
+                'mt-0.5 text-xl font-bold tabular-nums',
                 delivery.overtimeSessions > 0 ? 'text-[#9A3412]' : 'text-slate-900',
               )}
             >
               {delivery.overtimeSessions.toLocaleString('en-US')}
             </dd>
           </div>
-          <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#D8E6FA]">
-            <dt className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+          <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-[#D8E6FA]">
+            <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
               Unassigned
             </dt>
             <dd
               className={cn(
-                'mt-1 text-2xl font-bold tabular-nums',
+                'mt-0.5 text-xl font-bold tabular-nums',
                 delivery.unassignedTutorSessions > 0
                   ? 'text-[#6E2433]'
                   : 'text-slate-900',
@@ -122,7 +122,7 @@ export function DashboardProgramDemand({
             },
           }))}
           series={[
-            { key: 'sessions', label: 'Sessions', className: 'bg-[#4274B9]' },
+            { key: 'sessions', label: 'Sessions', className: 'bg-[#253CA1]' },
             {
               key: 'enrollments',
               label: 'Enrollments',
@@ -153,13 +153,13 @@ export function DashboardTutorUtilization({
       {items.length === 0 ? (
         <DashboardEmptyState message="No tutor sessions delivered in this period." />
       ) : (
-        <ul className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+        <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
           {items.map((item) => {
             const width = Math.max((item.hours / maxHours) * 100, item.hours > 0 ? 8 : 0)
 
             return (
               <li key={item.tutorId ?? item.name} className="flex items-center gap-3">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#EDF4FF] text-xs font-bold text-[#2F5A94]">
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#E8EEFF] text-xs font-bold text-[#1B2A5A]">
                   {initials(item.name)}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -173,7 +173,7 @@ export function DashboardTutorUtilization({
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-[#5A8BC9]"
+                      className="h-full rounded-full bg-[#3A56B8]"
                       style={{ width: `${width}%` }}
                     />
                   </div>
@@ -208,7 +208,7 @@ export function DashboardClassroomUtilization({
       {items.length === 0 ? (
         <DashboardEmptyState message="No classroom usage in this period." />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           {items.map((item) => (
             <div key={item.classroomId ?? item.name} className="space-y-2">
               <div className="flex items-center justify-between gap-3 text-sm">

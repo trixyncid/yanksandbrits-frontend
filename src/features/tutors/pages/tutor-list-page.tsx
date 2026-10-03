@@ -1,8 +1,8 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
 import { tutorListColumns } from '../components/tutor-list-columns'
@@ -29,6 +29,7 @@ function filterTutor(row: TutorListItem, search: string) {
 }
 
 export default function TutorListPage() {
+  const navigate = useNavigate()
   const tutorsQuery = useTutorsQuery()
 
   return (
@@ -53,15 +54,7 @@ export default function TutorListPage() {
             emptyMessage="No tutors found"
             toolbarActions={
               <Can module="users" action="add">
-                <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add tutor',
-                      description:
-                        'The create tutor form will be added later.',
-                    })
-                  }
-                >
+                <Button onClick={() => void navigate({ to: '/tutors/new' })}>
                   <Plus className="size-4" />
                   Add New Tutor
                 </Button>

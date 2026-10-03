@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchStaffUserOptions } from '../../users/api/users-api'
+import {
+  fetchStaffUserOptions,
+  fetchTutorOptions,
+  type StaffTypeCode,
+} from '../../users/api/users-api'
 
 export function useCounsellorOptionsQuery() {
   return useQuery({
@@ -9,10 +13,15 @@ export function useCounsellorOptionsQuery() {
   })
 }
 
-export function useTutorOptionsQuery() {
+export function useTutorOptionsQuery(filters: {
+  staffType?: StaffTypeCode | null
+  enabled?: boolean
+} = {}) {
+  const staffType = filters.staffType ?? null
   return useQuery({
-    queryKey: ['users', 'options', 'tutors'],
-    queryFn: () => fetchStaffUserOptions({ isTutor: true }),
+    queryKey: ['users', 'options', 'tutors', staffType],
+    queryFn: () => fetchTutorOptions({ staffType }),
+    enabled: filters.enabled ?? true,
   })
 }
 

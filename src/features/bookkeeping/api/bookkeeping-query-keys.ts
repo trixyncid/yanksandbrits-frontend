@@ -14,4 +14,13 @@ export const bookkeepingQueryKeys = {
     [...bookkeepingQueryKeys.detail(id), 'tutor-salaries'] as const,
   marketingSalaries: (id: string) =>
     [...bookkeepingQueryKeys.detail(id), 'marketing-salaries'] as const,
+  salaryBreakdown: (id: string) =>
+    [...bookkeepingQueryKeys.detail(id), 'salary-breakdown'] as const,
+  marketerSalaryBreakdown: (marketerId: string, period: string) =>
+    [
+      ...bookkeepingQueryKeys.all,
+      'marketer-salary-breakdown',
+      marketerId,
+      period,
+    ] as const,
 }

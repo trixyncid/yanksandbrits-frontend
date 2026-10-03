@@ -1,6 +1,8 @@
 export type PredictionTestListFilters = {
   search?: string
   status?: 'pending' | 'approved' | 'void' | 'all'
+  managerApproval?: 'pending' | 'approved' | 'all'
+  academicLeaderStatus?: 'pending_review' | 'reviewed' | 'all'
   branchId?: string
   counsellorId?: string
 }

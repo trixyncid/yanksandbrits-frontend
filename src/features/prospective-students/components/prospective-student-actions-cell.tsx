@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Pencil, Trash2, UserPlus } from 'lucide-react'
+import { Pencil, Trash2, UserPlus, WalletCards } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
@@ -17,11 +17,31 @@ export function ProspectiveStudentActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const canConvertToStudent =
-    student.status === 'prediction_test' && !student.isStudent
+  const canCreatePayment =
+    (student.status === 'prediction_test' || student.status === 'consult') &&
+    !student.isStudent
+  const canConvertToStudent = student.canEnroll && !student.isStudent
 
   return (
     <div className="flex items-center justify-center gap-2">
+      {canCreatePayment ? (
+        <Can module="studentPayments" action="add">
+          <button
+            type="button"
+            title="Create student payment"
+            aria-label={`Create student payment for ${student.fullName}`}
+            onClick={() =>
+              void navigate({
+                to: '/student-payments/new',
+                search: { prospectiveStudentId: student.id },
+              })
+            }
+            className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          >
+            <WalletCards className="size-3.5" />
+          </button>
+        </Can>
+      ) : null}
       {canConvertToStudent ? (
         <Can module="students" action="add">
           <button
@@ -34,7 +54,7 @@ export function ProspectiveStudentActionsCell({
                 search: { prospectiveStudentId: student.id },
               })
             }
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#4274B9] transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+            className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-[#253CA1] shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
           >
             <UserPlus className="size-3.5" />
           </button>
@@ -50,7 +70,7 @@ export function ProspectiveStudentActionsCell({
               params: { prospectiveStudentId: student.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -83,7 +103,7 @@ export function ProspectiveStudentActionsCell({
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
         >
           <Trash2 className="size-3.5" />
         </button>

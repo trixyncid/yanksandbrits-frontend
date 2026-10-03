@@ -1,12 +1,10 @@
 import type {
   CourseCode,
   LanguageTestCode,
-  ProspectResource,
+  TeleMarketingCode,
 } from '../../../shared/api/choices'
 
 export type ProspectiveStudentStatus =
-  | 'waiting'
-  | 'follow_up'
   | 'consult'
   | 'prediction_test'
   | 'cancelled'
@@ -24,7 +22,9 @@ export type ProspectiveStudentListItem = {
   status: ProspectiveStudentStatus
   srNumber: string
   date: string
-  resource: ProspectResource | string
+  resourceId: string | null
+  resource: string
+  teleMarketing: TeleMarketingCode | ''
   age: number | null
   address: string
   languageTest: LanguageTestCode | ''
@@ -39,6 +39,8 @@ export type ProspectiveStudentListItem = {
   branch: string
   branchId: string | null
   isStudent: boolean
+  isConsult: boolean
+  canEnroll: boolean
 }
 
 export type ProspectiveStudentFormValues = {
@@ -50,7 +52,8 @@ export type ProspectiveStudentFormValues = {
   status: ProspectiveStudentStatus
   srNumber: string
   date: string
-  resource: ProspectResource | ''
+  resourceId: string
+  teleMarketing: TeleMarketingCode | ''
   age: string
   address: string
   hasTakenLanguageTest: boolean

@@ -22,11 +22,13 @@ function mapMarketing(user: UserListItem): MarketingListItem {
     phone: user.phone,
     gender: user.gender,
     isActive: user.isActive,
-    lastLogin: user.lastLogin,
-    dateJoined: user.dateJoined,
     paidLeaveLeft: user.paidLeaveLeft,
     hasSalary: user.hasSalary,
     branch: user.branchName ?? '—',
+    roles: (user.roles ?? []).map((role) => ({
+      code: role.code,
+      name: role.name,
+    })),
   }
 }
 

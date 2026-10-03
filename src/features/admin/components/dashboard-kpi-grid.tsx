@@ -93,21 +93,21 @@ function SupportingCard({
   className?: string
 }) {
   return (
-    <article className={cn('flex h-full flex-col p-5 sm:p-6', className)}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
+    <article className={cn('flex h-full flex-col p-3', className)}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
           {label}
         </p>
         {icon}
       </div>
-      <div className="mt-3 flex min-h-[88px] flex-1 items-center">
+      <div className="mt-1.5 flex min-h-[52px] flex-1 items-center">
         {children ?? (
-          <p className="text-[1.65rem] leading-none font-bold tracking-tight text-slate-900 tabular-nums">
+          <p className="text-[1.25rem] leading-none font-bold tracking-tight text-slate-900 tabular-nums">
             {value}
           </p>
         )}
       </div>
-      <p className="pt-3 text-sm leading-relaxed text-slate-500">{detail}</p>
+      <p className="pt-1.5 text-[11px] leading-snug text-slate-500">{detail}</p>
     </article>
   )
 }
@@ -117,15 +117,15 @@ export function DashboardKpiGrid({ metrics }: { metrics: DashboardMetrics }) {
   const sparklineValues = trends.revenue.map((item) => item.revenue)
 
   return (
-    <div className="grid items-stretch gap-4 xl:grid-cols-2">
+    <div className="grid items-stretch gap-2 xl:grid-cols-2">
       <DashboardPanel variant="dark" className="justify-between overflow-hidden">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-white/55 uppercase">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-white/55 uppercase">
               Revenue
             </p>
             <p
-              className="mt-3 text-[2.15rem] leading-none font-bold tracking-tight tabular-nums sm:text-[2.4rem]"
+              className="mt-1.5 text-[1.5rem] leading-none font-bold tracking-tight tabular-nums sm:text-[1.75rem]"
               title={formatCurrencyAmount(kpis.revenue.current)}
             >
               <span className="sm:hidden">
@@ -139,30 +139,34 @@ export function DashboardKpiGrid({ metrics }: { metrics: DashboardMetrics }) {
           <ChangeBadge changePct={kpis.revenue.changePct} inverted />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-3">
+          <p className="mb-1.5 text-[10px] font-semibold tracking-[0.12em] text-white/45 uppercase">
+            Last 6 months
+          </p>
           <DashboardSparkline values={sparklineValues} color="#A8C8F0" />
         </div>
 
-        <p className="mt-4 text-sm text-white/65">
+        <p className="mt-2 text-[11px] text-white/65">
           {formatCurrencyCompact(kpis.revenue.studentPayments)} tuition ·{' '}
-          {formatCurrencyCompact(kpis.revenue.predictionTests)} tests
+          {formatCurrencyCompact(kpis.revenue.predictionTests)} tests in this
+          period
         </p>
       </DashboardPanel>
 
-      <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-2 sm:grid-rows-2">
+      <div className="grid h-full grid-cols-1 gap-2 sm:grid-cols-2 sm:grid-rows-2">
         <DashboardPanel variant="quiet" className="p-0">
           <SupportingCard
             label="New enrollments"
             value={kpis.newEnrollments.current.toLocaleString('en-US')}
             detail={`${kpis.newEnrollments.previous} enrolled in the prior period`}
             icon={
-              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[#E8F7EF] text-[#1F5A3D]">
-                <UserPlus className="size-4" />
+              <span className="inline-flex size-7 items-center justify-center rounded-md bg-[#E8F7EF] text-[#1F5A3D]">
+                <UserPlus className="size-3.5" />
               </span>
             }
           >
             <div className="flex w-full items-end justify-between gap-2">
-              <p className="text-[1.65rem] leading-none font-bold tracking-tight text-slate-900 tabular-nums">
+              <p className="text-[1.25rem] leading-none font-bold tracking-tight text-slate-900 tabular-nums">
                 {kpis.newEnrollments.current.toLocaleString('en-US')}
               </p>
               <ChangeBadge changePct={kpis.newEnrollments.changePct} />
@@ -174,34 +178,38 @@ export function DashboardKpiGrid({ metrics }: { metrics: DashboardMetrics }) {
           <SupportingCard
             label="Active students"
             value={kpis.activeStudents.toLocaleString('en-US')}
-            detail="Currently active across this branch"
+            detail={
+              metrics.branchId == null
+                ? 'Currently active across all branches'
+                : 'Currently active across this branch'
+            }
             icon={
-              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-white text-[#2F5A94] ring-1 ring-[#D8E6FA]">
-                <Users className="size-4" />
+              <span className="inline-flex size-7 items-center justify-center rounded-md bg-white text-[#1B2A5A] ring-1 ring-[#D8E6FA]">
+                <Users className="size-3.5" />
               </span>
             }
           />
         </DashboardPanel>
 
         <DashboardPanel variant="quiet" className="p-0">
-          <article className="flex h-full flex-col p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
+          <article className="flex h-full flex-col p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
                 Conversion
               </p>
-              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[#E8F7EF] text-[#1F5A3D]">
-                <Target className="size-4" />
+              <span className="inline-flex size-7 items-center justify-center rounded-md bg-[#E8F7EF] text-[#1F5A3D]">
+                <Target className="size-3.5" />
               </span>
             </div>
-            <div className="mt-3 flex min-h-[88px] flex-1 items-center">
+            <div className="mt-1.5 flex min-h-[52px] flex-1 items-center">
               <DashboardGauge
                 value={kpis.conversionRate}
-                size={88}
-                strokeWidth={8}
+                size={72}
+                strokeWidth={7}
                 color="#3D9B6E"
               />
             </div>
-            <p className="pt-3 text-sm leading-relaxed text-slate-500">
+            <p className="pt-1.5 text-[11px] leading-snug text-slate-500">
               New prospects who reached enrolled
             </p>
           </article>
@@ -213,13 +221,13 @@ export function DashboardKpiGrid({ metrics }: { metrics: DashboardMetrics }) {
             value={formatCurrencyAmount(kpis.pendingCollections.amount)}
             detail={`${kpis.pendingCollections.count} payment${kpis.pendingCollections.count === 1 ? '' : 's'} awaiting approval`}
             icon={
-              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-amber-100 text-[#9A3412]">
-                <AlertCircle className="size-4" />
+              <span className="inline-flex size-7 items-center justify-center rounded-md bg-amber-100 text-[#9A3412]">
+                <AlertCircle className="size-3.5" />
               </span>
             }
           >
             <p
-              className="text-[1.65rem] leading-none font-bold tracking-tight text-[#9A3412] tabular-nums"
+              className="text-[1.25rem] leading-none font-bold tracking-tight text-[#9A3412] tabular-nums"
               title={formatCurrencyAmount(kpis.pendingCollections.amount)}
             >
               <span className="sm:hidden">

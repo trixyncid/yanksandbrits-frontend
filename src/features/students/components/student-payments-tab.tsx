@@ -6,16 +6,32 @@ import { getApiErrorMessage } from '../../../shared/api/errors'
 import { DataTableBadge } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
+import { formatCurrencyAmount } from '../../../shared/lib/currency'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { deleteStudentPayment } from '../../student-payments/api/student-payments-api'
 import { studentPaymentQueryKeys } from '../../student-payments/api/student-payment-query-keys'
+import { PaymentProgress } from '../../student-payments/components/student-payment-terms-fields'
 import { useStudentPaymentsQuery } from '../../student-payments/hooks/use-student-payments-query'
-import type {
-  StudentPaymentListItem,
-  StudentPaymentStatus,
-} from '../../student-payments/types/student-payment'
+import {
+  firstProofUrl,
+  planStatusLabel,
+  planStatusTone,
+  proofCount,
+  termStatusLabel,
+  termStatusTone,
+} from '../../student-payments/lib/payment-display'
+import type { StudentPaymentListItem } from '../../student-payments/types/student-payment'
 import type { StudentDetail } from '../types/student'
+
+function formatDate(value: string) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${value}T00:00:00`))
+}
 
 function formatDateTime(value: string) {
   if (!value) return '—'
@@ -26,26 +42,6 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function statusTone(status: StudentPaymentStatus) {
-  if (status === 'approved') return 'success' as const
-  if (status === 'pending') return 'info' as const
-  return 'danger' as const
-}
-
-function statusLabel(status: StudentPaymentStatus) {
-  if (status === 'approved') return 'Approved'
-  if (status === 'pending') return 'Pending'
-  return 'Void'
 }
 
 type StudentPaymentsTabProps = {
@@ -74,8 +70,8 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
 
   function handleDelete(payment: StudentPaymentListItem) {
     requestDeleteConfirm({
-      title: 'Delete payment?',
-      description: `This will permanently remove "${payment.title || 'this payment'}" for ${student.fullName}. This action cannot be undone.`,
+      title: 'Delete payment plan?',
+      description: `This will permanently remove "${payment.title || 'this payment'}" and its installments for ${student.fullName}. This action cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -85,7 +81,7 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
             })
             notify('success', {
               title: 'Payment deleted',
-              description: 'The payment record has been removed.',
+              description: 'The payment plan has been removed.',
             })
           } catch (error) {
             notify('error', {
@@ -104,12 +100,12 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
         <div>
           <h3 className="text-lg font-bold text-slate-900">Payment History</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Payment transactions recorded for this student.
+            Payment plans and installments recorded for this student.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={openCreate}>
           <CreditCard className="size-3.5" />
-          Add Payment
+          Add Payment Plan
         </Button>
       </div>
 
@@ -131,102 +127,144 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
         </div>
       ) : payments.length === 0 ? (
         <div className="flex flex-col items-center px-6 py-16 text-center">
-          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
             <CreditCard className="size-5" />
           </div>
           <h4 className="mt-4 text-base font-bold text-slate-900">
             No payments yet
           </h4>
           <p className="mt-2 max-w-md text-sm text-slate-500">
-            Record a tuition or installment payment to start this student&apos;s
-            payment history.
+            Record a payment plan with an approved installment to activate this
+            student and unlock scheduling.
           </p>
           <Button className="mt-5" size="sm" onClick={openCreate}>
             <CreditCard className="size-3.5" />
-            Add Payment
+            Add Payment Plan
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50/80 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-              <tr>
-                <th className="px-6 py-3">Title</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created by</th>
-                <th className="px-4 py-3">Proof</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id} className="border-t border-slate-100">
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-slate-900">
-                      {payment.title || 'Payment'}
+        <div className="space-y-4 px-6 py-5">
+          {payments.map((payment) => {
+            const count = proofCount(payment.terms)
+            const proofUrl = firstProofUrl(payment.terms)
+
+            return (
+              <article
+                key={payment.id}
+                className="overflow-hidden rounded-2xl border border-slate-200"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4 bg-slate-50/80 px-5 py-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm font-bold text-slate-900">
+                        {payment.title || 'Payment'}
+                      </h4>
+                      <DataTableBadge tone={planStatusTone(payment.status)}>
+                        {planStatusLabel(payment.status)}
+                      </DataTableBadge>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-800 tabular-nums">
+                      {formatCurrencyAmount(payment.paidAmount)}
+                      <span className="font-medium text-slate-400">
+                        {' '}
+                        / {formatCurrencyAmount(payment.fullAmount)}
+                      </span>
                     </p>
-                    <p className="mt-0.5 max-w-xs text-xs text-slate-500">
-                      {payment.description || '—'}
+                    <div className="mt-2 max-w-xs">
+                      <PaymentProgress
+                        paidAmount={payment.paidAmount}
+                        fullAmount={payment.fullAmount}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                      {formatDateTime(payment.createdAt)} · {payment.createdBy}
                     </p>
-                  </td>
-                  <td className="px-4 py-4 font-semibold tabular-nums text-slate-800">
-                    {formatCurrency(payment.amount)}
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {formatDateTime(payment.transactionDate)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <DataTableBadge tone={statusTone(payment.status)}>
-                      {statusLabel(payment.status)}
-                    </DataTableBadge>
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {payment.createdBy || '—'}
-                  </td>
-                  <td className="px-4 py-4">
-                    {payment.hasPaymentProof && payment.paymentProofUrl ? (
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {count > 0 && proofUrl ? (
                       <a
-                        href={payment.paymentProofUrl}
+                        href={proofUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1]"
                       >
                         <FileImage className="size-3.5" />
-                        View
+                        {count === 1 ? 'Proof' : `${count} files`}
                       </a>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        aria-label={`Edit ${payment.title || 'payment'}`}
-                        onClick={() => openEdit(payment)}
-                        className={cn(
-                          'inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition',
-                          'hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]',
-                        )}
-                      >
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete ${payment.title || 'payment'}`}
-                        onClick={() => handleDelete(payment)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    ) : null}
+                    <button
+                      type="button"
+                      aria-label={`Edit ${payment.title || 'payment'}`}
+                      onClick={() => openEdit(payment)}
+                      className={cn(
+                        'inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition',
+                        'hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]',
+                      )}
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${payment.title || 'payment'}`}
+                      onClick={() => handleDelete(payment)}
+                      className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
+                      <tr>
+                        <th className="px-5 py-2.5">Installment</th>
+                        <th className="px-4 py-2.5">Amount</th>
+                        <th className="px-4 py-2.5">Status</th>
+                        <th className="px-4 py-2.5">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payment.terms.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={4}
+                            className="px-5 py-4 text-sm text-slate-500"
+                          >
+                            No installments on this plan.
+                          </td>
+                        </tr>
+                      ) : (
+                        payment.terms.map((term, index) => (
+                          <tr key={term.id} className="border-t border-slate-100">
+                            <td className="px-5 py-3">
+                              <p className="font-medium text-slate-800">
+                                #{index + 1}
+                              </p>
+                              <p className="mt-0.5 max-w-xs text-xs text-slate-500">
+                                {term.description || '—'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 font-semibold tabular-nums text-slate-800">
+                              {formatCurrencyAmount(term.amount)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <DataTableBadge tone={termStatusTone(term.status)}>
+                                {termStatusLabel(term.status)}
+                              </DataTableBadge>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">
+                              {formatDate(term.paymentDate)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     </>

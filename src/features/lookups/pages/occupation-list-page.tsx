@@ -165,7 +165,7 @@ export default function OccupationListPage() {
                 type="button"
                 aria-label={`Edit occupation ${row.original.name}`}
                 onClick={() => openEditDialog(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
               >
                 <Pencil className="size-3.5" />
               </button>
@@ -214,18 +214,33 @@ export default function OccupationListPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <DialogHeader>
-              <DialogTitle>
-                {editing ? 'Update Occupation' : 'Add New Occupation'}
-              </DialogTitle>
-              <DialogDescription>
-                Manage occupation options used on student records.
-              </DialogDescription>
-            </DialogHeader>
+        <DialogContent
+          showClose
+          className="overflow-hidden p-0 sm:max-w-lg"
+        >
+          <form
+            onSubmit={handleSubmit}
+            className="flex max-h-[90vh] flex-col"
+          >
+            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+                {editing ? (
+                  <Pencil className="size-5" />
+                ) : (
+                  <Plus className="size-5" />
+                )}
+              </div>
+              <DialogHeader className="pr-0">
+                <DialogTitle>
+                  {editing ? 'Update Occupation' : 'Add New Occupation'}
+                </DialogTitle>
+                <DialogDescription>
+                  Manage occupation options used on student records.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-            <div className="space-y-2">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-6 py-5">
               <Label htmlFor="occupation-name">Occupation Name</Label>
               <Input
                 id="occupation-name"
@@ -235,16 +250,22 @@ export default function OccupationListPage() {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
               <Button
                 type="button"
                 variant="secondary"
+                size="sm"
                 onClick={() => setDialogOpen(false)}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {editing ? (
+                  <Pencil className="size-3.5" />
+                ) : (
+                  <Plus className="size-3.5" />
+                )}
                 {isSubmitting
                   ? editing
                     ? 'Updating...'

@@ -129,7 +129,7 @@ function StudentGroupEditForm({
           <div>
             <Link
               to="/student-groups"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               Student Groups

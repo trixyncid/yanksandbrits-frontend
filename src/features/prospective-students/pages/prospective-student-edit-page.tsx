@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
@@ -19,14 +19,19 @@ import type { ProspectiveStudentFormValues } from '../types/prospective-student'
 
 export default function ProspectiveStudentEditPage() {
   const navigate = useNavigate()
-  const { prospectiveStudentId } = useParams({ strict: false }) as { prospectiveStudentId: string }
+  const { prospectiveStudentId } = useParams({ strict: false }) as {
+    prospectiveStudentId: string
+  }
   const studentQuery = useProspectiveStudentQuery(prospectiveStudentId)
 
   if (studentQuery.isLoading) {
     return (
-      <AdminShell>
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center text-sm text-slate-500">
-          Loading prospective student...
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+          <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-[#E8EEFF]" />
+          <p className="mt-4 text-sm text-slate-500">
+            Loading prospective student...
+          </p>
         </div>
       </AdminShell>
     )
@@ -34,9 +39,12 @@ export default function ProspectiveStudentEditPage() {
 
   if (studentQuery.isError || !studentQuery.data) {
     return (
-      <AdminShell>
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
+            <Pencil className="size-6" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900">
             Prospective student not found
           </h2>
           <p className="mt-2 text-sm text-slate-500">
@@ -63,7 +71,11 @@ export default function ProspectiveStudentEditPage() {
       prospectiveStudentId={student.id}
       fullName={student.fullName}
       initialValues={prospectiveStudentToFormValues(student)}
-      meta={{ createdAt: student.createdAt, updatedAt: student.updatedAt }}
+      meta={{
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
+        branch: student.branch,
+      }}
     />
   )
 }
@@ -77,7 +89,7 @@ function ProspectiveStudentEditForm({
   prospectiveStudentId: string
   fullName: string
   initialValues: ProspectiveStudentFormValues
-  meta: { createdAt: string; updatedAt: string }
+  meta: { createdAt: string; updatedAt: string; branch: string }
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -114,13 +126,13 @@ function ProspectiveStudentEditForm({
   }
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-6">
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link
               to="/prospective-students"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               Prospective Students
@@ -129,7 +141,8 @@ function ProspectiveStudentEditForm({
               Update Prospective Student
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Edit lead details for {fullName}.
+              Edit lead details for{' '}
+              <span className="font-semibold text-slate-700">{fullName}</span>.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
@@ -137,19 +150,17 @@ function ProspectiveStudentEditForm({
           </Button>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <ProspectiveStudentForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            meta={meta}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+        <ProspectiveStudentForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          meta={meta}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )

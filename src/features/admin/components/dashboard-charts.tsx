@@ -97,7 +97,7 @@ export function DashboardSparkline({
 
 export function DashboardAreaChart({
   data,
-  color = '#4274B9',
+  color = '#253CA1',
   formatTick,
   className,
 }: {
@@ -176,43 +176,89 @@ export function DashboardAreaChart({
 export function DashboardColumnChart({
   data,
   formatValue,
-  barClassName = 'bg-[#4274B9]',
+  barClassName = 'bg-[#253CA1]',
+  mutedBarClassName = 'bg-slate-200/90',
+  highlightBarClassName = 'bg-[#253CA1]',
+  highlightIndex,
+  showValueOnHighlight = false,
   className,
 }: {
   data: ChartDatum[]
   formatValue?: (value: number) => string
   barClassName?: string
+  mutedBarClassName?: string
+  highlightBarClassName?: string
+  /** When set, only this bar uses the primary/highlight color; others use muted. */
+  highlightIndex?: number
+  showValueOnHighlight?: boolean
   className?: string
 }) {
   const max = Math.max(...data.map((item) => item.value), 1)
   const hasData = data.some((item) => item.value > 0)
+  const resolvedHighlight =
+    highlightIndex ??
+    data.reduce(
+      (best, item, index) =>
+        item.value > (data[best]?.value ?? -1) ? index : best,
+      0,
+    )
 
-  if (!hasData) return null
+  if (data.length === 0) return null
 
   return (
     <div className={cn('flex min-h-[260px] flex-1 flex-col', className)}>
       <p className="mb-1 text-right text-[11px] font-semibold text-slate-400 tabular-nums">
-        {formatValue?.(max) ?? max}
+        {hasData ? (formatValue?.(max) ?? max) : 0}
       </p>
       <div className="flex h-[220px] items-end gap-2 sm:gap-3">
-        {data.map((item) => {
-          const height = Math.max((item.value / max) * 100, item.value > 0 ? 6 : 0)
+        {data.map((item, index) => {
+          const height = hasData
+            ? Math.max((item.value / max) * 100, item.value > 0 ? 6 : 0)
+            : 10
+          const isHighlighted =
+            hasData &&
+            (highlightIndex != null || showValueOnHighlight
+              ? index === resolvedHighlight
+              : true)
 
           return (
             <div
               key={item.label}
               className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
             >
-              <span className="mb-1.5 text-[10px] font-semibold text-slate-500 tabular-nums">
-                {item.value > 0 ? (formatValue?.(item.value) ?? item.value) : ''}
-              </span>
+              {hasData &&
+              item.value > 0 &&
+              (!showValueOnHighlight || isHighlighted) ? (
+                <span
+                  className={cn(
+                    'mb-1.5 text-[10px] font-semibold tabular-nums',
+                    isHighlighted && showValueOnHighlight
+                      ? 'rounded-full bg-[#253CA1] px-2 py-0.5 text-white shadow-sm'
+                      : 'text-slate-500',
+                  )}
+                >
+                  {formatValue?.(item.value) ?? item.value}
+                </span>
+              ) : (
+                <span className="mb-1.5 h-[18px]" />
+              )}
               <div className="flex min-h-0 w-full flex-1 items-end justify-center">
                 <div
                   className={cn(
-                    'w-[62%] max-w-10 rounded-t-md transition-all duration-500',
-                    barClassName,
+                    'w-[62%] max-w-10 rounded-t-xl transition-all duration-700 ease-out',
+                    !hasData
+                      ? 'bg-slate-100'
+                      : highlightIndex != null
+                        ? isHighlighted
+                          ? highlightBarClassName
+                          : mutedBarClassName
+                        : barClassName,
                   )}
-                  style={{ height: `${height}%` }}
+                  style={{
+                    height: `${height}%`,
+                    transitionDelay:
+                      highlightIndex != null && isHighlighted ? '120ms' : '0ms',
+                  }}
                 />
               </div>
             </div>
@@ -220,10 +266,15 @@ export function DashboardColumnChart({
         })}
       </div>
       <div className="mt-1 flex gap-2 sm:gap-3">
-        {data.map((item) => (
+        {data.map((item, index) => (
           <span
             key={item.label}
-            className="min-w-0 flex-1 truncate text-center text-[11px] font-medium text-slate-400"
+            className={cn(
+              'min-w-0 flex-1 truncate text-center text-[11px] font-medium',
+              hasData && highlightIndex != null && index === resolvedHighlight
+                ? 'font-semibold text-[#253CA1]'
+                : 'text-slate-400',
+            )}
           >
             {item.label}
           </span>
@@ -248,7 +299,7 @@ export function DashboardGroupedColumns({
   )
 
   return (
-    <div className={cn('flex-1 space-y-4', className)}>
+    <div className={cn('flex-1 space-y-2.5', className)}>
       {items.map((item) => (
         <div key={item.label} className="space-y-1.5">
           <p className="truncate text-sm font-semibold text-slate-700">
@@ -372,7 +423,7 @@ export function DashboardGauge({
   value,
   size = 112,
   strokeWidth = 10,
-  color = '#4274B9',
+  color = '#253CA1',
   trackColor = '#E8EEF5',
   label,
   emptyLabel = '—',
@@ -447,7 +498,7 @@ export function DashboardFunnelChart({
   const total = items.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className={cn('w-full flex-1 space-y-2', className)}>
+    <div className={cn('flex w-full flex-1 flex-col justify-center gap-2', className)}>
       {items.map((item, index) => {
         const countWidth = 58 + (item.value / max) * 42
         const taper = Math.max(countWidth - index * 1.5, 42)

@@ -4,6 +4,7 @@ import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import type {
   ClassroomBranchOption,
   ClassroomFormErrors,
@@ -119,27 +120,17 @@ export function ClassroomForm({
           </Field>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="isActive">Active Status</Label>
-          <label
-            htmlFor="isActive"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 text-sm text-slate-600"
-          >
-            <input
-              id="isActive"
-              type="checkbox"
-              className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-              checked={values.isActive}
-              onChange={(event) => onChange('isActive', event.target.checked)}
-            />
-            <span>
-              {values.isActive
-                ? 'Classroom is active and available for scheduling'
-                : 'Classroom is inactive'}
-            </span>
-          </label>
-          <FieldError message={errors.isActive} />
-        </div>
+        <StatusToggle
+          id="classroom-is-active"
+          value={values.isActive}
+          onChange={(next) => onChange('isActive', next)}
+          description={
+            values.isActive
+              ? 'Classroom is available for scheduling.'
+              : 'Classroom is hidden from scheduling.'
+          }
+          error={errors.isActive}
+        />
 
         <Field
           label="Branch"

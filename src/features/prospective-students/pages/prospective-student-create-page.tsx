@@ -10,13 +10,13 @@ export default function ProspectiveStudentCreatePage() {
   const form = useProspectiveStudentForm({ mode: 'create' })
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-6">
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link
               to="/prospective-students"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               Prospective Students
@@ -25,7 +25,7 @@ export default function ProspectiveStudentCreatePage() {
               Add Prospective Student
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Create a prospective student lead for marketing follow-up.
+              Capture inquiry details and assign a counsellor for follow-up.
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={form.cancel}>
@@ -33,17 +33,15 @@ export default function ProspectiveStudentCreatePage() {
           </Button>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <ProspectiveStudentForm
-            mode="create"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-          />
-        </div>
+        <ProspectiveStudentForm
+          mode="create"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+        />
       </div>
     </AdminShell>
   )

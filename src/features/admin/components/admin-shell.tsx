@@ -6,9 +6,10 @@ import { AdminTopbar } from './admin-topbar'
 
 type AdminShellProps = {
   children: ReactNode
+  mainClassName?: string
 }
 
-export function AdminShell({ children }: AdminShellProps) {
+export function AdminShell({ children, mainClassName }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   return (
@@ -20,7 +21,13 @@ export function AdminShell({ children }: AdminShellProps) {
 
       <div className="min-h-screen transition-all duration-300 lg:pl-[18rem]">
         <AdminTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />
-        <main className="px-4 py-5 sm:px-6 sm:py-6">{children}</main>
+        <main
+          className={
+            mainClassName ?? 'px-4 py-5 sm:px-6 sm:py-6'
+          }
+        >
+          {children}
+        </main>
       </div>
 
       <DeleteConfirmDialog />

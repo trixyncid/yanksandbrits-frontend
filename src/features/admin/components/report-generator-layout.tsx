@@ -35,7 +35,7 @@ export function ReportGeneratorLayout({
     <AdminShell>
       <div className="animate-in fade-in slide-in-from-bottom-2 mx-auto max-w-5xl space-y-6">
         <header className="space-y-2">
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#4274B9] uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#253CA1] uppercase">
             Reports
           </p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
@@ -46,7 +46,7 @@ export function ReportGeneratorLayout({
           </p>
         </header>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-b from-[#F8FBFF] to-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-b from-[#F5F8FF] to-white shadow-sm">
           <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.85fr)]">
             <section className="space-y-6 border-b border-slate-200/80 p-6 sm:p-8 lg:border-r lg:border-b-0">
               <div>
@@ -71,8 +71,8 @@ export function ReportGeneratorLayout({
                   className={cn(
                     'flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors',
                     ready
-                      ? 'bg-gradient-to-br from-[#5A8BC9] to-[#2F5A94] text-white shadow-md shadow-[#4274B9]/25'
-                      : 'bg-[#EDF4FF] text-[#4274B9]',
+                      ? 'bg-gradient-to-br from-[#3A56B8] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/25'
+                      : 'bg-[#E8EEFF] text-[#253CA1]',
                   )}
                 >
                   <FileText className="size-5" />
@@ -89,7 +89,7 @@ export function ReportGeneratorLayout({
                 </div>
               </div>
 
-              <dl className="space-y-3 rounded-xl border border-slate-200/80 bg-[#F8FBFF]/80 px-4 py-3.5">
+              <dl className="space-y-3 rounded-xl border border-slate-200/80 bg-[#F5F8FF]/80 px-4 py-3.5">
                 {summaryItems.map((item) => (
                   <div
                     key={item.label}

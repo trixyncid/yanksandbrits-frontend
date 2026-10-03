@@ -1,14 +1,21 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
 
-import { DataTable } from '../../../shared/components/data-table'
+import { DataTable, ListToolbarFilters } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { Select } from '../../../shared/components/ui/select'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
-import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
-import { predictionTestListColumns } from '../components/prediction-test-list-columns'
+import {
+  useIsMarketing,
+  useIsProgramReviewer,
+  useLocksPaymentStatus,
+  useModulePermissions,
+} from '../../auth/hooks/use-permissions'
+import type { PredictionTestListFilters } from '../api/prediction-test-query-keys'
+import { PredictionTestBulkStatusBar } from '../components/prediction-test-bulk-status-bar'
+import { PredictionTestListFiltersMenu } from '../components/prediction-test-list-filters'
+import { getPredictionTestListColumns } from '../components/prediction-test-list-columns'
 import {
   PredictionTestListErrorState,
   PredictionTestListLoadingState,
@@ -16,55 +23,164 @@ import {
 import { usePredictionTestsQuery } from '../hooks/use-prediction-tests-query'
 import type { PredictionTestListItem } from '../types/prediction-test'
 
-function filterPredictionTest(row: PredictionTestListItem, search: string) {
-  const haystack = [
-    row.studentName,
-    row.studentEmail,
-    row.studentPhone,
-    row.description,
-    row.educationCounsellor,
-    row.branch,
-    row.status,
-    String(row.amount),
-    row.score == null ? '' : String(row.score),
-  ]
-    .join(' ')
-    .toLowerCase()
+type StatusFilter = NonNullable<PredictionTestListFilters['status']>
+type ManagerApprovalFilter = NonNullable<
+  PredictionTestListFilters['managerApproval']
+>
+type AcademicLeaderStatusFilter = NonNullable<
+  PredictionTestListFilters['academicLeaderStatus']
+>
 
-  return haystack.includes(search)
+type PredictionTestListFilterState = {
+  counsellorId: string
+  status: StatusFilter
+  managerApproval: ManagerApprovalFilter
+  academicLeaderStatus: AcademicLeaderStatusFilter
+}
+
+const EMPTY_FILTERS: PredictionTestListFilterState = {
+  counsellorId: '',
+  status: 'all',
+  managerApproval: 'all',
+  academicLeaderStatus: 'all',
+}
+
+const STATUS_FILTERS: StatusFilter[] = ['all', 'pending', 'approved', 'void']
+const MANAGER_APPROVAL_FILTERS: ManagerApprovalFilter[] = [
+  'all',
+  'pending',
+  'approved',
+]
+const ACADEMIC_LEADER_STATUS_FILTERS: AcademicLeaderStatusFilter[] = [
+  'all',
+  'pending_review',
+  'reviewed',
+]
+
+function filterPredictionTest(row: PredictionTestListItem, search: string) {
+  return row.studentName.toLowerCase().includes(search)
+}
+
+function defaultAcademicLeaderStatusFilter(options: {
+  isProgramReviewer: boolean
+}): AcademicLeaderStatusFilter {
+  // Reviewers work a pending-review queue; reviewed tests stay on finance /
+  // systemadmin / branch-manager (and counsellor) lists.
+  if (options.isProgramReviewer) return 'pending_review'
+  return 'all'
 }
 
 export default function PredictionTestListPage() {
   const navigate = useNavigate()
-  const [counsellorId, setCounsellorId] = useState('')
-  const counsellorsQuery = useMarketingOptionsQuery()
+  const isProgramReviewer = useIsProgramReviewer()
+  const defaultAlStatus = defaultAcademicLeaderStatusFilter({
+    isProgramReviewer,
+  })
+  const [filters, setFilters] = useSessionState<PredictionTestListFilterState>(
+    'list-filters:prediction-tests',
+    {
+      ...EMPTY_FILTERS,
+      academicLeaderStatus: defaultAlStatus,
+    },
+  )
+  const status = STATUS_FILTERS.includes(filters.status)
+    ? filters.status
+    : 'all'
+  const managerApproval = MANAGER_APPROVAL_FILTERS.includes(
+    filters.managerApproval,
+  )
+    ? filters.managerApproval
+    : 'all'
+  const academicLeaderStatus = ACADEMIC_LEADER_STATUS_FILTERS.includes(
+    filters.academicLeaderStatus,
+  )
+    ? filters.academicLeaderStatus
+    : defaultAlStatus
+  const { canChange } = useModulePermissions('predictionTests')
+  const lockPaymentStatus = useLocksPaymentStatus()
+  const hideCounsellorFilter = useIsMarketing()
+  const hidePayment = isProgramReviewer
+  const canBulkUpdateStatus = canChange && !lockPaymentStatus && !hidePayment
+  const listColumns = getPredictionTestListColumns({ hidePayment })
   const testsQuery = usePredictionTestsQuery({
-    counsellorId: counsellorId || undefined,
+    counsellorId: hideCounsellorFilter
+      ? undefined
+      : filters.counsellorId || undefined,
+    status: hidePayment ? 'all' : status,
+    managerApproval: hidePayment ? 'approved' : managerApproval,
+    academicLeaderStatus,
   })
 
-  const counsellorFilter = (
-    <Select
-      value={counsellorId}
-      onChange={(event) => setCounsellorId(event.target.value)}
-      containerClassName="w-[240px]"
-    >
-      <option value="">All counsellors</option>
-      {(counsellorsQuery.data ?? []).map((option) => (
-        <option key={option.id} value={option.id}>
-          {option.pin} | {option.fullName}
-        </option>
-      ))}
-    </Select>
+  const clearFilters = () =>
+    setFilters({
+      ...EMPTY_FILTERS,
+      academicLeaderStatus: defaultAlStatus,
+    })
+
+  function openCreate() {
+    void navigate({ to: '/prediction-tests/new' })
+  }
+
+  const listFilters = (
+    <ListToolbarFilters>
+      <PredictionTestListFiltersMenu
+        status={status}
+        managerApproval={managerApproval}
+        academicLeaderStatus={academicLeaderStatus}
+        defaultAcademicLeaderStatus={defaultAlStatus}
+        counsellorId={filters.counsellorId}
+        hidePayment={hidePayment}
+        hideCounsellor={hideCounsellorFilter}
+        onStatusChange={(next) =>
+          setFilters((current) => ({ ...current, status: next }))
+        }
+        onManagerApprovalChange={(next) =>
+          setFilters((current) => ({ ...current, managerApproval: next }))
+        }
+        onAcademicLeaderStatusChange={(next) =>
+          setFilters((current) => ({
+            ...current,
+            academicLeaderStatus: next,
+          }))
+        }
+        onCounsellorChange={(counsellorId) =>
+          setFilters((current) => ({ ...current, counsellorId }))
+        }
+        onClear={clearFilters}
+      />
+    </ListToolbarFilters>
   )
 
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
+              Prediction Tests
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-slate-500">
+              {hidePayment
+                ? 'Review prediction tests the branch manager has approved.'
+                : 'Review prediction test results, manager approval, and payments.'}
+            </p>
+          </div>
+          <Can module="predictionTests" action="add">
+            <Button
+              onClick={openCreate}
+              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
+            >
+              <Plus className="size-4" />
+              Add Prediction Test
+            </Button>
+          </Can>
+        </div>
+
         {testsQuery.isLoading ? <PredictionTestListLoadingState /> : null}
 
         {testsQuery.isError ? (
-          <div className="space-y-3">
-            <div className="flex justify-end">{counsellorFilter}</div>
+          <div className="space-y-2">
+            {listFilters}
             <PredictionTestListErrorState
               onRetry={() => void testsQuery.refetch()}
             />
@@ -72,30 +188,24 @@ export default function PredictionTestListPage() {
         ) : null}
 
         {testsQuery.isSuccess ? (
-          <DataTable
-            title="Prediction Test List"
-            description="Review prediction test results and payments."
-            totalLabel="tests"
-            columns={predictionTestListColumns}
-            data={testsQuery.data.data}
-            searchPlaceholder="Search by student, counsellor, status, branch..."
-            globalFilterFn={filterPredictionTest}
-            initialPageSize={10}
-            emptyMessage="No prediction tests found"
-            toolbarActions={
-              <div className="flex items-center gap-2">
-                {counsellorFilter}
-                <Can module="predictionTests" action="add">
-                  <Button
-                    onClick={() => void navigate({ to: '/prediction-tests/new' })}
-                  >
-                    <Plus className="size-4" />
-                    Add Prediction Test
-                  </Button>
-                </Can>
-              </div>
-            }
-          />
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              title="Tests"
+              description="Search and manage prediction test records."
+              totalLabel="tests"
+              columns={listColumns}
+              data={testsQuery.data.data}
+              searchPlaceholder="Search by student name..."
+              searchVariant="pill"
+              globalFilterFn={filterPredictionTest}
+              initialPageSize={10}
+              emptyMessage="No prediction tests found"
+              enableRowSelection={canBulkUpdateStatus}
+              getRowId={(row) => row.id}
+              selectionToolbar={(ctx) => <PredictionTestBulkStatusBar {...ctx} />}
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
     </AdminShell>

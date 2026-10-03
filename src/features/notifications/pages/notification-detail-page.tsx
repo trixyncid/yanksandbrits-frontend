@@ -42,7 +42,7 @@ export default function NotificationDetailPage() {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
             <BellOff className="size-6" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-slate-900">
@@ -74,7 +74,7 @@ export default function NotificationDetailPage() {
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/notifications"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
           >
             <ArrowLeft className="size-4" />
             Notifications
@@ -92,7 +92,7 @@ export default function NotificationDetailPage() {
         </div>
 
         <article className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#F8FBFF_0%,#FFFFFF_60%)] px-6 py-6 sm:px-8">
+          <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#F5F8FF_0%,#FFFFFF_60%)] px-6 py-6 sm:px-8">
             <div className="flex flex-wrap items-start gap-4">
               <div
                 className={cn(

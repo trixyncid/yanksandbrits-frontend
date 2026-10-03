@@ -150,8 +150,8 @@ export function StudentProgramDialog({
           noValidate
           className="flex max-h-[90vh] flex-col"
         >
-          <div className="shrink-0 bg-[linear-gradient(135deg,#EDF4FF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9] ring-1 ring-[#BED2F2]">
+          <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
               <BookOpen className="size-5" />
             </div>
             <DialogHeader className="pr-0">
@@ -179,13 +179,13 @@ export function StudentProgramDialog({
                       sessions
                     </p>
                   </div>
-                  <p className="text-2xl font-bold tabular-nums text-[#2F5A94]">
+                  <p className="text-2xl font-bold tabular-nums text-[#1B2A5A]">
                     {Math.max(0, Math.min(100, enrollment.progressPercentage))}%
                   </p>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
                   <div
-                    className="h-full rounded-full bg-[#4274B9]"
+                    className="h-full rounded-full bg-[#253CA1]"
                     style={{
                       width: `${Math.max(0, Math.min(100, enrollment.progressPercentage))}%`,
                     }}

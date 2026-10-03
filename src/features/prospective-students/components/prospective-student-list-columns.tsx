@@ -34,10 +34,6 @@ function statusTone(status: ProspectiveStudentStatus) {
     return 'primary' as const
   }
 
-  if (status === 'follow_up') {
-    return 'info' as const
-  }
-
   if (status === 'cancelled') {
     return 'danger' as const
   }
@@ -46,14 +42,6 @@ function statusTone(status: ProspectiveStudentStatus) {
 }
 
 function statusLabel(status: ProspectiveStudentStatus) {
-  if (status === 'waiting') {
-    return 'Waiting'
-  }
-
-  if (status === 'follow_up') {
-    return 'Follow Up'
-  }
-
   if (status === 'consult') {
     return 'Consult'
   }
@@ -69,6 +57,13 @@ function statusLabel(status: ProspectiveStudentStatus) {
   return 'Cancelled'
 }
 
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
+
 export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem>[] = [
   {
     id: 'studentDetail',
@@ -77,38 +72,35 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
       <DataTableColumnHeader column={column} title="Student's Detail" />
     ),
     cell: ({ row }) => (
-      <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.fullName}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">
-          {row.original.email || '-'}
-        </p>
-        <p className="text-xs text-slate-500">{row.original.phone}</p>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'gender',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Gender" align="center" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        {row.original.gender ? (
-          <DataTableBadge tone="info">
-            {row.original.gender === 'male' ? 'Male' : 'Female'}
-          </DataTableBadge>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
+      <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
+        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
+          {getInitials(row.original.fullName)}
+        </div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {row.original.fullName}
+            </p>
+            {row.original.gender ? (
+              <DataTableBadge
+                tone={row.original.gender === 'male' ? 'info' : 'primary'}
+              >
+                {row.original.gender === 'male' ? 'Male' : 'Female'}
+              </DataTableBadge>
+            ) : null}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            {row.original.email || '—'}
+          </p>
+          <p className="truncate text-xs text-slate-500">{row.original.phone}</p>
+        </div>
       </div>
     ),
   },
   {
     accessorKey: 'course',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Course" align="center" />
+      <DataTableColumnHeader column={column} title="Prediction Test" align="center" />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">

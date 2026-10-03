@@ -1,8 +1,8 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 
 import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
 import { marketingListColumns } from '../components/marketing-list-columns'
@@ -21,6 +21,7 @@ function filterMarketing(row: MarketingListItem, search: string) {
     row.phone,
     row.gender,
     row.branch,
+    ...row.roles.map((role) => role.name),
     row.isActive ? 'active' : 'inactive',
   ]
     .join(' ')
@@ -30,6 +31,7 @@ function filterMarketing(row: MarketingListItem, search: string) {
 }
 
 export default function MarketingListPage() {
+  const navigate = useNavigate()
   const marketingsQuery = useMarketingsQuery()
 
   return (
@@ -45,28 +47,20 @@ export default function MarketingListPage() {
 
         {marketingsQuery.isSuccess ? (
           <DataTable
-            title="Marketing List"
-            description="Manage marketing counsellors and salary settings."
+            title="Education Counsellors"
+            description="Manage education counsellors, branch managers, and salary settings."
             totalLabel="accounts"
             columns={marketingListColumns}
             data={marketingsQuery.data.data}
             searchPlaceholder="Search by pin, name, email, branch..."
             globalFilterFn={filterMarketing}
             initialPageSize={10}
-            emptyMessage="No marketing accounts found"
+            emptyMessage="No education counsellors found"
             toolbarActions={
               <Can module="users" action="add">
-                <Button
-                  onClick={() =>
-                    notify('info', {
-                      title: 'Add marketing',
-                      description:
-                        'The create marketing form will be added later.',
-                    })
-                  }
-                >
+                <Button onClick={() => void navigate({ to: '/marketings/new' })}>
                   <Plus className="size-4" />
-                  Add New Marketing
+                  Add Education Counsellor
                 </Button>
               </Can>
             }

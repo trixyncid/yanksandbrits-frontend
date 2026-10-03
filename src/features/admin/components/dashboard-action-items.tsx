@@ -33,9 +33,9 @@ const toneStyles = {
     count: 'text-[#6E2433]',
   },
   blue: {
-    card: 'border-[#D8E6FA] bg-[#F5F9FF] text-[#2F5A94]',
-    icon: 'bg-white text-[#2F5A94]',
-    count: 'text-[#2F5A94]',
+    card: 'border-[#D8E6FA] bg-[#F5F9FF] text-[#1B2A5A]',
+    icon: 'bg-white text-[#1B2A5A]',
+    count: 'text-[#1B2A5A]',
   },
 }
 
@@ -74,13 +74,13 @@ export function DashboardActionItems({ metrics }: { metrics: DashboardMetrics })
 
   if (visibleItems.length === 0) {
     return (
-      <div className="flex items-start gap-3 rounded-[1.5rem] border border-[#CFE9DC] bg-[#F4FBF7] px-5 py-4">
-        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#3D9B6E]" />
+      <div className="flex items-start gap-2.5 rounded-xl border border-[#CFE9DC] bg-[#F4FBF7] px-3 py-2.5">
+        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#3D9B6E]" />
         <div>
           <p className="text-sm font-semibold text-[#1F5A3D]">
             You&apos;re all caught up
           </p>
-          <p className="mt-1 text-sm text-[#2F6B4C]">
+          <p className="mt-0.5 text-xs text-[#2F6B4C]">
             No pending payments, stale prospects, or leave requests right now.
           </p>
         </div>
@@ -89,37 +89,37 @@ export function DashboardActionItems({ metrics }: { metrics: DashboardMetrics })
   }
 
   return (
-    <div className="grid items-stretch gap-4 md:grid-cols-3">
+    <div className="grid items-stretch gap-2 md:grid-cols-3">
       {visibleItems.map((item) => (
         <Link
           key={item.id}
           to={item.to}
           className={cn(
-            'group flex h-full flex-col rounded-[1.5rem] border px-5 py-5 transition hover:-translate-y-0.5',
+            'group flex h-full flex-col rounded-xl border px-3 py-3 transition hover:-translate-y-0.5',
             toneStyles[item.tone].card,
           )}
         >
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2">
             <div
               className={cn(
-                'inline-flex size-9 items-center justify-center rounded-xl',
+                'inline-flex size-7 items-center justify-center rounded-md',
                 toneStyles[item.tone].icon,
               )}
             >
               {item.icon}
             </div>
-            <ArrowRight className="size-4 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+            <ArrowRight className="size-3.5 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
           </div>
-          <p className="mt-4 text-sm font-semibold">{item.label}</p>
+          <p className="mt-2.5 text-sm font-semibold">{item.label}</p>
           <p
             className={cn(
-              'mt-1 text-3xl font-bold tabular-nums',
+              'mt-0.5 text-2xl font-bold tabular-nums',
               toneStyles[item.tone].count,
             )}
           >
             {item.count}
           </p>
-          <p className="mt-1 text-xs opacity-80">{item.detail}</p>
+          <p className="mt-0.5 text-[11px] opacity-80">{item.detail}</p>
         </Link>
       ))}
     </div>

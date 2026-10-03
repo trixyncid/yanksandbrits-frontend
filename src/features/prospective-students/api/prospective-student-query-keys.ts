@@ -1,13 +1,13 @@
 export type ProspectiveStudentListFilters = {
   search?: string
   status?:
-    | 'waiting'
-    | 'follow_up'
     | 'consult'
     | 'prediction_test'
     | 'cancelled'
     | 'enrolled'
     | 'all'
+  /** When set, overrides ``status`` and requests multiple response statuses. */
+  statuses?: Array<'consult' | 'prediction_test' | 'cancelled' | 'enrolled'>
   branchId?: string
   counsellorId?: string
 }

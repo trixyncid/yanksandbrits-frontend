@@ -5,12 +5,17 @@ import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import { notify } from '../../../shared/lib/notify'
-import type {
-  StudentPaymentListItem,
-  StudentPaymentStatus,
-} from '../types/student-payment'
+import { formatCurrencyAmount } from '../../../shared/lib/currency'
+import {
+  firstProofUrl,
+  planStatusLabel,
+  planStatusTone,
+  proofCount,
+  summarizeTerms,
+} from '../lib/payment-display'
+import type { StudentPaymentListItem } from '../types/student-payment'
 import { StudentPaymentActionsCell } from './student-payment-actions-cell'
+import { PaymentProgress } from './student-payment-terms-fields'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -20,38 +25,6 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function statusTone(status: StudentPaymentStatus) {
-  if (status === 'approved') {
-    return 'success' as const
-  }
-
-  if (status === 'pending') {
-    return 'info' as const
-  }
-
-  return 'danger' as const
-}
-
-function statusLabel(status: StudentPaymentStatus) {
-  if (status === 'approved') {
-    return 'Approved'
-  }
-
-  if (status === 'pending') {
-    return 'Pending'
-  }
-
-  return 'Void'
 }
 
 export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
@@ -79,57 +52,72 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
     ),
   },
   {
-    accessorKey: 'description',
+    id: 'amount',
+    accessorFn: (row) => row.fullAmount,
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Description"
-        align="center"
-      />
+      <DataTableColumnHeader column={column} title="Paid / Planned" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="mx-auto max-w-56 text-center text-xs text-slate-500">
-        {row.original.description || '-'}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'amount',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" align="center" />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-semibold text-slate-800 tabular-nums">
-        {formatCurrency(row.original.amount)}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'transactionDate',
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Transaction Date"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {formatDateTime(row.original.transactionDate)}
-      </p>
+      <div className="mx-auto w-40 text-center">
+        <p className="text-xs font-semibold text-slate-800 tabular-nums">
+          {formatCurrencyAmount(row.original.paidAmount)}
+          <span className="font-medium text-slate-400">
+            {' '}
+            / {formatCurrencyAmount(row.original.fullAmount)}
+          </span>
+        </p>
+        <div className="mt-1.5">
+          <PaymentProgress
+            paidAmount={row.original.paidAmount}
+            fullAmount={row.original.fullAmount}
+            compact
+          />
+        </div>
+      </div>
     ),
   },
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" align="center" />
+      <DataTableColumnHeader column={column} title="Plan" align="center" />
     ),
     cell: ({ row }) => (
       <div className="text-center">
-        <DataTableBadge tone={statusTone(row.original.status)}>
-          {statusLabel(row.original.status)}
+        <DataTableBadge tone={planStatusTone(row.original.status)}>
+          {planStatusLabel(row.original.status)}
         </DataTableBadge>
       </div>
+    ),
+  },
+  {
+    id: 'terms',
+    accessorFn: (row) => row.terms.length,
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Installments"
+        align="center"
+      />
+    ),
+    cell: ({ row }) => (
+      <p className="mx-auto max-w-48 text-center text-xs text-slate-500">
+        {summarizeTerms(row.original.terms)}
+      </p>
+    ),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Created"
+        align="center"
+      />
+    ),
+    cell: ({ row }) => (
+      <p className="text-center text-xs font-medium text-slate-600">
+        {formatDateTime(row.original.createdAt)}
+      </p>
     ),
   },
   {
@@ -149,47 +137,48 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
   },
   {
     id: 'paymentProof',
-    accessorFn: (row) => (row.hasPaymentProof ? 'available' : 'missing'),
+    accessorFn: (row) => proofCount(row.terms),
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Payment Proof"
+        title="Proof"
         align="center"
       />
     ),
-    cell: ({ row }) => (
-      <div className="flex justify-center">
-        {row.original.hasPaymentProof ? (
-          row.original.paymentProofUrl ? (
-            <a
-              href={row.original.paymentProofUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
-            >
-              <FileImage className="size-3.5" />
-              IMG
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                notify('info', {
-                  title: 'Payment proof',
-                  description: 'Proof is on file but no preview URL is available.',
-                })
-              }
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9]"
-            >
-              <FileImage className="size-3.5" />
-              IMG
-            </button>
-          )
-        ) : (
-          <span className="text-xs font-medium text-slate-400">-</span>
-        )}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const count = proofCount(row.original.terms)
+      const url = firstProofUrl(row.original.terms)
+
+      if (count === 0) {
+        return (
+          <span className="block text-center text-xs font-medium text-slate-400">
+            -
+          </span>
+        )
+      }
+
+      if (!url) {
+        return (
+          <span className="block text-center text-xs font-medium text-slate-500">
+            {count} file{count === 1 ? '' : 's'}
+          </span>
+        )
+      }
+
+      return (
+        <div className="flex justify-center">
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1]"
+          >
+            <FileImage className="size-3.5" />
+            {count === 1 ? 'IMG' : `${count} files`}
+          </a>
+        </div>
+      )
+    },
   },
   {
     accessorKey: 'branch',

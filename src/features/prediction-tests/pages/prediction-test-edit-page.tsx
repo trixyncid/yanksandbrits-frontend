@@ -1,12 +1,19 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
 
+import { courseLabel } from '../../../shared/api/choices'
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { DataTableBadge } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
+import {
+  useIsAcademicLeader,
+  useIsProgramReviewer,
+} from '../../auth/hooks/use-permissions'
 import {
   deletePredictionTest,
   predictionTestToFormValues,
@@ -15,7 +22,13 @@ import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
 import { PredictionTestForm } from '../components/prediction-test-form'
 import { usePredictionTestForm } from '../hooks/use-prediction-test-form'
 import { usePredictionTestQuery } from '../hooks/use-prediction-test-query'
-import type { PredictionTestFormValues } from '../types/prediction-test'
+import type {
+  AcademicLeaderDecision,
+  AcademicLeaderStatus,
+  PredictionTestFormValues,
+  PredictionTestListItem,
+  PredictionTestStatus,
+} from '../types/prediction-test'
 
 export default function PredictionTestEditPage() {
   const navigate = useNavigate()
@@ -24,9 +37,10 @@ export default function PredictionTestEditPage() {
 
   if (testQuery.isLoading) {
     return (
-      <AdminShell>
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center text-sm text-slate-500">
-          Loading prediction test...
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+          <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-[#E8EEFF]" />
+          <p className="mt-4 text-sm text-slate-500">Loading prediction test...</p>
         </div>
       </AdminShell>
     )
@@ -34,9 +48,12 @@ export default function PredictionTestEditPage() {
 
   if (testQuery.isError || !testQuery.data) {
     return (
-      <AdminShell>
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
+            <Pencil className="size-6" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900">
             Prediction test not found
           </h2>
           <p className="mt-2 text-sm text-slate-500">
@@ -64,12 +81,34 @@ export default function PredictionTestEditPage() {
       studentName={test.studentName}
       initialValues={predictionTestToFormValues(test)}
       meta={{
+        attachments: test.attachments,
+        studentCourse: test.studentCourse,
+        managerApproved: test.managerApproved,
+        listeningTutorName: test.listeningTutorName,
+        readingTutorName: test.readingTutorName,
+        writingTutorName: test.writingTutorName,
+        speakingTutorName: test.speakingTutorName,
+        mathTutorName: test.mathTutorName,
+        ieltsProgram: test.ieltsProgram,
+        listeningSessions: test.listeningSessions,
+        readingSessions: test.readingSessions,
+        writingSessions: test.writingSessions,
+        speakingSessions: test.speakingSessions,
+        mathSessions: test.mathSessions,
+      }}
+      detail={{
+        studentId: test.studentId,
+        studentName: test.studentName,
+        studentSrNumber: test.studentSrNumber,
+        studentCourse: test.studentCourse,
+        educationCounsellor: test.educationCounsellor,
+        branch: test.branch,
+        status: test.status,
+        managerApproved: test.managerApproved,
+        academicLeaderStatus: test.academicLeaderStatus,
+        academicLeaderDecision: test.academicLeaderDecision,
         createdAt: test.createdAt,
         updatedAt: test.updatedAt,
-        studentName: test.studentName,
-        branch: test.branch,
-        educationCounsellor: test.educationCounsellor,
-        paymentProofUrl: test.paymentProofUrl,
       }}
     />
   )
@@ -80,40 +119,61 @@ function PredictionTestEditForm({
   studentName,
   initialValues,
   meta,
+  detail,
 }: {
   testId: string
   studentName: string
   initialValues: PredictionTestFormValues
   meta: {
+    attachments: PredictionTestListItem['attachments']
+    studentCourse: string | null
+    managerApproved: boolean
+    listeningTutorName: string
+    readingTutorName: string
+    writingTutorName: string
+    speakingTutorName: string
+    mathTutorName: string
+  }
+  detail: {
+    studentId: string
+    studentName: string
+    studentSrNumber: string
+    studentCourse: string | null
+    educationCounsellor: string
+    branch: string
+    status: PredictionTestStatus
+    managerApproved: boolean
+    academicLeaderStatus: AcademicLeaderStatus
+    academicLeaderDecision: AcademicLeaderDecision | null
     createdAt: string
     updatedAt: string
-    studentName: string
-    branch: string
-    educationCounsellor: string
-    paymentProofUrl: string
   }
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const invalidateNavBadges = useInvalidateNavBadges()
   const form = usePredictionTestForm({
     mode: 'edit',
     testId,
     initialValues,
   })
+  const hidePayment = useIsProgramReviewer()
+  const isAcademicLeader = useIsAcademicLeader()
 
   function handleDelete() {
     requestDeleteConfirm({
       title: 'Delete prediction test?',
-      description: `This will permanently remove ${studentName}. This action cannot be undone.`,
+      description: `This will permanently remove the prediction test for ${studentName}. This action cannot be undone.`,
       onConfirm: () => {
         void deletePredictionTest(testId)
           .then(async () => {
             await queryClient.invalidateQueries({
               queryKey: predictionTestQueryKeys.all,
             })
+            invalidateNavBadges()
             notify('success', {
               title: 'Prediction test deleted',
-              description: `${studentName} has been removed.`,
+              description: `Prediction test for ${studentName} has been removed.`,
             })
             void navigate({ to: '/prediction-tests' })
           })
@@ -128,43 +188,146 @@ function PredictionTestEditForm({
   }
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/prediction-tests"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <section className="animate-in fade-in slide-in-from-bottom-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:rounded-3xl">
+          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(160deg,#253CA1_0%,#1B2A5A_100%)] text-sm font-bold tracking-wide text-white shadow-md shadow-[#253CA1]/25">
+                {getInitials(detail.studentName)}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {detail.studentName}
+                  </h2>
+                  {detail.studentSrNumber ? (
+                    <span className="rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[11px] font-semibold text-[#253CA1]">
+                      {detail.studentSrNumber}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  {[
+                    detail.studentCourse
+                      ? courseLabel(detail.studentCourse)
+                      : null,
+                    detail.educationCounsellor
+                      ? `Counsellor: ${detail.educationCounsellor}`
+                      : null,
+                    detail.branch && detail.branch !== '—'
+                      ? detail.branch
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || 'Prediction test'}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {hidePayment ? null : (
+                    <DataTableBadge tone={paymentStatusTone(detail.status)}>
+                      {paymentStatusLabel(detail.status)}
+                    </DataTableBadge>
+                  )}
+                  {hidePayment ? null : (
+                    <DataTableBadge
+                      tone={detail.managerApproved ? 'success' : 'info'}
+                    >
+                      {detail.managerApproved
+                        ? 'Approved by BM'
+                        : 'Awaiting Approval by BM'}
+                    </DataTableBadge>
+                  )}
+                  <DataTableBadge
+                    tone={reviewStatusTone(
+                      detail.academicLeaderStatus,
+                      detail.academicLeaderDecision,
+                    )}
+                  >
+                    {reviewStatusLabel(detail.academicLeaderDecision)}
+                  </DataTableBadge>
+                  {isAcademicLeader ? null : (
+                    <Link
+                      to="/prospective-students/$prospectiveStudentId/edit"
+                      params={{ prospectiveStudentId: detail.studentId }}
+                      className="text-xs font-semibold text-[#253CA1] hover:underline"
+                    >
+                      View lead
+                    </Link>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Created {formatDateTime(detail.createdAt)} · Updated{' '}
+                  {formatDateTime(detail.updatedAt)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              onClick={form.cancel}
             >
-              <ArrowLeft className="size-4" />
-              Prediction Tests
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Update Prediction Test
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Edit prediction test details for {studentName}.
-            </p>
+              Go Back
+            </Button>
           </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+        </section>
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <PredictionTestForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            meta={meta}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+        <PredictionTestForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          meta={meta}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
+
+function paymentStatusLabel(status: PredictionTestStatus) {
+  if (status === 'approved') return 'Approved by Finance'
+  if (status === 'pending') return 'Awaiting Approval by Finance'
+  return 'Void'
+}
+
+function paymentStatusTone(status: PredictionTestStatus) {
+  if (status === 'approved') return 'success' as const
+  if (status === 'pending') return 'info' as const
+  return 'danger' as const
+}
+
+function reviewStatusLabel(decision: AcademicLeaderDecision | null) {
+  if (decision === 'reject') return 'Changes Requested by AL'
+  if (decision === 'approve') return 'Approved by AL'
+  return 'Awaiting Approval by AL'
+}
+
+function reviewStatusTone(
+  status: AcademicLeaderStatus,
+  decision: AcademicLeaderDecision | null,
+) {
+  if (decision === 'reject') return 'warning' as const
+  if (decision === 'approve' || status === 'reviewed') return 'success' as const
+  return 'info' as const
 }

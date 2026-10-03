@@ -22,14 +22,9 @@ export const userFormSchema = z.object({
   homePhone: z.string().trim(),
   otherPhone: z.string().trim(),
   isActive: z.boolean(),
-  staffType: z
-    .string()
-    .trim()
-    .min(1, 'Staff type is required.')
-    .refine(
-      (value) => value === 'English' || value === 'Mandarin',
-      'Select a valid staff type.',
-    ),
+  staffTypes: z.array(z.enum(['English', 'Mandarin', 'IT', 'Accounting'])),
+  employmentType: z.enum(['', 'FT', 'PT', 'FL']),
+  workingDaysPerWeek: z.enum(['', '5', '6']),
   branchId: z.string().trim().min(1, 'Branch is required.'),
   paidLeave: z
     .string()

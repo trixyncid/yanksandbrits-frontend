@@ -1,12 +1,18 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo } from 'react'
 
-import { DataTable } from '../../../shared/components/data-table'
+import {
+  ClearListFiltersButton,
+  DataTable,
+  ListFilterSearchSelect,
+  ListToolbarFilters,
+} from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
-import { Select } from '../../../shared/components/ui/select'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { prospectiveStudentListColumns } from '../components/prospective-student-list-columns'
 import {
@@ -17,53 +23,99 @@ import { useProspectiveStudentsQuery } from '../hooks/use-prospective-students-q
 import type { ProspectiveStudentListItem } from '../types/prospective-student'
 
 function filterProspectiveStudent(row: ProspectiveStudentListItem, search: string) {
-  const haystack = [
-    row.fullName,
-    row.email,
-    row.phone,
-    row.course,
-    row.status,
-    row.educationCounsellor,
-    row.branch,
-    row.gender ?? '',
-  ]
-    .join(' ')
-    .toLowerCase()
+  return row.fullName.toLowerCase().includes(search)
+}
 
-  return haystack.includes(search)
+const EMPTY_FILTERS = { counsellorId: '' } as const
+
+type ProspectiveStudentListFilterState = {
+  counsellorId: string
 }
 
 export default function ProspectiveStudentListPage() {
   const navigate = useNavigate()
-  const [counsellorId, setCounsellorId] = useState('')
+  const [filters, setFilters] = useSessionState<ProspectiveStudentListFilterState>(
+    'list-filters:prospective-students',
+    { ...EMPTY_FILTERS },
+  )
+  const hideCounsellorFilter = useIsRestrictedMarketing()
   const counsellorsQuery = useMarketingOptionsQuery()
+  const counsellorOptions = useMemo(
+    () => [
+      { value: '', label: 'All counsellors' },
+      ...(counsellorsQuery.data ?? []).map((option) => ({
+        value: option.id,
+        label: option.pin
+          ? `${option.pin} · ${option.fullName}`
+          : option.fullName,
+        keywords: `${option.pin} ${option.fullName} ${option.email}`,
+      })),
+    ],
+    [counsellorsQuery.data],
+  )
+  const hasActiveFilters = !hideCounsellorFilter && Boolean(filters.counsellorId)
   const studentsQuery = useProspectiveStudentsQuery({
-    counsellorId: counsellorId || undefined,
+    counsellorId: hideCounsellorFilter
+      ? undefined
+      : filters.counsellorId || undefined,
   })
 
-  const counsellorFilter = (
-    <Select
-      value={counsellorId}
-      onChange={(event) => setCounsellorId(event.target.value)}
-      containerClassName="w-[240px]"
-    >
-      <option value="">All counsellors</option>
-      {(counsellorsQuery.data ?? []).map((option) => (
-        <option key={option.id} value={option.id}>
-          {option.pin} | {option.fullName}
-        </option>
-      ))}
-    </Select>
+  const clearFilters = () => setFilters({ ...EMPTY_FILTERS })
+
+  function openCreate() {
+    void navigate({ to: '/prospective-students/new' })
+  }
+
+  const listFilters = hideCounsellorFilter ? undefined : (
+    <ListToolbarFilters>
+      <ListFilterSearchSelect
+        label="Counsellor"
+        ariaLabel="Filter by counsellor"
+        value={filters.counsellorId}
+        onChange={(counsellorId) =>
+          setFilters((current) => ({ ...current, counsellorId }))
+        }
+        options={counsellorOptions}
+        disabled={counsellorsQuery.isLoading}
+        searchPlaceholder="Search by name or PIN"
+        emptyMessage="No counsellors found"
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={clearFilters}
+        className="h-10 rounded-full border-slate-200 bg-white hover:bg-slate-50"
+      />
+    </ListToolbarFilters>
   )
 
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
+              Prospective Students
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-slate-500">
+              Track marketing leads and prospective student inquiries.
+            </p>
+          </div>
+          <Can module="prospectiveStudents" action="add">
+            <Button
+              onClick={openCreate}
+              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
+            >
+              <Plus className="size-4" />
+              Add Prospective Student
+            </Button>
+          </Can>
+        </div>
+
         {studentsQuery.isLoading ? <ProspectiveStudentListLoadingState /> : null}
 
         {studentsQuery.isError ? (
-          <div className="space-y-3">
-            <div className="flex justify-end">{counsellorFilter}</div>
+          <div className="space-y-2">
+            {listFilters}
             <ProspectiveStudentListErrorState
               onRetry={() => void studentsQuery.refetch()}
             />
@@ -71,32 +123,21 @@ export default function ProspectiveStudentListPage() {
         ) : null}
 
         {studentsQuery.isSuccess ? (
-          <DataTable
-            title="Prospective Student List"
-            description="Track marketing leads and prospective student inquiries."
-            totalLabel="leads"
-            columns={prospectiveStudentListColumns}
-            data={studentsQuery.data.data}
-            searchPlaceholder="Search by name, course, status, counsellor..."
-            globalFilterFn={filterProspectiveStudent}
-            initialPageSize={10}
-            emptyMessage="No prospective students found"
-            toolbarActions={
-              <div className="flex items-center gap-2">
-                {counsellorFilter}
-                <Can module="prospectiveStudents" action="add">
-                  <Button
-                    onClick={() =>
-                      void navigate({ to: '/prospective-students/new' })
-                    }
-                  >
-                    <Plus className="size-4" />
-                    Add Prospective Student
-                  </Button>
-                </Can>
-              </div>
-            }
-          />
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              title="Leads"
+              description="Search and manage prospective student records."
+              totalLabel="leads"
+              columns={prospectiveStudentListColumns}
+              data={studentsQuery.data.data}
+              searchPlaceholder="Search by student name..."
+              searchVariant="pill"
+              globalFilterFn={filterProspectiveStudent}
+              initialPageSize={10}
+              emptyMessage="No prospective students found"
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
     </AdminShell>

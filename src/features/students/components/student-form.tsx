@@ -1,18 +1,43 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { parseISO } from 'date-fns'
-import { useMemo, type FormEvent, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
 
+import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../shared/components/ui/dialog'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
 import { Select } from '../../../shared/components/ui/select'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { notify } from '../../../shared/lib/notify'
+import { toTitleCase } from '../../../shared/lib/to-title-case'
+import { Can } from '../../auth/components/can'
 import {
-  useIsManager,
-  useIsMarketing,
+  useAuthUser,
+  useIsRestrictedMarketing,
 } from '../../auth/hooks/use-permissions'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import {
+  createInstitution,
+  createOccupation,
+} from '../../lookups/api/lookups-api'
 import {
   useInstitutionOptionsQuery,
   useOccupationOptionsQuery,
@@ -22,6 +47,8 @@ import type {
   StudentFormErrors,
   StudentFormValues,
 } from '../types/student'
+
+type QuickAddKind = 'occupation' | 'institution'
 
 function FieldError({ message }: { message?: string }) {
   if (!message) {
@@ -99,10 +126,14 @@ export function StudentForm({
   onSubmit,
   onCancel,
 }: StudentFormProps) {
+  const queryClient = useQueryClient()
   const branchesQuery = useBranchesQuery()
   const occupationsQuery = useOccupationOptionsQuery()
   const institutionsQuery = useInstitutionOptionsQuery()
   const counsellorsQuery = useMarketingOptionsQuery()
+  const [quickAddKind, setQuickAddKind] = useState<QuickAddKind | null>(null)
+  const [quickAddName, setQuickAddName] = useState('')
+  const [isQuickAdding, setIsQuickAdding] = useState(false)
   const counsellorOptions = useMemo(
     () =>
       (counsellorsQuery.data ?? []).map((option) => ({
@@ -128,9 +159,101 @@ export function StudentForm({
       })),
     [institutionsQuery.data],
   )
-  const isManager = useIsManager()
-  const isMarketing = useIsMarketing()
-  const lockIdentityFields = mode === 'edit' && isMarketing && !isManager
+  const authUser = useAuthUser()
+  const isRestrictedMarketing = useIsRestrictedMarketing()
+  const lockCounsellor = isRestrictedMarketing
+  const lockIdentityFields = mode === 'edit' && isRestrictedMarketing
+
+  // Marketing counsellors are always attributed to themselves on create.
+  useEffect(() => {
+    if (!lockCounsellor || mode !== 'create' || !authUser?.id) {
+      return
+    }
+    const selfId = String(authUser.id)
+    if (values.counsellorId === selfId) {
+      return
+    }
+    onChange('counsellorId', selfId)
+    // Intentionally omit onChange: parent passes a fresh function each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync self attribution once
+  }, [authUser?.id, lockCounsellor, mode, values.counsellorId])
+
+  function openQuickAdd(kind: QuickAddKind) {
+    setQuickAddKind(kind)
+    setQuickAddName('')
+  }
+
+  function closeQuickAdd() {
+    if (isQuickAdding) {
+      return
+    }
+    setQuickAddKind(null)
+    setQuickAddName('')
+  }
+
+  async function handleQuickAdd(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!quickAddKind) {
+      return
+    }
+
+    const name = toTitleCase(quickAddName)
+    if (!name) {
+      notify('error', {
+        title:
+          quickAddKind === 'occupation'
+            ? 'Occupation name required'
+            : 'Institution name required',
+        description: 'Please enter a name before adding.',
+      })
+      return
+    }
+
+    setIsQuickAdding(true)
+    try {
+      if (quickAddKind === 'occupation') {
+        const created = await createOccupation({ name })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['lookups', 'occupations'] }),
+          queryClient.invalidateQueries({ queryKey: ['occupations', 'list'] }),
+        ])
+        onChange('occupationId', created.id)
+        notify('success', {
+          title: 'Occupation added',
+          description: `${created.name} is ready to use.`,
+        })
+      } else {
+        const created = await createInstitution({
+          name,
+          address: '',
+          phone: '',
+        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['lookups', 'institutions'],
+          }),
+          queryClient.invalidateQueries({ queryKey: ['institutions', 'list'] }),
+        ])
+        onChange('institutionId', created.id)
+        notify('success', {
+          title: 'Institution added',
+          description: `${created.name} is ready to use.`,
+        })
+      }
+      setQuickAddKind(null)
+      setQuickAddName('')
+    } catch (error) {
+      notify('error', {
+        title:
+          quickAddKind === 'occupation'
+            ? 'Unable to add occupation'
+            : 'Unable to add institution',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsQuickAdding(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -138,6 +261,7 @@ export function StudentForm({
   }
 
   return (
+    <>
     <form className="space-y-8" onSubmit={handleSubmit} noValidate>
       <section className="space-y-4">
         <div>
@@ -155,8 +279,10 @@ export function StudentForm({
             htmlFor="counsellorId"
             error={errors.counsellorId}
             hint={
-              lockIdentityFields
-                ? 'Marketing cannot change the education counsellor.'
+              lockCounsellor
+                ? mode === 'create'
+                  ? 'Assigned to you as the enrolling counsellor.'
+                  : 'Marketing cannot change the education counsellor.'
                 : 'Counsellor helps generate the student PIN.'
             }
           >
@@ -168,7 +294,7 @@ export function StudentForm({
               placeholder="Select counsellor"
               searchPlaceholder="Search counsellors..."
               emptyMessage="No marketing staff found"
-              disabled={lockIdentityFields || counsellorsQuery.isLoading}
+              disabled={lockCounsellor || counsellorsQuery.isLoading}
             />
           </Field>
 
@@ -282,7 +408,7 @@ export function StudentForm({
               placeholder="Pick birth date"
               title="Birth date"
               captionLayout="dropdown"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -324,7 +450,7 @@ export function StudentForm({
             />
           </Field>
           <Field
-            label="Phone (Home)"
+            label="Phone (Parents)"
             htmlFor="homePhone"
             error={errors.homePhone}
           >
@@ -369,33 +495,67 @@ export function StudentForm({
             htmlFor="occupationId"
             error={errors.occupationId}
           >
-            <SearchableSelect
-              id="occupationId"
-              value={values.occupationId}
-              options={occupationOptions}
-              onChange={(next) => onChange('occupationId', next)}
-              placeholder="Select occupation"
-              searchPlaceholder="Search occupations..."
-              emptyMessage="No occupations found"
-              disabled={occupationsQuery.isLoading}
-            />
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <SearchableSelect
+                  id="occupationId"
+                  value={values.occupationId}
+                  options={occupationOptions}
+                  onChange={(next) => onChange('occupationId', next)}
+                  placeholder="Select occupation"
+                  searchPlaceholder="Search occupations..."
+                  emptyMessage="No occupations found"
+                  disabled={occupationsQuery.isLoading}
+                />
+              </div>
+              <Can module="occupations" action="add">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  aria-label="Quick add occupation"
+                  title="Quick add occupation"
+                  className="size-12 shrink-0 px-0"
+                  onClick={() => openQuickAdd('occupation')}
+                  disabled={occupationsQuery.isLoading || isSubmitting}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </Can>
+            </div>
           </Field>
           <Field
             label="Current Institution"
             htmlFor="institutionId"
             error={errors.institutionId}
           >
-            <SearchableSelect
-              id="institutionId"
-              value={values.institutionId}
-              options={institutionOptions}
-              onChange={(next) => onChange('institutionId', next)}
-              placeholder="Select institution"
-              searchPlaceholder="Search institutions..."
-              emptyMessage="No institutions found"
-              disabled={institutionsQuery.isLoading}
-              clearable
-            />
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <SearchableSelect
+                  id="institutionId"
+                  value={values.institutionId}
+                  options={institutionOptions}
+                  onChange={(next) => onChange('institutionId', next)}
+                  placeholder="Select institution"
+                  searchPlaceholder="Search institutions..."
+                  emptyMessage="No institutions found"
+                  disabled={institutionsQuery.isLoading}
+                  clearable
+                />
+              </div>
+              <Can module="institutions" action="add">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  aria-label="Quick add institution"
+                  title="Quick add institution"
+                  className="size-12 shrink-0 px-0"
+                  onClick={() => openQuickAdd('institution')}
+                  disabled={institutionsQuery.isLoading || isSubmitting}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </Can>
+            </div>
           </Field>
         </div>
       </section>
@@ -470,7 +630,7 @@ export function StudentForm({
               }
               placeholder="Pick enrollment date"
               title="Enrollment date"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -491,22 +651,22 @@ export function StudentForm({
             </Select>
           </Field>
 
-          <Field label="Active Status" htmlFor="status" error={errors.status}>
-            <Select
-              id="status"
-              containerClassName="w-full sm:w-full"
-              value={values.status}
-              onChange={(event) =>
-                onChange(
-                  'status',
-                  event.target.value as StudentFormValues['status'],
-                )
-              }
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Select>
-          </Field>
+          <StatusToggle
+            id="student-status"
+            value={values.status === 'active'}
+            onChange={(next) =>
+              onChange('status', next ? 'active' : 'inactive')
+            }
+            disabled={mode === 'create'}
+            description={
+              mode === 'create'
+                ? 'Starts inactive. Becomes active after an approved payment installment.'
+                : values.status === 'active'
+                  ? 'Student can be scheduled and added to groups.'
+                  : 'Inactive until an approved payment activates them (or you turn Active on).'
+            }
+            error={errors.status}
+          />
         </div>
       </section>
 
@@ -530,5 +690,84 @@ export function StudentForm({
         </Button>
       </div>
     </form>
+
+      <Dialog
+        open={quickAddKind !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeQuickAdd()
+          }
+        }}
+      >
+        <DialogContent
+          showClose
+          className="overflow-hidden p-0 sm:max-w-lg"
+        >
+          <form
+            onSubmit={handleQuickAdd}
+            className="flex max-h-[90vh] flex-col"
+          >
+            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+                <Plus className="size-5" />
+              </div>
+              <DialogHeader className="pr-0">
+                <DialogTitle>
+                  {quickAddKind === 'occupation'
+                    ? 'Quick Add Occupation'
+                    : 'Quick Add Institution'}
+                </DialogTitle>
+                <DialogDescription>
+                  {quickAddKind === 'occupation'
+                    ? 'Add a new occupation and select it for this student.'
+                    : 'Add a new institution and select it for this student.'}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-6 py-5">
+              <Label htmlFor="quick-add-name">
+                {quickAddKind === 'occupation'
+                  ? 'Occupation Name'
+                  : 'Institution Name'}
+              </Label>
+              <Input
+                id="quick-add-name"
+                value={quickAddName}
+                onChange={(event) => setQuickAddName(event.target.value)}
+                placeholder={
+                  quickAddKind === 'occupation'
+                    ? 'e.g. university student'
+                    : 'e.g. universitas indonesia'
+                }
+                autoFocus
+              />
+              <p className="text-xs text-slate-400">
+                Saved as Title Case
+                {quickAddName.trim()
+                  ? `: ${toTitleCase(quickAddName)}`
+                  : '.'}
+              </p>
+            </div>
+
+            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={closeQuickAdd}
+                disabled={isQuickAdding}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={isQuickAdding}>
+                <Plus className="size-3.5" />
+                {isQuickAdding ? 'Adding...' : 'Add & Select'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

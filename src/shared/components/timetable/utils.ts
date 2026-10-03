@@ -55,7 +55,7 @@ export function groupEventsByColumn(events: TimetableEvent[]) {
 
 /** Status badge tones (ongoing / finished / cancelled). Card body uses program colors. */
 export const timetableToneClasses: Record<TimetableTone, string> = {
-  blue: 'border-[#4274B9]/45 bg-[#EDF4FF] text-[#1E3A5F]',
+  blue: 'border-[#253CA1]/45 bg-[#E8EEFF] text-[#1E3A5F]',
   green: 'border-[#3D9B6E]/45 bg-[#E8F7EF] text-[#1F5A3D]',
   amber: 'border-[#C9952A]/45 bg-[#FBF3E0] text-[#6B4E12]',
   violet: 'border-[#5B6FA8]/40 bg-[#EEF1F8] text-[#2F3A66]',
@@ -63,7 +63,7 @@ export const timetableToneClasses: Record<TimetableTone, string> = {
 }
 
 export const timetableStatusBadgeClasses: Record<TimetableTone, string> = {
-  blue: 'bg-[#4274B9] text-white',
+  blue: 'bg-[#253CA1] text-white',
   green: 'bg-[#3D9B6E] text-white',
   amber: 'bg-[#C9952A] text-white',
   violet: 'bg-[#5B6FA8] text-white',

@@ -6,7 +6,7 @@ export function StaffListLoadingState() {
   return (
     <div className="flex min-h-72 items-center justify-center rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm">
       <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
-        <LoaderCircle className="size-4 animate-spin text-[#4274B9]" />
+        <LoaderCircle className="size-4 animate-spin text-[#253CA1]" />
         Loading user accounts...
       </div>
     </div>

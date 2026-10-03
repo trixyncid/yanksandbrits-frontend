@@ -109,16 +109,25 @@ function StaffUserEditForm({
     initialValues,
   })
   const back = detailLink(entity, userId)
+  const isRoleAccount = entity.kind === 'tutor' || entity.kind === 'marketing'
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-4xl space-y-6">
+    <AdminShell
+      mainClassName={isRoleAccount ? 'px-3 py-4 sm:px-5 sm:py-5' : undefined}
+    >
+      <div
+        className={
+          isRoleAccount
+            ? 'mx-auto max-w-6xl space-y-6'
+            : 'mx-auto max-w-4xl space-y-6'
+        }
+      >
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link
               to={back.to}
               params={back.params}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               {pin || 'Account'} | {fullName}
@@ -135,18 +144,33 @@ function StaffUserEditForm({
           </Button>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+        {isRoleAccount ? (
           <UserForm
             mode="edit"
             values={form.values}
             errors={form.errors}
             isSubmitting={form.isSubmitting}
             entityLabel={entity.singular}
+            entityKind={entity.kind}
+            defaultRoleCode={entity.defaultRoleCode}
             onChange={form.updateField}
             onSubmit={form.submit}
             onCancel={form.cancel}
           />
-        </div>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+            <UserForm
+              mode="edit"
+              values={form.values}
+              errors={form.errors}
+              isSubmitting={form.isSubmitting}
+              entityLabel={entity.singular}
+              onChange={form.updateField}
+              onSubmit={form.submit}
+              onCancel={form.cancel}
+            />
+          </div>
+        )}
       </div>
     </AdminShell>
   )

@@ -33,11 +33,29 @@ import type { StaffEntityConfig } from '../lib/staff-entity-config'
 
 type DetailTab = 'schedule' | 'salary' | 'leave'
 
-const TABS: { id: DetailTab; label: string }[] = [
+const BASE_TABS: { id: DetailTab; label: string }[] = [
   { id: 'schedule', label: 'Schedule' },
   { id: 'salary', label: 'Salary' },
   { id: 'leave', label: 'Leave' },
 ]
+
+const TAB_COPY: Record<
+  DetailTab,
+  { title: string; description: string }
+> = {
+  schedule: {
+    title: 'Working schedule',
+    description: 'Weekly working hours and schedule-linked rates.',
+  },
+  salary: {
+    title: 'Salary',
+    description: 'Compensation details for this staff member.',
+  },
+  leave: {
+    title: 'Paid leave',
+    description: 'Leave balance and request history.',
+  },
+}
 
 export function StaffUserDetailPage({
   userId,
@@ -65,7 +83,7 @@ export function StaffUserDetailPage({
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
             <UserRound className="size-6" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-slate-900">
@@ -93,6 +111,16 @@ export function StaffUserDetailPage({
   const genderLabel =
     user.gender === 'male' ? 'Male' : user.gender === 'female' ? 'Female' : '—'
   const isStudentAccount = user.isStudent
+  const isMarketingDetail =
+    entity.kind === 'marketing' || user.isMarketing
+  const tabs = isMarketingDetail
+    ? [
+        { id: 'salary' as const, label: 'Salary' },
+        { id: 'leave' as const, label: 'Leave' },
+      ]
+    : BASE_TABS
+  const activeTab = tabs.some((item) => item.id === tab) ? tab : tabs[0]!.id
+  const tabCopy = TAB_COPY[activeTab]
 
   function handleDelete() {
     requestDeleteConfirm({
@@ -129,16 +157,16 @@ export function StaffUserDetailPage({
         className="mx-auto max-w-6xl space-y-6"
         style={
           {
-            '--profile-blue': '#4274B9',
-            '--profile-blue-deep': '#2F5A94',
-            '--profile-blue-soft': '#EDF4FF',
+            '--profile-blue': '#253CA1',
+            '--profile-blue-deep': '#1B2A5A',
+            '--profile-blue-soft': '#E8EEFF',
           } as CSSProperties
         }
       >
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <Link
             to={entity.listPath}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
           >
             <ArrowLeft className="size-4" />
             {entity.plural}
@@ -148,13 +176,12 @@ export function StaffUserDetailPage({
         <StaffHeader user={user} entity={entity} onDelete={handleDelete} />
 
         {isStudentAccount && user.studentId ? (
-          <div className="rounded-[1.25rem] border border-[#BED2F2] bg-[#F8FBFF] px-5 py-4 text-sm text-slate-600">
-            This is a student login account. Manage CRM details and portal
-            access from the{' '}
+          <div className="rounded-[1.25rem] border border-[#C8D4F5] bg-[#F5F8FF] px-5 py-4 text-sm text-slate-600">
+            This is a student login account. Manage CRM details from the{' '}
             <Link
               to="/students/$studentId"
               params={{ studentId: user.studentId }}
-              className="font-semibold text-[#2F5A94] underline-offset-2 hover:underline"
+              className="font-semibold text-[#1B2A5A] underline-offset-2 hover:underline"
             >
               student record
             </Link>
@@ -228,10 +255,43 @@ export function StaffUserDetailPage({
                     label="Branch"
                     value={user.branchName ?? '—'}
                   />
-                  <StaffDetailItem
-                    label="Staff type"
-                    value={user.staffType ?? '—'}
-                  />
+                  {entity.kind === 'marketing' ? null : (
+                    <StaffDetailItem
+                      label={entity.kind === 'tutor' ? 'Subjects' : 'Staff type'}
+                      value={
+                        user.staffTypes.length > 0
+                          ? user.staffTypes.join(', ')
+                          : '—'
+                      }
+                    />
+                  )}
+                  {user.isTutor ? (
+                    <>
+                      <StaffDetailItem
+                        label="Employment type"
+                        value={
+                          user.employmentType === 'FT'
+                            ? 'Full-time'
+                            : user.employmentType === 'PT'
+                              ? 'Part-time'
+                              : user.employmentType === 'FL'
+                                ? 'Freelance'
+                                : '—'
+                        }
+                      />
+                      {user.employmentType === 'FT' ||
+                      user.employmentType === 'PT' ? (
+                        <StaffDetailItem
+                          label="Working days / week"
+                          value={
+                            user.workingDaysPerWeek == null
+                              ? '—'
+                              : `${user.workingDaysPerWeek} days`
+                          }
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
                   <StaffDetailItem label="Staff PIN" value={user.pin ?? '—'} />
                   <StaffDetailItem
                     label="Resign date"
@@ -261,7 +321,7 @@ export function StaffUserDetailPage({
               <h3 className="text-base font-bold text-slate-900">Activity</h3>
               <div className="space-y-4">
                 <div className="flex gap-3">
-                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#EDF4FF] text-[#4274B9]">
+                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#E8EEFF] text-[#253CA1]">
                     <CalendarDays className="size-4" />
                   </span>
                   <div className="min-w-0">
@@ -272,7 +332,7 @@ export function StaffUserDetailPage({
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#EDF4FF] text-[#4274B9]">
+                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#E8EEFF] text-[#253CA1]">
                     <Clock3 className="size-4" />
                   </span>
                   <div className="min-w-0">
@@ -283,7 +343,7 @@ export function StaffUserDetailPage({
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#EDF4FF] text-[#4274B9]">
+                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#E8EEFF] text-[#253CA1]">
                     <Clock3 className="size-4" />
                   </span>
                   <div className="min-w-0">
@@ -300,16 +360,21 @@ export function StaffUserDetailPage({
 
         {!isStudentAccount ? (
           <section className="animate-in fade-in slide-in-from-bottom-2 delay-150 space-y-4">
-            <div className="flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:max-w-lg">
-              {TABS.map((item) => (
+            <div
+              className={cn(
+                'flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm',
+                tabs.length > 3 ? 'sm:max-w-2xl' : 'sm:max-w-lg',
+              )}
+            >
+              {tabs.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setTab(item.id)}
                   className={cn(
-                    'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
-                    tab === item.id
-                      ? 'bg-[#4274B9] text-white shadow-md shadow-[#4274B9]/25'
+                    'flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition sm:px-4',
+                    activeTab === item.id
+                      ? 'bg-[#253CA1] text-white shadow-md shadow-[#253CA1]/25'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
                   )}
                 >
@@ -321,24 +386,16 @@ export function StaffUserDetailPage({
             <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-6 py-4">
                 <h3 className="text-lg font-bold text-slate-900">
-                  {tab === 'schedule'
-                    ? 'Working schedule'
-                    : tab === 'salary'
-                      ? 'Salary'
-                      : 'Paid leave'}
+                  {tabCopy.title}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {tab === 'schedule'
-                    ? 'Weekly working hours and schedule-linked rates.'
-                    : tab === 'salary'
-                      ? 'Compensation details for this staff member.'
-                      : 'Leave balance and request history.'}
+                  {tabCopy.description}
                 </p>
               </div>
 
-              {tab === 'schedule' ? <StaffScheduleTab user={user} /> : null}
-              {tab === 'salary' ? <StaffSalaryTab user={user} /> : null}
-              {tab === 'leave' ? <StaffLeaveTab user={user} /> : null}
+              {activeTab === 'schedule' ? <StaffScheduleTab user={user} /> : null}
+              {activeTab === 'salary' ? <StaffSalaryTab user={user} /> : null}
+              {activeTab === 'leave' ? <StaffLeaveTab user={user} /> : null}
             </div>
           </section>
         ) : null}

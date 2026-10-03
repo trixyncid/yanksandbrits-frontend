@@ -1,9 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import { userQueryKeys } from '../api/user-query-keys'
 import {
   createUser,
@@ -33,9 +34,29 @@ export function useUserForm({
 }: UseUserFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const rolesQuery = useStaffPermissionsQuery()
   const [values, setValues] = useState<UserFormValues>(initialValues)
   const [errors, setErrors] = useState<UserFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (mode !== 'create' || !entity.defaultRoleCode) return
+    if (values.groupIds.length > 0) return
+    const role = rolesQuery.data?.data.find(
+      (item) => item.code === entity.defaultRoleCode,
+    )
+    if (!role) return
+    setValues((current) =>
+      current.groupIds.length > 0
+        ? current
+        : { ...current, groupIds: [role.id] },
+    )
+  }, [
+    mode,
+    entity.defaultRoleCode,
+    rolesQuery.data,
+    values.groupIds.length,
+  ])
 
   function updateField<K extends keyof UserFormValues>(
     field: K,
@@ -62,6 +83,19 @@ export function useUserForm({
     const passwordError = validateUserPassword(nextValues.password, mode)
     if (passwordError) {
       nextErrors.password = passwordError
+    }
+
+    if (entity.kind === 'marketing') {
+      delete nextErrors.staffTypes
+      if (!nextValues.initial.trim()) {
+        nextErrors.initial =
+          'Initials are required so commission can be attributed.'
+      }
+    } else if (nextValues.staffTypes.length === 0) {
+      nextErrors.staffTypes =
+        entity.kind === 'tutor'
+          ? 'Select at least one subject.'
+          : 'Staff type is required.'
     }
 
     setErrors(nextErrors)
@@ -96,10 +130,12 @@ export function useUserForm({
     }
 
     setIsSubmitting(true)
+    const payloadValues =
+      entity.kind === 'marketing' ? { ...values, staffTypes: [] } : values
 
     try {
       if (mode === 'create') {
-        const created = await createUser(values)
+        const created = await createUser(payloadValues)
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: userQueryKeys.all }),
           queryClient.invalidateQueries({ queryKey: entity.listQueryKey }),
@@ -116,7 +152,7 @@ export function useUserForm({
         return
       }
 
-      const updated = await updateUser(userId, values)
+      const updated = await updateUser(userId, payloadValues)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: userQueryKeys.all }),
         queryClient.invalidateQueries({ queryKey: entity.listQueryKey }),

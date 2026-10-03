@@ -17,10 +17,12 @@ import {
 } from '../api/bookkeeping-api'
 import { bookkeepingQueryKeys } from '../api/bookkeeping-query-keys'
 import { bookkeepingMarketingSalaryColumns } from '../components/bookkeeping-marketing-salary-columns'
+import { BookkeepingSalaryBreakdown } from '../components/bookkeeping-salary-breakdown'
 import { bookkeepingTutorSalaryColumns } from '../components/bookkeeping-tutor-salary-columns'
 import {
   useBookkeepingItemQuery,
   useBookkeepingMarketingSalariesQuery,
+  useBookkeepingSalaryBreakdownQuery,
   useBookkeepingTutorSalariesQuery,
 } from '../hooks/use-bookkeeping-query'
 import type {
@@ -29,7 +31,7 @@ import type {
   BookkeepingTutorSalaryItem,
 } from '../types/bookkeeping'
 
-type DetailTab = 'tutors' | 'marketing'
+type DetailTab = 'tutors' | 'marketing' | 'breakdown'
 
 function formatDate(value: string) {
   if (!value) {
@@ -108,6 +110,7 @@ export default function BookkeepingDetailPage() {
   const tutorsQuery = useBookkeepingTutorSalariesQuery(bookkeepingId)
   const marketingQuery = useBookkeepingMarketingSalariesQuery(bookkeepingId)
   const [tab, setTab] = useState<DetailTab>('tutors')
+  const breakdownQuery = useBookkeepingSalaryBreakdownQuery(bookkeepingId)
   const [isRecalculating, setIsRecalculating] = useState(false)
 
   async function handleRecalculate() {
@@ -123,6 +126,9 @@ export default function BookkeepingDetailPage() {
         }),
         queryClient.invalidateQueries({
           queryKey: bookkeepingQueryKeys.marketingSalaries(bookkeepingId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: bookkeepingQueryKeys.salaryBreakdown(bookkeepingId),
         }),
       ])
       notify('success', {
@@ -211,7 +217,7 @@ export default function BookkeepingDetailPage() {
           <div>
             <Link
               to="/bookkeeping"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               Bookkeeping
@@ -290,9 +296,9 @@ export default function BookkeepingDetailPage() {
               type="button"
               onClick={() => setTab('tutors')}
               className={cn(
-                'flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition',
+                'flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition sm:px-4',
                 tab === 'tutors'
-                  ? 'bg-gradient-to-r from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] text-white shadow-md shadow-[#4274B9]/20'
+                  ? 'bg-gradient-to-r from-[#3A56B8] via-[#253CA1] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/20'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
               )}
             >
@@ -307,9 +313,9 @@ export default function BookkeepingDetailPage() {
               type="button"
               onClick={() => setTab('marketing')}
               className={cn(
-                'flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition',
+                'flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition sm:px-4',
                 tab === 'marketing'
-                  ? 'bg-gradient-to-r from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] text-white shadow-md shadow-[#4274B9]/20'
+                  ? 'bg-gradient-to-r from-[#3A56B8] via-[#253CA1] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/20'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
               )}
             >
@@ -317,6 +323,23 @@ export default function BookkeepingDetailPage() {
               {marketingQuery.data ? (
                 <span className="ml-1.5 opacity-80">
                   ({marketingQuery.data.meta.total})
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('breakdown')}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition sm:px-4',
+                tab === 'breakdown'
+                  ? 'bg-gradient-to-r from-[#3A56B8] via-[#253CA1] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/20'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+              )}
+            >
+              Salary breakdown
+              {breakdownQuery.data ? (
+                <span className="ml-1.5 opacity-80">
+                  ({breakdownQuery.data.meta.total})
                 </span>
               ) : null}
             </button>
@@ -344,25 +367,32 @@ export default function BookkeepingDetailPage() {
                 emptyMessage="No tutor salary calculations for this period"
               />
             )
-          ) : marketingQuery.isLoading ? (
-            <p className="rounded-2xl border border-slate-200/80 bg-white px-6 py-12 text-center text-sm text-slate-500">
-              Loading marketing salaries...
-            </p>
-          ) : marketingQuery.isError ? (
-            <p className="rounded-2xl border border-rose-100 bg-rose-50/70 px-6 py-12 text-center text-sm text-rose-600">
-              {getApiErrorMessage(marketingQuery.error)}
-            </p>
+          ) : tab === 'marketing' ? (
+            marketingQuery.isLoading ? (
+              <p className="rounded-2xl border border-slate-200/80 bg-white px-6 py-12 text-center text-sm text-slate-500">
+                Loading marketing salaries...
+              </p>
+            ) : marketingQuery.isError ? (
+              <p className="rounded-2xl border border-rose-100 bg-rose-50/70 px-6 py-12 text-center text-sm text-rose-600">
+                {getApiErrorMessage(marketingQuery.error)}
+              </p>
+            ) : (
+              <DataTable
+                title="Marketing salaries"
+                description={`Salary calculations for ${periodLabel}.`}
+                totalLabel="marketers"
+                columns={bookkeepingMarketingSalaryColumns}
+                data={marketingQuery.data?.data ?? []}
+                searchPlaceholder="Search by marketer, PIN, email..."
+                globalFilterFn={filterMarketing}
+                initialPageSize={10}
+                emptyMessage="No marketing salary calculations for this period"
+              />
+            )
           ) : (
-            <DataTable
-              title="Marketing salaries"
-              description={`Salary calculations for ${periodLabel}.`}
-              totalLabel="marketers"
-              columns={bookkeepingMarketingSalaryColumns}
-              data={marketingQuery.data?.data ?? []}
-              searchPlaceholder="Search by marketer, PIN, email..."
-              globalFilterFn={filterMarketing}
-              initialPageSize={10}
-              emptyMessage="No marketing salary calculations for this period"
+            <BookkeepingSalaryBreakdown
+              bookkeepingId={bookkeepingId}
+              periodLabel={periodLabel}
             />
           )}
         </section>

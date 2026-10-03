@@ -15,10 +15,10 @@ export default function NotFoundPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F7F9FC] px-6 py-16 text-slate-900">
       <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
-        <div className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9] ring-1 ring-[#BED2F2]">
+        <div className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
           <SearchX className="size-6" />
         </div>
-        <p className="mt-5 text-sm font-semibold tracking-[0.14em] text-[#4274B9] uppercase">
+        <p className="mt-5 text-sm font-semibold tracking-[0.14em] text-[#253CA1] uppercase">
           404
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">

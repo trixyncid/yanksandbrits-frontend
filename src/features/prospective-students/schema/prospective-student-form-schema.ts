@@ -21,32 +21,21 @@ export const prospectiveStudentFormSchema = z
     gender: z.enum(['male', 'female'], {
       message: 'Select a gender.',
     }),
-    course: z.enum(['TOE', 'GET', 'IEL', 'SAT', 'HSK', 'OT'], {
-      message: 'Select a course.',
+    course: z.enum(['TOE', 'IEL', 'GET', 'SAT', 'HSK'], {
+      message: 'Select a prediction test.',
     }),
     status: z.enum([
-      'waiting',
-      'follow_up',
       'consult',
       'prediction_test',
       'cancelled',
       'enrolled',
     ]),
     srNumber: z.string().trim().min(1, 'SR number is required.'),
-    date: z.string().trim().min(1, 'Date is required.'),
-    resource: z.enum(
-      [
-        'Instagram',
-        'Referral',
-        'Walk-in',
-        'Facebook',
-        'Website',
-        'Google',
-        'TikTok',
-        'Other',
-      ],
-      { message: 'Select a resource.' },
-    ),
+    date: z.string().trim().min(1, 'Date consulted is required.'),
+    resourceId: z.string().min(1, 'Select a resource.'),
+    teleMarketing: z.enum(['WI', 'TM'], {
+      message: 'Select tele marketing.',
+    }),
     age: z
       .string()
       .trim()
@@ -66,7 +55,9 @@ export const prospectiveStudentFormSchema = z
     reading: optionalScore,
     writing: optionalScore,
     marketingId: z.string().min(1, 'Select an education counsellor.'),
-    branchId: z.string().min(1, 'Select a branch.'),
+    branchId: z
+      .string()
+      .min(1, 'Selected counsellor has no branch assigned.'),
   })
   .superRefine((values, ctx) => {
     if (values.hasTakenLanguageTest && !values.languageTest) {

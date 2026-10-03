@@ -6,7 +6,7 @@ import {
   mapResponseStatusToApi,
   type CourseCode,
   type LanguageTestCode,
-  type ProspectResource,
+  type TeleMarketingCode,
 } from '../../../shared/api/choices'
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
@@ -35,7 +35,9 @@ type ProspectiveStudentListDto = {
   course: string
   sr_number?: string | null
   date?: string | null
-  resource?: string | null
+  resource?: number | null
+  resource_name?: string | null
+  tele_marketing?: TeleMarketingCode | null
   age?: number | null
   address?: string | null
   language_test?: LanguageTestCode | null
@@ -44,6 +46,8 @@ type ProspectiveStudentListDto = {
   reading?: string | number | null
   writing?: string | number | null
   is_student: boolean
+  is_consult?: boolean
+  can_enroll?: boolean
   marketing: number | null
   marketing_name: string | null
   branch: number | null
@@ -87,7 +91,9 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     status: mapResponseStatusFromApi(dto.status),
     srNumber: dto.sr_number ?? '',
     date: dto.date ?? '',
-    resource: dto.resource ?? '',
+    resourceId: dto.resource == null ? null : String(dto.resource),
+    resource: dto.resource_name ?? '',
+    teleMarketing: (dto.tele_marketing as TeleMarketingCode | null) ?? '',
     age: dto.age ?? null,
     address: dto.address ?? '',
     languageTest,
@@ -102,6 +108,8 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     branch: dto.branch_name ?? '—',
     branchId: dto.branch == null ? null : String(dto.branch),
     isStudent: dto.is_student,
+    isConsult: Boolean(dto.is_consult),
+    canEnroll: Boolean(dto.can_enroll),
   }
 }
 
@@ -117,7 +125,8 @@ function toWritePayload(values: ProspectiveStudentFormValues) {
     course: values.course as CourseCode,
     sr_number: values.srNumber.trim() || null,
     date: values.date.trim() || null,
-    resource: values.resource.trim() || null,
+    resource: values.resourceId ? Number(values.resourceId) : null,
+    tele_marketing: values.teleMarketing || null,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim() || null,
     language_test: hasTakenLanguageTest ? values.languageTest || null : null,
@@ -135,7 +144,11 @@ function filterListItems(
   filters: ProspectiveStudentListFilters,
 ) {
   return items.filter((student) => {
-    if (
+    if (filters.statuses?.length) {
+      if (!filters.statuses.includes(student.status)) {
+        return false
+      }
+    } else if (
       filters.status &&
       filters.status !== 'all' &&
       student.status !== filters.status
@@ -167,7 +180,11 @@ export async function fetchProspectiveStudents(
     marketing: filters.counsellorId ? Number(filters.counsellorId) : undefined,
   }
 
-  if (filters.status && filters.status !== 'all') {
+  if (filters.statuses?.length) {
+    params.status = filters.statuses
+      .map((status) => mapResponseStatusToApi(status))
+      .join(',')
+  } else if (filters.status && filters.status !== 'all') {
     params.status = mapResponseStatusToApi(filters.status)
   }
 
@@ -213,7 +230,9 @@ export async function createProspectiveStudent(
     status: values.status,
     srNumber: values.srNumber.trim(),
     date: values.date,
-    resource: values.resource.trim(),
+    resourceId: values.resourceId || null,
+    resource: '',
+    teleMarketing: values.teleMarketing,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim(),
     languageTest: values.hasTakenLanguageTest ? values.languageTest : '',
@@ -228,6 +247,11 @@ export async function createProspectiveStudent(
     branch: '—',
     branchId: values.branchId || null,
     isStudent: false,
+    isConsult:
+      values.status === 'consult' ||
+      values.status === 'prediction_test' ||
+      values.status === 'enrolled',
+    canEnroll: false,
   }
 }
 
@@ -255,7 +279,8 @@ export function prospectiveStudentToFormValues(
     status: student.status,
     srNumber: student.srNumber,
     date: student.date,
-    resource: (student.resource as ProspectResource) || '',
+    resourceId: student.resourceId ?? '',
+    teleMarketing: student.teleMarketing || '',
     age: student.age == null ? '' : String(student.age),
     address: student.address,
     hasTakenLanguageTest: Boolean(student.languageTest),
@@ -269,26 +294,37 @@ export function prospectiveStudentToFormValues(
   }
 }
 
-export const emptyProspectiveStudentFormValues: ProspectiveStudentFormValues = {
-  fullName: '',
-  email: '',
-  phone: '',
-  gender: '',
-  course: '',
-  status: 'waiting',
-  srNumber: '',
-  date: '',
-  resource: '',
-  age: '',
-  address: '',
-  hasTakenLanguageTest: false,
-  languageTest: '',
-  listening: '',
-  speaking: '',
-  reading: '',
-  writing: '',
-  marketingId: '',
-  branchId: '',
+function todayDateString() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function emptyProspectiveStudentFormValues(): ProspectiveStudentFormValues {
+  return {
+    fullName: '',
+    email: '',
+    phone: '',
+    gender: '',
+    course: '',
+    status: 'consult',
+    srNumber: '',
+    date: todayDateString(),
+    resourceId: '',
+    teleMarketing: '',
+    age: '',
+    address: '',
+    hasTakenLanguageTest: false,
+    languageTest: '',
+    listening: '',
+    speaking: '',
+    reading: '',
+    writing: '',
+    marketingId: '',
+    branchId: '',
+  }
 }
 
 export { courseLabel }

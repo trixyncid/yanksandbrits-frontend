@@ -78,7 +78,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
               type="button"
               aria-label="Open sidebar"
               onClick={onOpenSidebar}
-              className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-600 shadow-sm shadow-slate-200/40 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94] lg:hidden"
+              className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-600 shadow-sm shadow-slate-200/40 transition hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#253CA1] lg:hidden"
             >
               <Menu className="size-4" />
             </button>
@@ -91,7 +91,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                 <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
                   {firstName}
                 </h1>
-                <span className="inline-flex items-center rounded-full border border-[#BED2F2]/80 bg-[#EDF4FF]/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#2F5A94] uppercase">
+                <span className="inline-flex items-center rounded-full border border-[#C8D4F5]/80 bg-[#E8EEFF]/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#253CA1] uppercase">
                   {displayPosition}
                 </span>
               </div>
@@ -100,7 +100,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
             <div className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-slate-500 shadow-sm shadow-slate-200/30 md:flex">
-              <CalendarDays className="size-3.5 text-[#4274B9]" />
+              <CalendarDays className="size-3.5 text-[#253CA1]" />
               <time className="text-xs font-medium text-slate-600">
                 {formattedDate}
               </time>
@@ -116,12 +116,12 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
               onClick={() => void navigate({ to: '/notifications' })}
               className={cn(
                 'relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 shadow-sm shadow-slate-200/30 transition',
-                'hover:border-[#BED2F2] hover:bg-[#F8FBFF] hover:text-[#2F5A94]',
+                'hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#253CA1]',
               )}
             >
               <Bell className="size-4" />
               {unreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-[#5A8BC9] to-[#2F5A94] px-1 text-[9px] font-bold text-white shadow-sm shadow-[#4274B9]/30">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-[#3D56C4] to-[#253CA1] px-1 text-[9px] font-bold text-white shadow-sm shadow-[#253CA1]/30">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               ) : null}
@@ -135,11 +135,11 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                   aria-expanded={menuOpen}
                   className={cn(
                     'inline-flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white py-1.5 pr-2.5 pl-1.5 shadow-sm shadow-slate-200/30 transition',
-                    'hover:border-[#BED2F2] hover:bg-[#F8FBFF]',
-                    menuOpen && 'border-[#BED2F2] bg-[#F8FBFF] ring-2 ring-[#4274B9]/10',
+                    'hover:border-[#C8D4F5] hover:bg-[#E8EEFF]',
+                    menuOpen && 'border-[#C8D4F5] bg-[#E8EEFF] ring-2 ring-[#253CA1]/15',
                   )}
                 >
-                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] text-[11px] font-semibold text-white shadow-sm shadow-[#4274B9]/25">
+                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#3D56C4] via-[#253CA1] to-[#1B2A5A] text-[11px] font-semibold text-white shadow-sm shadow-[#253CA1]/25">
                     {getUserInitials(displayName)}
                   </span>
                   <span className="hidden min-w-0 text-left sm:block">
@@ -153,7 +153,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                   <ChevronDown
                     className={cn(
                       'hidden size-3.5 text-slate-400 transition duration-200 sm:block',
-                      menuOpen && 'rotate-180 text-[#4274B9]',
+                      menuOpen && 'rotate-180 text-[#253CA1]',
                     )}
                   />
                 </button>
@@ -162,9 +162,9 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                 align="end"
                 className="w-64 overflow-hidden rounded-2xl border-slate-200/80 p-0 shadow-xl shadow-slate-200/50"
               >
-                <div className="border-b border-slate-100 bg-gradient-to-b from-[#F8FBFF] to-white px-4 py-3.5">
+                <div className="border-b border-slate-100 bg-gradient-to-b from-[#E8EEFF] to-white px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] text-xs font-semibold text-white shadow-md shadow-[#4274B9]/25">
+                    <span className="inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#3D56C4] via-[#253CA1] to-[#1B2A5A] text-xs font-semibold text-white shadow-md shadow-[#253CA1]/25">
                       {getUserInitials(displayName)}
                     </span>
                     <div className="min-w-0">
@@ -174,7 +174,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         {displayEmail}
                       </p>
-                      <p className="mt-1.5 inline-flex rounded-full bg-[#EDF4FF] px-2 py-0.5 text-[10px] font-semibold text-[#2F5A94]">
+                      <p className="mt-1.5 inline-flex rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#253CA1]">
                         {displayPosition}
                       </p>
                     </div>
@@ -188,9 +188,9 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                       setMenuOpen(false)
                       void navigate({ to: '/profile' })
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#EDF4FF] hover:text-[#2F5A94]"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#E8EEFF] hover:text-[#253CA1]"
                   >
-                    <span className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#4274B9]">
+                    <span className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#253CA1]">
                       <UserRound className="size-3.5" />
                     </span>
                     View profile

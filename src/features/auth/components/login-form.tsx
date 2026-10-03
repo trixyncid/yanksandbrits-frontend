@@ -1,7 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import ynbLogo from '../../../assets/branding/ynb-logo.png'
 import { Button } from '../../../shared/components/ui/button'
 import { Card } from '../../../shared/components/ui/card'
 import { Input } from '../../../shared/components/ui/input'
@@ -35,11 +34,11 @@ export function LoginForm() {
     <Card className="w-full max-w-md px-7 py-8 sm:px-9">
       <div className="mb-8 text-center">
         <img
-          src={ynbLogo}
+          src="/logo.svg"
           alt="Yanks and Brits logo"
           className="mx-auto mb-5 h-28 w-auto object-contain"
         />
-        <h2 className="text-2xl font-bold text-[#4274B9]">Welcome back!</h2>
+        <h2 className="text-2xl font-bold text-[#253CA1]">Welcome back!</h2>
         <p className="mt-2 text-sm text-slate-500">
           Enter your email and password to sign in.
         </p>
@@ -48,7 +47,7 @@ export function LoginForm() {
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <div className="space-y-2.5">
           <div className="pb-1">
-            <Label htmlFor="email">Work email</Label>
+            <Label htmlFor="email">Email</Label>
           </div>
           <Input
             id="email"
@@ -66,7 +65,7 @@ export function LoginForm() {
             <Label htmlFor="password">Password</Label>
             <button
               type="button"
-              className="text-xs font-medium text-[#4274B9] transition hover:text-[#2F5A94]"
+              className="text-xs font-medium text-[#253CA1] transition hover:text-[#1B2A5A]"
             >
               Forgot password?
             </button>
@@ -85,7 +84,7 @@ export function LoginForm() {
           <label className="inline-flex items-center gap-3 text-sm text-slate-600">
             <input
               type="checkbox"
-              className="size-4 rounded border-slate-300 bg-white text-[#4274B9] focus:ring-[#4274B9]/40"
+              className="size-4 rounded border-slate-300 bg-white text-[#253CA1] focus:ring-[#253CA1]/40"
               checked={values.rememberMe}
               onChange={(event) =>
                 updateField('rememberMe', event.target.checked)

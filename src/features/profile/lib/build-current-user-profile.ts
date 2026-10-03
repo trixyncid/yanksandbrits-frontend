@@ -25,7 +25,7 @@ export function getAuthPermissions(user: AuthUser): string[] {
 
   const permissions: string[] = []
   if (user.is_superuser) permissions.push('Superuser')
-  if (user.is_manager) permissions.push('Manager')
+  if (user.is_manager) permissions.push('Admin')
   if (user.is_marketing) permissions.push('Marketing')
   if (user.is_tutor) permissions.push('Tutor')
   if (user.is_student) permissions.push('Student')
@@ -34,8 +34,11 @@ export function getAuthPermissions(user: AuthUser): string[] {
 
 export function getAuthPosition(user: AuthUser): string {
   if (user.is_superuser) return 'Superuser'
-  if (hasAuthRole(user, 'manager') || user.is_manager) return 'Manager'
+  if (hasAuthRole(user, 'manager') || user.is_manager) return 'Admin'
+  if (hasAuthRole(user, 'systemadmin')) return 'System Admin'
+  if (hasAuthRole(user, 'finance')) return 'Finance'
   if (hasAuthRole(user, 'tutor') || user.is_tutor) return 'Tutor'
+  if (hasAuthRole(user, 'marketing-manager')) return 'Marketing Manager'
   if (hasAuthRole(user, 'marketing') || user.is_marketing) return 'Marketing'
   if (hasAuthRole(user, 'student') || user.is_student) return 'Student'
   if (user.roles?.length) return user.roles[0]?.name ?? 'Staff'
@@ -54,7 +57,7 @@ export function buildCurrentUserProfile(
               .filter((role) => role.code !== 'student')
               .map((role) => role.name)
           : [
-              ...(detail.isManager ? ['Manager'] : []),
+              ...(detail.isManager ? ['Admin'] : []),
               ...(detail.isMarketing ? ['Marketing'] : []),
               ...(detail.isTutor ? ['Tutor'] : []),
             ]),

@@ -154,7 +154,7 @@ export function TimetableClassroomColumn({
     >
       <div
         className={cn(
-          'sticky top-0 z-20 flex items-center justify-center border-b border-white/15 bg-gradient-to-b from-[#5A8BC9] via-[#4274B9] to-[#2F5A94] px-3 text-center text-xs font-semibold text-white shadow-[0_6px_12px_-8px_rgba(47,90,148,0.45)]',
+          'sticky top-0 z-20 flex items-center justify-center border-b border-white/15 bg-gradient-to-b from-[#3A56B8] via-[#253CA1] to-[#1B2A5A] px-3 text-center text-xs font-semibold text-white shadow-[0_6px_12px_-8px_rgba(47,90,148,0.45)]',
           isLast ? 'rounded-tr-2xl' : '',
         )}
         style={{ height: headerHeight }}
@@ -182,7 +182,7 @@ export function TimetableClassroomColumn({
               onPointerDown={(event) => handlePointerDown(event, hour)}
               className={cn(
                 'absolute inset-x-0 border-t border-slate-200 transition-colors',
-                isSelected ? 'bg-[#4274B9]/18' : 'hover:bg-[#F8FBFF]',
+                isSelected ? 'bg-[#253CA1]/18' : 'hover:bg-[#F5F8FF]',
                 index === hours.length - 1 && isLast ? 'rounded-br-2xl' : '',
               )}
               style={{
@@ -196,7 +196,7 @@ export function TimetableClassroomColumn({
 
         {selection ? (
           <div
-            className="pointer-events-none absolute inset-x-1.5 z-[5] overflow-hidden rounded-xl border border-[#4274B9]/50 bg-[#4274B9]/20 shadow-sm"
+            className="pointer-events-none absolute inset-x-1.5 z-[5] overflow-hidden rounded-xl border border-[#253CA1]/50 bg-[#253CA1]/20 shadow-sm"
             style={{
               top: (selection.startHour - rangeStartHour) * rowHeight + 4,
               height:
@@ -207,7 +207,7 @@ export function TimetableClassroomColumn({
               <p className="text-[11px] font-bold text-[#1E3A5F]">
                 New session
               </p>
-              <p className="mt-0.5 text-[10px] font-semibold text-[#2F5A94]">
+              <p className="mt-0.5 text-[10px] font-semibold text-[#1B2A5A]">
                 {selectionLabel}
               </p>
             </div>

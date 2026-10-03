@@ -1,15 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { CalendarClock, CalendarPlus, Loader2 } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '../../../shared/components/ui/dialog'
 import type { TimetableColumn, TimetableEvent } from '../../../shared/components/timetable'
+import { useClassroomsQuery } from '../../classrooms/hooks/use-classrooms-query'
 import {
   emptyScheduleFormValues,
   fetchClassSchedule,
@@ -57,6 +60,78 @@ function buildCreateValues(context: ScheduleDialogCreateContext): ScheduleFormVa
   })
 }
 
+function timeToMinutes(time: string) {
+  const [hours, minutes] = time.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0
+  return hours * 60 + minutes
+}
+
+function formatDurationLabel(startTime: string, endTime: string) {
+  const minutes = Math.max(timeToMinutes(endTime) - timeToMinutes(startTime), 0)
+  const hours = minutes / 60
+
+  if (hours <= 0) return 'a session'
+  if (hours === 1) return '1 hour'
+  if (Number.isInteger(hours)) return `${hours} hours`
+
+  const whole = Math.floor(hours)
+  const fraction = hours - whole
+  if (fraction === 0.5) {
+    return whole === 0 ? '30 minutes' : `${whole}.5 hours`
+  }
+
+  return `${hours.toFixed(1).replace(/\.0$/, '')} hours`
+}
+
+function buildCreateDescription(
+  values: ScheduleFormValues,
+  classroomLabel?: string,
+) {
+  const duration = formatDurationLabel(values.startTime, values.endTime)
+  const window = `${values.startTime} – ${values.endTime}`
+
+  if (classroomLabel) {
+    return `Schedule ${duration} in ${classroomLabel} (${window}).`
+  }
+
+  if (values.classroomId) {
+    return `Schedule ${duration} (${window}).`
+  }
+
+  if (values.date) {
+    return `Schedule ${duration} on ${values.date} (${window}). Pick a classroom in the form.`
+  }
+
+  return `Schedule ${duration} (${window}). Pick a classroom in the form.`
+}
+
+function ScheduleDialogChrome({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex max-h-[90vh] flex-col">
+      <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+        <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          {icon}
+        </div>
+        <DialogHeader className="pr-0">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 export function ScheduleFormDialog({
   context,
   onOpenChange,
@@ -65,7 +140,10 @@ export function ScheduleFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent
+        showClose
+        className="max-h-[90vh] overflow-hidden p-0 sm:max-w-2xl"
+      >
         {context ? (
           <ScheduleFormDialogBody
             key={
@@ -90,14 +168,15 @@ function ScheduleFormDialogBody({
   onClose: () => void
 }) {
   if (context.mode === 'create') {
-    const durationHours = Math.max(context.endHour - context.startHour, 1)
     return (
       <ScheduleFormDialogEditor
         mode="create"
         branchId={context.branchId}
         initialValues={buildCreateValues(context)}
+        initialClassroomLabel={
+          context.column.id ? context.column.label : undefined
+        }
         title="New class session"
-        description={`Schedule ${durationHours} hour${durationHours === 1 ? '' : 's'} in ${context.column.label} (${hourToTimeString(context.startHour)} – ${hourToTimeString(context.endHour)}).`}
         onClose={onClose}
       />
     )
@@ -131,33 +210,31 @@ function ScheduleFormDialogEditLoader({
 
   if (detailQuery.isLoading) {
     return (
-      <>
-        <DialogHeader>
-          <DialogTitle>Edit class session</DialogTitle>
-          <DialogDescription>Loading {eventTitle}…</DialogDescription>
-        </DialogHeader>
-        <p className="py-10 text-center text-sm text-slate-500">
-          Loading session details…
-        </p>
-      </>
+      <ScheduleDialogChrome
+        icon={<Loader2 className="size-5 animate-spin" />}
+        title="Edit class session"
+        description={`Loading ${eventTitle}…`}
+      >
+        <div className="flex flex-1 items-center justify-center px-6 py-16">
+          <p className="text-sm text-slate-500">Loading session details…</p>
+        </div>
+      </ScheduleDialogChrome>
     )
   }
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
-      <>
-        <DialogHeader>
-          <DialogTitle>Session not found</DialogTitle>
-          <DialogDescription>
-            This class session may have been removed.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex justify-end">
-          <Button variant="secondary" onClick={onClose}>
+      <ScheduleDialogChrome
+        icon={<CalendarClock className="size-5" />}
+        title="Session not found"
+        description="This class session may have been removed."
+      >
+        <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Close
           </Button>
-        </div>
-      </>
+        </DialogFooter>
+      </ScheduleDialogChrome>
     )
   }
 
@@ -168,7 +245,7 @@ function ScheduleFormDialogEditLoader({
       branchId={branchId}
       initialValues={scheduleToFormValues(detailQuery.data)}
       title="Edit class session"
-      description={`Update details for ${eventTitle}.`}
+      eventTitle={eventTitle}
       onClose={onClose}
     />
   )
@@ -179,16 +256,18 @@ function ScheduleFormDialogEditor({
   scheduleId,
   branchId,
   initialValues,
+  initialClassroomLabel,
   title,
-  description,
+  eventTitle,
   onClose,
 }: {
   mode: 'create' | 'edit'
   scheduleId?: string
   branchId: string
   initialValues: ScheduleFormValues
+  initialClassroomLabel?: string
   title: string
-  description: string
+  eventTitle?: string
   onClose: () => void
 }) {
   const form = useScheduleForm({
@@ -199,26 +278,65 @@ function ScheduleFormDialogEditor({
     onCancel: onClose,
   })
 
+  const classroomsQuery = useClassroomsQuery({
+    branchId,
+    isActive: 'active',
+  })
+
+  const classroomLabel = useMemo(() => {
+    if (!form.values.classroomId) return undefined
+
+    const classroom = (classroomsQuery.data?.data ?? []).find(
+      (item) => item.id === form.values.classroomId,
+    )
+    if (classroom) {
+      return classroom.className || classroom.code
+    }
+
+    if (
+      initialClassroomLabel &&
+      form.values.classroomId === initialValues.classroomId
+    ) {
+      return initialClassroomLabel
+    }
+
+    return undefined
+  }, [
+    classroomsQuery.data?.data,
+    form.values.classroomId,
+    initialClassroomLabel,
+    initialValues.classroomId,
+  ])
+
+  const description =
+    mode === 'create'
+      ? buildCreateDescription(form.values, classroomLabel)
+      : `Update details for ${eventTitle ?? 'this session'}.`
+
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
-      <div className="mt-4">
-        <ScheduleForm
-          mode={mode}
-          values={form.values}
-          errors={form.errors}
-          isSubmitting={form.isSubmitting}
-          branchId={branchId}
-          onChange={form.updateField}
-          onSubmit={form.submit}
-          onCancel={form.cancel}
-          onDelete={mode === 'edit' ? form.remove : undefined}
-        />
-      </div>
-    </>
+    <ScheduleDialogChrome
+      icon={
+        mode === 'create' ? (
+          <CalendarPlus className="size-5" />
+        ) : (
+          <CalendarClock className="size-5" />
+        )
+      }
+      title={title}
+      description={description}
+    >
+      <ScheduleForm
+        mode={mode}
+        values={form.values}
+        errors={form.errors}
+        isSubmitting={form.isSubmitting}
+        branchId={branchId}
+        onChange={form.updateField}
+        onSubmit={form.submit}
+        onCancel={form.cancel}
+        onDelete={mode === 'edit' ? form.remove : undefined}
+      />
+    </ScheduleDialogChrome>
   )
 }
 

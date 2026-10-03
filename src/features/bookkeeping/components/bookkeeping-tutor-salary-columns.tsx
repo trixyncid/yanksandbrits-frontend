@@ -50,7 +50,7 @@ function TutorPdfButton({ item }: { item: BookkeepingTutorSalaryItem }) {
           }
         })()
       }}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9] disabled:opacity-60"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1] disabled:opacity-60"
     >
       <FileDown className="size-3.5" />
       {isDownloading ? '…' : 'PDF'}

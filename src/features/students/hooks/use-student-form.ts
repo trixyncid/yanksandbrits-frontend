@@ -4,10 +4,7 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
-import {
-  useIsManager,
-  useIsMarketing,
-} from '../../auth/hooks/use-permissions'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import { prospectiveStudentQueryKeys } from '../../prospective-students/api/prospective-student-query-keys'
 import {
   createStudent,
@@ -33,9 +30,8 @@ export function useStudentForm({
 }: UseStudentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const isManager = useIsManager()
-  const isMarketing = useIsMarketing()
-  const lockIdentityFields = mode === 'edit' && isMarketing && !isManager
+  const isRestrictedMarketing = useIsRestrictedMarketing()
+  const lockIdentityFields = mode === 'edit' && isRestrictedMarketing
   const [values, setValues] = useState<StudentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -95,7 +91,7 @@ export function useStudentForm({
         notify('success', {
           title: prospectiveStudentId ? 'Student enrolled' : 'Student created',
           description: prospectiveStudentId
-            ? `${created.pin} | ${created.fullName} has been enrolled from the pre-test lead.`
+            ? `${created.pin} | ${created.fullName} has been enrolled after payment progress.`
             : `${created.pin} | ${created.fullName} has been added.`,
         })
         void navigate({

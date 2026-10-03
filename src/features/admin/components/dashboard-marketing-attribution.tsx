@@ -33,7 +33,7 @@ export function DashboardMarketingAttribution({
       {items.length === 0 ? (
         <DashboardEmptyState message="No marketing attribution data in this period." />
       ) : (
-        <ol className="space-y-3">
+        <ol className="space-y-2">
           {items.map((item, index) => {
             const width = Math.max((item.leads / maxLeads) * 100, item.leads > 0 ? 8 : 0)
 
@@ -46,7 +46,7 @@ export function DashboardMarketingAttribution({
                   <span className="w-5 shrink-0 text-right text-xs font-bold text-slate-300 tabular-nums">
                     {index + 1}
                   </span>
-                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#EDF4FF] text-[11px] font-bold text-[#2F5A94]">
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#E8EEFF] text-[11px] font-bold text-[#1B2A5A]">
                     {initials(item.name)}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -54,13 +54,13 @@ export function DashboardMarketingAttribution({
                       <p className="truncate text-sm font-semibold text-slate-900">
                         {item.name}
                       </p>
-                      <span className="inline-flex rounded-full bg-[#EDF4FF] px-2.5 py-0.5 text-xs font-semibold text-[#2F5A94] tabular-nums">
+                      <span className="inline-flex rounded-full bg-[#E8EEFF] px-2.5 py-0.5 text-xs font-semibold text-[#1B2A5A] tabular-nums">
                         {item.conversionRate.toFixed(1)}%
                       </span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-[#4274B9]"
+                        className="h-full rounded-full bg-[#253CA1]"
                         style={{ width: `${width}%` }}
                       />
                     </div>

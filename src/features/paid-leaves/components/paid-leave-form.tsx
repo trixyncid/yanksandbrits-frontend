@@ -181,7 +181,7 @@ export function PaidLeaveForm({
               onChange={(date) => onChange('startDate', toDateString(date))}
               placeholder="Pick start date"
               title="Start date"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -192,7 +192,7 @@ export function PaidLeaveForm({
               onChange={(date) => onChange('endDate', toDateString(date))}
               placeholder="Pick end date"
               title="End date"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -211,9 +211,9 @@ export function PaidLeaveForm({
           <Label htmlFor="filesFile">Supporting Document</Label>
           <label
             htmlFor="filesFile"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-[#F4F6FA] px-4 text-sm text-slate-600 transition hover:border-[#BED2F2] hover:bg-[#F8FBFF]"
+            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 text-sm text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF]"
           >
-            <FilePlus className="size-4 shrink-0 text-[#4274B9]" />
+            <FilePlus className="size-4 shrink-0 text-[#253CA1]" />
             <span className="flex-1 truncate">{fileLabel}</span>
             <input
               id="filesFile"
@@ -230,7 +230,7 @@ export function PaidLeaveForm({
               href={meta.fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs font-medium text-[#4274B9] hover:underline"
+              className="text-xs font-medium text-[#253CA1] hover:underline"
             >
               View current PDF
             </a>

@@ -1,7 +1,7 @@
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
 import { Button } from '../../../shared/components/ui/button'
-import { Card } from '../../../shared/components/ui/card'
+import { GlassSurface } from '../../../shared/components/feature-page'
 
 type ProspectiveStudentListStateProps = {
   onRetry?: () => void
@@ -9,21 +9,21 @@ type ProspectiveStudentListStateProps = {
 
 export function ProspectiveStudentListLoadingState() {
   return (
-    <Card className="overflow-hidden">
-      <div className="border-b border-slate-200 px-6 py-5">
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="mt-3 h-4 w-80 animate-pulse rounded bg-slate-100" />
+    <GlassSurface className="overflow-hidden">
+      <div className="border-b border-[#C8D4F5]/80 px-4 py-3.5">
+        <div className="h-5 w-44 animate-pulse rounded-lg bg-[#E8EEFF]" />
+        <div className="mt-2 h-3.5 w-72 animate-pulse rounded-lg bg-slate-100/80" />
       </div>
-      <div className="space-y-3 p-6">
+      <div className="space-y-2 p-4">
         {Array.from({ length: 7 }).map((_, index) => (
           <div
             key={index}
-            className="h-12 animate-pulse rounded-xl bg-slate-100"
+            className="h-10 animate-pulse rounded-lg bg-[linear-gradient(90deg,#E8EEFF_0%,#F5F8FF_50%,#E8EEFF_100%)]"
             style={{ animationDelay: `${index * 40}ms` }}
           />
         ))}
       </div>
-    </Card>
+    </GlassSurface>
   )
 }
 
@@ -31,23 +31,23 @@ export function ProspectiveStudentListErrorState({
   onRetry,
 }: ProspectiveStudentListStateProps) {
   return (
-    <Card className="px-6 py-16 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+    <GlassSurface className="px-5 py-12 text-center">
+      <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
         <AlertCircle className="size-5" />
       </div>
-      <h2 className="mt-4 text-lg font-semibold text-slate-900">
+      <h2 className="mt-3 text-base font-semibold text-slate-900">
         Unable to load prospective students
       </h2>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="mt-1.5 text-sm text-slate-500">
         Something went wrong while fetching prospective students. You can try
         again.
       </p>
       {onRetry ? (
-        <Button className="mt-6" onClick={onRetry}>
+        <Button className="mt-4" onClick={onRetry}>
           <RefreshCw className="size-4" />
           Retry
         </Button>
       ) : null}
-    </Card>
+    </GlassSurface>
   )
 }

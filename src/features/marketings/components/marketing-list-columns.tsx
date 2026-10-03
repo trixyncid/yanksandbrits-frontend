@@ -4,33 +4,24 @@ import {
   DataTableBadge,
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
-import type { MarketingListItem } from '../types/marketing'
+import type { MarketingListItem, MarketingRole } from '../types/marketing'
 import { MarketingActionsCell } from './marketing-actions-cell'
 
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return '-'
+function roleTone(code: string) {
+  if (code === 'branch-manager' || code === 'manager') {
+    return 'info' as const
   }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value))
+  if (code === 'education-counsellor' || code === 'marketing') {
+    return 'primary' as const
+  }
+  return 'neutral' as const
 }
 
-function formatDate(value: string) {
-  if (!value) {
-    return '-'
+function roleLabels(roles: MarketingRole[]) {
+  if (!roles.length) {
+    return '—'
   }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(value))
+  return roles.map((role) => role.name).join(', ')
 }
 
 export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
@@ -38,30 +29,47 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
     id: 'marketingDetail',
     accessorFn: (row) => `${row.pin} ${row.fullName} ${row.email}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Marketing's Detail" />
+      <DataTableColumnHeader column={column} title="Counsellor Detail" />
     ),
     cell: ({ row }) => (
       <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.pin} - {row.original.fullName}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">
+            {row.original.pin} - {row.original.fullName}
+          </p>
+          <DataTableBadge
+            tone={row.original.gender === 'male' ? 'info' : 'primary'}
+          >
+            {row.original.gender === 'male' ? 'Male' : 'Female'}
+          </DataTableBadge>
+        </div>
         <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
         <p className="text-xs text-slate-500">{row.original.phone || '-'}</p>
       </div>
     ),
   },
   {
-    accessorKey: 'gender',
+    id: 'role',
+    accessorFn: (row) => roleLabels(row.roles),
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Gender" align="center" />
+      <DataTableColumnHeader column={column} title="Role" align="center" />
     ),
     cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge
-          tone={row.original.gender === 'male' ? 'info' : 'primary'}
-        >
-          {row.original.gender === 'male' ? 'Male' : 'Female'}
-        </DataTableBadge>
+      <div className="flex justify-center">
+        <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+          {row.original.roles.length ? (
+            row.original.roles.map((role) => (
+              <DataTableBadge
+                key={role.code || role.name}
+                tone={roleTone(role.code)}
+              >
+                {role.name}
+              </DataTableBadge>
+            ))
+          ) : (
+            <p className="text-xs font-medium text-slate-600">—</p>
+          )}
+        </div>
       </div>
     ),
   },
@@ -76,36 +84,6 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
           {row.original.isActive ? 'Active' : 'Inactive'}
         </DataTableBadge>
       </div>
-    ),
-  },
-  {
-    accessorKey: 'lastLogin',
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Last Login"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {formatDateTime(row.original.lastLogin)}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'dateJoined',
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Date Joined"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {formatDate(row.original.dateJoined)}
-      </p>
     ),
   },
   {

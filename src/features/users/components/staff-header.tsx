@@ -17,19 +17,19 @@ export function StaffHeader({ user, entity, onDelete }: StaffHeaderProps) {
   const navigate = useNavigate()
 
   return (
-    <section className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] border border-[#D7E4F6] bg-[linear-gradient(135deg,#F8FBFF_0%,#FFFFFF_42%,#EDF4FF_100%)] shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)]">
+    <section className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] border border-[#D7E4F6] bg-[linear-gradient(135deg,#F5F8FF_0%,#FFFFFF_42%,#E8EEFF_100%)] shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)]">
       <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
             <div className="absolute -inset-3 rounded-[1.75rem] bg-[radial-gradient(circle_at_center,rgba(66,116,185,0.22),transparent_70%)]" />
-            <div className="relative inline-flex size-20 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(160deg,#4274B9_0%,#2F5A94_100%)] text-2xl font-bold tracking-wide text-white shadow-lg shadow-[#4274B9]/30 sm:size-24">
+            <div className="relative inline-flex size-20 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(160deg,#253CA1_0%,#1B2A5A_100%)] text-2xl font-bold tracking-wide text-white shadow-lg shadow-[#253CA1]/30 sm:size-24">
               {getUserInitials(user.fullName)}
             </div>
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#4274B9] uppercase ring-1 ring-[#BED2F2]">
+              <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#253CA1] uppercase ring-1 ring-[#C8D4F5]">
                 {user.pin ?? (user.isStudent ? 'Student' : 'User')}
               </span>
               <span
@@ -42,11 +42,16 @@ export function StaffHeader({ user, entity, onDelete }: StaffHeaderProps) {
               >
                 {user.isActive ? 'Active' : 'Inactive'}
               </span>
-              {!user.isStudent && user.staffType ? (
-                <span className="rounded-full bg-[#EDF4FF] px-2.5 py-1 text-[11px] font-semibold text-[#2F5A94]">
-                  {user.staffType}
-                </span>
-              ) : null}
+              {entity.kind !== 'marketing' && !user.isStudent
+                ? user.staffTypes.map((subject) => (
+                    <span
+                      key={subject}
+                      className="rounded-full bg-[#E8EEFF] px-2.5 py-1 text-[11px] font-semibold text-[#1B2A5A]"
+                    >
+                      {subject}
+                    </span>
+                  ))
+                : null}
             </div>
             <h2 className="mt-3 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               {user.fullName}
@@ -56,11 +61,11 @@ export function StaffHeader({ user, entity, onDelete }: StaffHeaderProps) {
             </p>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
               <span className="inline-flex items-center gap-1.5">
-                <Shield className="size-3.5 text-[#4274B9]" />
+                <Shield className="size-3.5 text-[#253CA1]" />
                 {staffPositionLabel(user)}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Building2 className="size-3.5 text-[#4274B9]" />
+                <Building2 className="size-3.5 text-[#253CA1]" />
                 {user.branchName || '—'}
               </span>
             </div>

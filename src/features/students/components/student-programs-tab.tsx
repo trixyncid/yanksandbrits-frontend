@@ -22,7 +22,7 @@ function ProgramStatusBadge({
 }) {
   const styles = {
     ongoing: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-    completed: 'bg-[#EDF4FF] text-[#2F5A94] ring-[#BED2F2]',
+    completed: 'bg-[#E8EEFF] text-[#1B2A5A] ring-[#C8D4F5]',
   }
 
   return (
@@ -55,13 +55,13 @@ function ProgramProgress({
           {sessionsUsed}
           <span className="font-medium text-slate-400"> / {sessions}</span>
         </span>
-        <span className="text-xs font-semibold tabular-nums text-[#2F5A94]">
+        <span className="text-xs font-semibold tabular-nums text-[#1B2A5A]">
           {capped}%
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-[#4274B9] transition-[width]"
+          className="h-full rounded-full bg-[#253CA1] transition-[width]"
           style={{ width: `${capped}%` }}
         />
       </div>
@@ -151,7 +151,7 @@ export function StudentProgramsTab({ student }: StudentProgramsTabProps) {
 
       {student.programs.length === 0 ? (
         <div className="flex flex-col items-center px-6 py-16 text-center">
-          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
             <BookOpen className="size-5" />
           </div>
           <h4 className="mt-4 text-base font-bold text-slate-900">

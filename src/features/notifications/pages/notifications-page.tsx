@@ -31,11 +31,11 @@ function NotificationRow({
         'group relative flex gap-4 rounded-2xl border px-4 py-4 transition sm:px-5',
         item.read
           ? 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white'
-          : 'border-[#D7E4F6] bg-[linear-gradient(135deg,#F8FBFF_0%,#FFFFFF_70%)] shadow-sm shadow-[#4274B9]/5',
+          : 'border-[#D7E4F6] bg-[linear-gradient(135deg,#F5F8FF_0%,#FFFFFF_70%)] shadow-sm shadow-[#253CA1]/5',
       )}
     >
       {!item.read ? (
-        <span className="absolute top-4 right-4 size-2 rounded-full bg-[#4274B9]" />
+        <span className="absolute top-4 right-4 size-2 rounded-full bg-[#253CA1]" />
       ) : null}
 
       <Link
@@ -83,7 +83,7 @@ function NotificationRow({
                 event.stopPropagation()
                 onMarkRead(item.id)
               }}
-              className="text-xs font-semibold text-[#4274B9] transition hover:text-[#2F5A94]"
+              className="text-xs font-semibold text-[#253CA1] transition hover:text-[#1B2A5A]"
             >
               Mark as read
             </button>
@@ -147,7 +147,7 @@ export default function NotificationsPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="animate-in fade-in slide-in-from-bottom-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-[#4274B9]">Inbox</p>
+            <p className="text-sm font-medium text-[#253CA1]">Inbox</p>
             <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
               Notifications
             </h2>
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
               className={cn(
                 'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
                 filter === tab.id
-                  ? 'bg-[#4274B9] text-white shadow-md shadow-[#4274B9]/25'
+                  ? 'bg-[#253CA1] text-white shadow-md shadow-[#253CA1]/25'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
               )}
             >
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
         <section className="animate-in fade-in slide-in-from-bottom-2 delay-100 space-y-2 rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm sm:p-3">
           {visibleItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+              <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
                 <Bell className="size-6" />
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-900">

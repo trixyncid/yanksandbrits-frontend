@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '../../../shared/components/ui/button'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
-import { Select } from '../../../shared/components/ui/select'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { cn } from '../../../shared/lib/cn'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import type {
@@ -148,22 +148,19 @@ export function StudentGroupForm({
             />
           </Field>
 
-          <Field label="Active Status" htmlFor="status" error={errors.status}>
-            <Select
-              id="status"
-              containerClassName="w-full sm:w-full"
-              value={values.status}
-              onChange={(event) =>
-                onChange(
-                  'status',
-                  event.target.value as StudentGroupFormValues['status'],
-                )
-              }
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Select>
-          </Field>
+          <StatusToggle
+            id="student-group-status"
+            value={values.status === 'active'}
+            onChange={(next) =>
+              onChange('status', next ? 'active' : 'inactive')
+            }
+            description={
+              values.status === 'active'
+                ? 'Group is available for scheduling.'
+                : 'Group is inactive and hidden from active lists.'
+            }
+            error={errors.status}
+          />
         </div>
       </section>
 
@@ -184,7 +181,7 @@ export function StudentGroupForm({
                 key={member.id}
                 type="button"
                 onClick={() => toggleMember(member.id)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF4FF] px-3 py-1.5 text-xs font-semibold text-[#2F5A94] ring-1 ring-[#BED2F2] transition hover:bg-[#DCE9FB]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#E8EEFF] px-3 py-1.5 text-xs font-semibold text-[#1B2A5A] ring-1 ring-[#C8D4F5] transition hover:bg-[#DCE9FB]"
               >
                 {member.fullName}
                 <X className="size-3" />
@@ -230,7 +227,7 @@ export function StudentGroupForm({
                       className={cn(
                         'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition',
                         selected
-                          ? 'bg-[#EDF4FF] ring-1 ring-[#BED2F2]'
+                          ? 'bg-[#E8EEFF] ring-1 ring-[#C8D4F5]'
                           : 'hover:bg-white',
                       )}
                     >
@@ -238,7 +235,7 @@ export function StudentGroupForm({
                         type="checkbox"
                         checked={selected}
                         onChange={() => toggleMember(option.id)}
-                        className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                        className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-semibold text-slate-900">

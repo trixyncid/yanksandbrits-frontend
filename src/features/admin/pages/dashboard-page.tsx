@@ -85,8 +85,8 @@ export default function DashboardPage() {
     : ''
 
   return (
-    <AdminShell>
-      <div className="space-y-8">
+    <AdminShell mainClassName="px-3 py-3 sm:px-4 sm:py-3">
+      <div className="space-y-3">
         <DashboardToolbar
           dateRange={dateRange}
           branchId={branchId}
@@ -98,14 +98,14 @@ export default function DashboardPage() {
         />
 
         {!branchesQuery.isLoading && branches.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-            <div className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
-              <Building2 className="size-7" />
+          <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center">
+            <div className="mx-auto inline-flex size-12 items-center justify-center rounded-xl bg-[#E8EEFF] text-[#253CA1]">
+              <Building2 className="size-6" />
             </div>
-            <p className="mt-4 text-base font-semibold text-slate-900">
+            <p className="mt-3 text-base font-semibold text-slate-900">
               Add a branch to view business metrics
             </p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
               Dashboard KPIs, trends, and today&apos;s timetable are scoped to a
               branch. Create a branch first, then return here.
             </p>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
             {isInitialLoading ? (
               <DashboardKpiSkeleton />
             ) : metricsQuery.isError ? (
-              <div className="rounded-[1.5rem] border border-rose-100 bg-rose-50/70 px-6 py-10 text-center">
+              <div className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-6 text-center">
                 <p className="text-sm font-semibold text-rose-700">
                   Unable to load business metrics.
                 </p>
@@ -127,14 +127,14 @@ export default function DashboardPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="mt-4"
+                  className="mt-3"
                   onClick={() => void metricsQuery.refetch()}
                 >
                   Try again
                 </Button>
               </div>
             ) : showMetrics ? (
-              <div className={cn('space-y-8', fetchingClass)}>
+              <div className={cn('space-y-3', fetchingClass)}>
                 <DashboardKpiGrid metrics={metricsQuery.data} />
 
                 <DashboardSection title="Needs attention">
@@ -155,13 +155,13 @@ export default function DashboardPage() {
             ) : null}
 
             {showMetrics ? (
-              <div className={cn('space-y-8', fetchingClass)}>
+              <div className={cn('space-y-3', fetchingClass)}>
                 <DashboardSection title="Performance">
                   <DashboardTrendCharts metrics={metricsQuery.data} />
                 </DashboardSection>
 
                 <DashboardSection title="Pipeline & delivery">
-                  <div className="grid items-stretch gap-4 xl:grid-cols-12">
+                  <div className="grid items-stretch gap-2 xl:grid-cols-12">
                     <DashboardFunnel
                       metrics={metricsQuery.data}
                       className="xl:col-span-5"
@@ -178,11 +178,11 @@ export default function DashboardPage() {
                 </DashboardSection>
 
                 <DashboardSection title="Operations & capacity">
-                  <div className="grid items-stretch gap-4 xl:grid-cols-2">
+                  <div className="grid items-stretch gap-2 xl:grid-cols-2">
                     <DashboardProgramDemand metrics={metricsQuery.data} />
                     <DashboardClassroomUtilization metrics={metricsQuery.data} />
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-2">
                     <DashboardTutorUtilization metrics={metricsQuery.data} />
                   </div>
                 </DashboardSection>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                 ) : null}
 
                 <DashboardSection title="Acquisition">
-                  <div className="grid items-stretch gap-4 xl:grid-cols-12">
+                  <div className="grid items-stretch gap-2 xl:grid-cols-12">
                     <DashboardLeadSources
                       metrics={metricsQuery.data}
                       className="xl:col-span-5"
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                       className="xl:col-span-7"
                     />
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-2">
                     <DashboardMarketingAttribution metrics={metricsQuery.data} />
                   </div>
                 </DashboardSection>
@@ -213,7 +213,7 @@ export default function DashboardPage() {
             ) : null}
 
             {isAllBranches(branchId) ? (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center">
                 <p className="text-sm font-semibold text-slate-700">
                   Select a branch to view today&apos;s timetable
                 </p>

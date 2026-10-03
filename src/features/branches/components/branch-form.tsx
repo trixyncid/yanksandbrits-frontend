@@ -127,6 +127,32 @@ export function BranchForm({
             rows={3}
           />
         </Field>
+
+        <div className="space-y-2">
+          <Label htmlFor="isMain">Main Branch</Label>
+          <label
+            htmlFor="isMain"
+            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-slate-200/80 bg-white px-4 text-sm text-slate-600 shadow-sm"
+          >
+            <input
+              id="isMain"
+              type="checkbox"
+              className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+              checked={values.isMain}
+              onChange={(event) => onChange('isMain', event.target.checked)}
+            />
+            <span>
+              {values.isMain
+                ? 'This is the main branch (default for schedule and admin views)'
+                : 'Set as the main branch'}
+            </span>
+          </label>
+          <p className="text-xs text-slate-400">
+            Only one branch can be main. Setting this will clear the flag on any
+            other branch.
+          </p>
+          <FieldError message={errors.isMain} />
+        </div>
       </section>
 
       {mode === 'edit' && meta ? (

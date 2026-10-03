@@ -16,7 +16,7 @@ export function AppToaster() {
             '!border-black/10 !bg-black/20 !text-white hover:!bg-black/30 hover:!text-white',
           success: '!bg-emerald-600 !text-white',
           error: '!bg-rose-600 !text-white',
-          info: '!bg-[#4274B9] !text-white',
+          info: '!bg-[#253CA1] !text-white',
           warning: '!bg-amber-500 !text-white',
         },
       }}

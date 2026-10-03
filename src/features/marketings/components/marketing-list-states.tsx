@@ -34,11 +34,11 @@ export function MarketingListErrorState({ onRetry }: MarketingListStateProps) {
         <AlertCircle className="size-5" />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-slate-900">
-        Unable to load marketing staff
+        Unable to load education counsellors
       </h2>
       <p className="mt-2 text-sm text-slate-500">
-        Something went wrong while fetching marketing accounts. You can try
-        again.
+        Something went wrong while fetching education counsellor accounts. You
+        can try again.
       </p>
       {onRetry ? (
         <Button className="mt-6" onClick={onRetry}>

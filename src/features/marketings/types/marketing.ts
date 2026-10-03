@@ -1,5 +1,10 @@
 export type MarketingGender = 'male' | 'female'
 
+export type MarketingRole = {
+  code: string
+  name: string
+}
+
 export type MarketingListItem = {
   id: string
   pin: string
@@ -8,9 +13,8 @@ export type MarketingListItem = {
   phone: string
   gender: MarketingGender
   isActive: boolean
-  lastLogin: string | null
-  dateJoined: string
   paidLeaveLeft: number
   hasSalary: boolean
   branch: string
+  roles: MarketingRole[]
 }

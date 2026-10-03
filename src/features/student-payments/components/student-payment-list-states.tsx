@@ -39,8 +39,7 @@ export function StudentPaymentListErrorState({
         Unable to load student payments
       </h2>
       <p className="mt-2 text-sm text-slate-500">
-        Something went wrong while fetching payment transactions. You can try
-        again.
+        Something went wrong while fetching payment plans. You can try again.
       </p>
       {onRetry ? (
         <Button className="mt-6" onClick={onRetry}>

@@ -11,7 +11,11 @@ export type StaffUserOption = {
   email: string
   branchId: string | null
   branchName: string | null
+  staffType?: string | null
 }
+
+export type StaffTypeCode = 'English' | 'Mandarin' | 'IT' | 'Accounting'
+export type EmploymentTypeCode = 'FT' | 'PT' | 'FL'
 
 export type UserRoleSummary = {
   id: string
@@ -32,7 +36,10 @@ export type UserListItem = {
   isManager: boolean
   isStudent: boolean
   isSuperuser: boolean
+  staffTypes: StaffTypeCode[]
   staffType: string | null
+  employmentType: EmploymentTypeCode | null
+  workingDaysPerWeek: 5 | 6 | null
   paidLeaveTotal: number
   paidLeaveLeft: number
   lastLogin: string | null
@@ -72,7 +79,9 @@ export type UserFormValues = {
   homePhone: string
   otherPhone: string
   isActive: boolean
-  staffType: string
+  staffTypes: StaffTypeCode[]
+  employmentType: '' | EmploymentTypeCode
+  workingDaysPerWeek: '' | '5' | '6'
   branchId: string
   paidLeave: string
   resignDate: string
@@ -82,8 +91,55 @@ export type UserFormValues = {
 export type UserFormErrors = Partial<Record<keyof UserFormValues, string>>
 
 export const STAFF_TYPE_OPTIONS = [
-  { value: 'English', label: 'English' },
-  { value: 'Mandarin', label: 'Mandarin' },
+  { value: 'English', label: 'English', description: 'English program' },
+  { value: 'Mandarin', label: 'Mandarin', description: 'Mandarin program' },
+  { value: 'IT', label: 'IT', description: 'Technology' },
+  { value: 'Accounting', label: 'Accounting', description: 'Finance' },
+] as const
+
+export const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: 'FT', label: 'Full-time', description: 'Regular weekly schedule.' },
+  { value: 'PT', label: 'Part-time', description: 'Flexible hours.' },
+  {
+    value: 'FL',
+    label: 'Freelance',
+    description: 'Paid per class, with no fixed weekly days.',
+  },
+] as const
+
+const STAFF_TYPE_CODES = new Set<string>(
+  STAFF_TYPE_OPTIONS.map((option) => option.value),
+)
+
+export function parseStaffTypes(value: unknown): StaffTypeCode[] {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : []
+  const seen: StaffTypeCode[] = []
+  for (const item of raw) {
+    const code = String(item).trim()
+    if (!STAFF_TYPE_CODES.has(code) || seen.includes(code as StaffTypeCode)) {
+      continue
+    }
+    seen.push(code as StaffTypeCode)
+  }
+  return STAFF_TYPE_OPTIONS.map((option) => option.value).filter((code) =>
+    seen.includes(code),
+  )
+}
+
+export function employmentTypeLabel(value: string | null | undefined) {
+  return (
+    EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === value)?.label ??
+    'Not set'
+  )
+}
+
+export const WORKING_DAYS_PER_WEEK_OPTIONS = [
+  { value: '5', label: '5 days / week' },
+  { value: '6', label: '6 days / week' },
 ] as const
 
 type UserListDto = {
@@ -98,7 +154,9 @@ type UserListDto = {
   is_manager: boolean
   is_student?: boolean
   is_superuser?: boolean
-  staff_type: string | null
+  staff_type: string[] | string | null
+  employment_type?: EmploymentTypeCode | null
+  working_days_per_week?: number | null
   branch: number | null
   branch_name?: string | null
   last_login?: string | null
@@ -147,10 +205,19 @@ function applyRoleFlags(
     return fallback
   }
   const codes = new Set(roles.map((role) => role.code))
+  const isMarketingRole =
+    codes.has('education-counsellor') ||
+    codes.has('branch-manager') ||
+    // Legacy codes from older sessions / cached payloads
+    codes.has('marketing') ||
+    codes.has('manager')
   return {
     isTutor: codes.has('tutor') || fallback.isTutor,
-    isMarketing: codes.has('marketing') || fallback.isMarketing,
-    isManager: codes.has('manager') || fallback.isManager,
+    isMarketing: isMarketingRole || fallback.isMarketing,
+    isManager:
+      codes.has('branch-manager') ||
+      codes.has('manager') ||
+      fallback.isManager,
     isStudent: codes.has('student') || fallback.isStudent,
   }
 }
@@ -177,7 +244,18 @@ function mapUser(dto: UserListDto | UserDetailDto): UserListItem {
     isManager: flags.isManager,
     isStudent: flags.isStudent,
     isSuperuser: Boolean(dto.is_superuser),
-    staffType: dto.staff_type,
+    staffTypes: parseStaffTypes(dto.staff_type),
+    staffType: parseStaffTypes(dto.staff_type).join(', ') || null,
+    employmentType:
+      dto.employment_type === 'FT' ||
+      dto.employment_type === 'PT' ||
+      dto.employment_type === 'FL'
+        ? dto.employment_type
+        : null,
+    workingDaysPerWeek:
+      dto.working_days_per_week === 5 || dto.working_days_per_week === 6
+        ? dto.working_days_per_week
+        : null,
     paidLeaveTotal: dto.paid_leave ?? 0,
     paidLeaveLeft: dto.check_paid_leave ?? dto.paid_leave ?? 0,
     lastLogin: dto.last_login ?? null,
@@ -230,7 +308,13 @@ function toWritePayload(values: UserFormValues, mode: 'create' | 'edit') {
     home_phone: emptyToNull(values.homePhone),
     other_phone: emptyToNull(values.otherPhone),
     is_active: values.isActive,
-    staff_type: values.staffType.trim() || null,
+    staff_type: values.staffTypes.length > 0 ? values.staffTypes : null,
+    employment_type: values.employmentType || null,
+    working_days_per_week:
+      (values.employmentType === 'FT' || values.employmentType === 'PT') &&
+      values.workingDaysPerWeek
+        ? Number(values.workingDaysPerWeek)
+        : null,
     branch: values.branchId ? Number(values.branchId) : null,
     paid_leave: values.paidLeave ? Number(values.paidLeave) : 0,
     resign_date: emptyToNull(values.resignDate),
@@ -337,6 +421,41 @@ export async function fetchStaffUserOptions(filters: {
     email: user.email,
     branchId: user.branchId,
     branchName: user.branchName,
+    staffType: user.staffType,
+  }))
+}
+
+type TutorOptionDto = {
+  id: number
+  pin: string | null
+  full_name: string
+  email: string
+  staff_type?: string[] | string | null
+  branch: number | null
+  branch_name: string | null
+}
+
+/** Tutor pick-list for assignment UIs. Supports staff_type + AL-accessible listing. */
+export async function fetchTutorOptions(filters: {
+  staffType?: StaffTypeCode | null
+} = {}): Promise<StaffUserOption[]> {
+  const { data } = await httpClient.get<ApiSuccessEnvelope<TutorOptionDto[]>>(
+    adminPath('/users/tutor-options'),
+    {
+      params: {
+        staff_type: filters.staffType || undefined,
+      },
+    },
+  )
+
+  return (data.data ?? []).map((tutor) => ({
+    id: String(tutor.id),
+    pin: tutor.pin ?? '',
+    fullName: tutor.full_name,
+    email: tutor.email ?? '',
+    branchId: tutor.branch == null ? null : String(tutor.branch),
+    branchName: tutor.branch_name,
+    staffType: parseStaffTypes(tutor.staff_type).join(', ') || null,
   }))
 }
 
@@ -357,7 +476,10 @@ export function userToFormValues(user: UserDetail | UserListItem): UserFormValue
     homePhone: detail.homePhone ?? '',
     otherPhone: detail.otherPhone ?? '',
     isActive: user.isActive,
-    staffType: user.staffType ?? 'English',
+    staffTypes: user.staffTypes,
+    employmentType: user.employmentType ?? '',
+    workingDaysPerWeek:
+      user.workingDaysPerWeek == null ? '' : String(user.workingDaysPerWeek),
     branchId: user.branchId ?? '',
     paidLeave: String(user.paidLeaveTotal),
     resignDate: detail.resignDate ?? '',
@@ -382,7 +504,9 @@ export const emptyUserFormValues: UserFormValues = {
   homePhone: '',
   otherPhone: '',
   isActive: true,
-  staffType: 'English',
+  staffTypes: ['English'],
+  employmentType: '',
+  workingDaysPerWeek: '',
   branchId: '',
   paidLeave: '0',
   resignDate: '',

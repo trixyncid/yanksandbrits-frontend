@@ -37,18 +37,18 @@ export function DashboardTimetable({
         onOpenChange={scheduleDialog.setOpen}
       />
 
-      <div className="flex flex-col gap-4 border-b border-slate-200 bg-[#F8FBFF] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-2 border-b border-slate-200 bg-[#F5F8FF] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#2F5A94] uppercase ring-1 ring-[#D8E6FA]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#1B2A5A] uppercase ring-1 ring-[#D8E6FA]">
               <CalendarDays className="size-3.5" />
               Live today
             </span>
           </div>
-          <h3 className="mt-2 text-lg font-bold text-slate-900">
+          <h3 className="mt-1.5 text-base font-bold text-slate-900">
             {dateLabel}&apos;s timetable
           </h3>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             {todayLabel} · {events.length} session
             {events.length === 1 ? '' : 's'} scheduled
           </p>
@@ -56,8 +56,8 @@ export function DashboardTimetable({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF4FF] px-2.5 py-1 text-[#2F5A94]">
-              <span className="size-2 rounded-full bg-[#4274B9]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8EEFF] px-2.5 py-1 text-[#1B2A5A]">
+              <span className="size-2 rounded-full bg-[#253CA1]" />
               Ongoing
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F7EF] px-2.5 py-1 text-[#1F5A3D]">
@@ -81,7 +81,7 @@ export function DashboardTimetable({
 
       <div className="p-4 sm:p-6">
         {isLoading ? (
-          <div className="space-y-3 py-10">
+          <div className="space-y-2 py-6">
             <div className="mx-auto h-4 w-40 animate-pulse rounded bg-slate-100" />
             <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
           </div>

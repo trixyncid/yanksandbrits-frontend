@@ -42,26 +42,18 @@ export const tutorListColumns: ColumnDef<TutorListItem>[] = [
     ),
     cell: ({ row }) => (
       <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.pin} - {row.original.fullName}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">
+            {row.original.pin} - {row.original.fullName}
+          </p>
+          <DataTableBadge
+            tone={row.original.gender === 'male' ? 'info' : 'primary'}
+          >
+            {row.original.gender === 'male' ? 'Male' : 'Female'}
+          </DataTableBadge>
+        </div>
         <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
         <p className="text-xs text-slate-500">{row.original.phone || '-'}</p>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'gender',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Gender" align="center" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge
-          tone={row.original.gender === 'male' ? 'info' : 'primary'}
-        >
-          {row.original.gender === 'male' ? 'Male' : 'Female'}
-        </DataTableBadge>
       </div>
     ),
   },

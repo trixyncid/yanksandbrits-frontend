@@ -45,7 +45,7 @@ function TutorPdfButton({ item }: { item: TutorReportListItem }) {
           }
         })()
       }}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5A94] transition hover:text-[#4274B9] disabled:opacity-60"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1] disabled:opacity-60"
     >
       <FileDown className="size-3.5" />
       {isDownloading ? '…' : 'PDF'}
@@ -158,6 +158,21 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600 tabular-nums">
         {formatCurrency(row.original.overtimeSalary)}
+      </p>
+    ),
+  },
+  {
+    accessorKey: 'bonusSalary',
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Bonus"
+        align="center"
+      />
+    ),
+    cell: ({ row }) => (
+      <p className="text-center text-xs font-medium text-slate-600 tabular-nums">
+        {formatCurrency(row.original.bonusSalary)}
       </p>
     ),
   },

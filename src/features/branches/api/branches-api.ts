@@ -16,6 +16,7 @@ type BranchDto = {
   name: string
   address: string | null
   phone: string | null
+  is_main: boolean
   created_at: string
   updated_at: string
   created_by: number | null
@@ -39,6 +40,7 @@ function mapBranch(dto: BranchDto): BranchListItem {
     name: dto.name,
     phone: dto.phone ?? '',
     address: dto.address ?? '',
+    isMain: Boolean(dto.is_main),
     totalStudent: dto.total_student,
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
@@ -52,6 +54,7 @@ function toWritePayload(values: BranchFormValues) {
     name: values.name.trim(),
     phone: values.phone.trim() || null,
     address: values.address.trim() || null,
+    is_main: Boolean(values.isMain),
   }
 }
 
@@ -138,6 +141,7 @@ export function branchToFormValues(branch: BranchListItem): BranchFormValues {
     name: branch.name,
     phone: branch.phone,
     address: branch.address,
+    isMain: branch.isMain,
   }
 }
 
@@ -145,4 +149,5 @@ export const emptyBranchFormValues: BranchFormValues = {
   name: '',
   phone: '',
   address: '',
+  isMain: false,
 }

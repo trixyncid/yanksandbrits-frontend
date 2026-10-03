@@ -51,9 +51,9 @@ export default function StudentCreatePage() {
           return
         }
 
-        if (prospect.status !== 'prediction_test') {
+        if (!prospect.canEnroll) {
           setLoadError(
-            'Only pre-test prospective students can be enrolled as students.',
+            'Enroll requires a student payment with at least one approved installment or a completed payment plan.',
           )
           setInitialValues(emptyStudentFormValues)
           return
@@ -74,7 +74,7 @@ export default function StudentCreatePage() {
           grn: prospect.srNumber,
           counsellorId: prospect.marketingId ?? '',
           branchId: prospect.branchId ?? '',
-          status: 'active',
+          status: 'inactive',
         })
       })
       .catch((error) => {
@@ -138,7 +138,7 @@ function StudentCreateForm({
           <div>
             <Link
               to={prospectiveStudentId ? '/prospective-students' : '/students'}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
             >
               <ArrowLeft className="size-4" />
               {prospectiveStudentId ? 'Prospective Students' : 'Students'}
@@ -148,8 +148,8 @@ function StudentCreateForm({
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {prospectiveStudentId
-                ? 'Complete enrollment details for this pre-test lead. Saving will mark them as enrolled.'
-                : 'Create a student profile with personal, contact, and enrollment details.'}
+                ? 'Complete enrollment after payment progress. They start inactive unless an approved installment already exists.'
+                : 'Create a student profile with personal, contact, and enrollment details. New students start inactive until payment is approved.'}
             </p>
             {loadError ? (
               <p className="mt-2 text-sm text-rose-500">{loadError}</p>

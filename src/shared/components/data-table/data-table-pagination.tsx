@@ -109,8 +109,8 @@ export function DataTablePagination<TData>({
                   className={cn(
                     'inline-flex size-9 items-center justify-center rounded-lg text-sm font-semibold transition',
                     page === currentPage
-                      ? 'bg-[#4274B9] text-white'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:border-[#BED2F2] hover:bg-[#F8FBFF]',
+                      ? 'bg-[#253CA1] text-white'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:border-[#C8D4F5] hover:bg-[#F5F7FF]',
                   )}
                 >
                   {page}

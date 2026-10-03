@@ -28,7 +28,8 @@ const apiFieldToFormField: Record<string, keyof ProspectiveStudentFormValues> = 
   status: 'status',
   sr_number: 'srNumber',
   date: 'date',
-  resource: 'resource',
+  resource: 'resourceId',
+  tele_marketing: 'teleMarketing',
   age: 'age',
   address: 'address',
   language_test: 'languageTest',
@@ -73,7 +74,7 @@ type UseProspectiveStudentFormOptions = {
 export function useProspectiveStudentForm({
   mode,
   prospectiveStudentId,
-  initialValues = emptyProspectiveStudentFormValues,
+  initialValues = emptyProspectiveStudentFormValues(),
 }: UseProspectiveStudentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()

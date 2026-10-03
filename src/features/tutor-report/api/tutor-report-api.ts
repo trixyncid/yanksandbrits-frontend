@@ -61,11 +61,13 @@ function mapTutorSalary(
     sessionSalary: dto.session_salary ?? 0,
     overtimeSessions: dto.overtime_sessions ?? 0,
     overtimeSalary: dto.overtime_salary ?? 0,
+    bonusSalary: dto.bonus_salary ?? 0,
     totalSalary:
       dto.total_salary ??
       (dto.main_salary ?? 0) +
         (dto.session_salary ?? 0) +
-        (dto.overtime_salary ?? 0),
+        (dto.overtime_salary ?? 0) +
+        (dto.bonus_salary ?? 0),
     source,
   }
 }

@@ -6,11 +6,13 @@ import {
   CreditCard,
   FolderKanban,
   GraduationCap,
+  KeyRound,
   LayoutDashboard,
   Megaphone,
   PieChart,
   Receipt,
   School,
+  Settings2,
   ShieldCheck,
   Users,
   UserSquare2,
@@ -18,6 +20,8 @@ import {
 
 export type AppPath =
   | '/dashboard'
+  | '/marketing-dashboard'
+  | '/tutor-dashboard'
   | '/students'
   | '/students/new'
   | '/student-groups'
@@ -35,16 +39,20 @@ export type AppPath =
   | '/full-schedule'
   | '/users'
   | '/tutors'
+  | '/tutors/new'
   | '/marketings'
+  | '/marketings/new'
   | '/staff-permissions'
   | '/paid-leaves'
   | '/branches'
   | '/institutions'
   | '/occupations'
+  | '/resources'
   | '/student-report'
   | '/bookkeeping'
   | '/bookkeeping/new'
   | '/tutor-report'
+  | '/tutor-salary-bonus'
   | '/marketing-report'
   | '/appointment-by-tutor'
   | '/profile'
@@ -74,10 +82,41 @@ export function isNavigationGroup(
 
 export const adminNavigation: NavigationItem[] = [
   {
+    id: 'tutor-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/tutor-dashboard',
+  },
+  {
+    id: 'marketing-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/marketing-dashboard',
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
     to: '/dashboard',
+  },
+  {
+    id: 'leads',
+    label: 'Leads',
+    icon: Megaphone,
+    children: [
+      {
+        id: 'prospective-student',
+        label: 'Prospective Student',
+        icon: Users,
+        to: '/prospective-students',
+      },
+      {
+        id: 'prediction-test',
+        label: 'Prediction Test',
+        icon: ShieldCheck,
+        to: '/prediction-tests',
+      },
+    ],
   },
   {
     id: 'students',
@@ -97,47 +136,10 @@ export const adminNavigation: NavigationItem[] = [
         to: '/student-groups',
       },
       {
-        id: 'student-payment',
-        label: 'Student Payment',
-        icon: CreditCard,
-        to: '/student-payments',
-      },
-      {
         id: 'student-report',
         label: 'Student Report',
         icon: PieChart,
         to: '/student-report',
-      },
-      {
-        id: 'institution',
-        label: 'Institutions',
-        icon: School,
-        to: '/institutions',
-      },
-      {
-        id: 'occupation',
-        label: 'Occupations',
-        icon: ClipboardList,
-        to: '/occupations',
-      },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: Megaphone,
-    children: [
-      {
-        id: 'prospective-student',
-        label: 'Prospective Student',
-        icon: Users,
-        to: '/prospective-students',
-      },
-      {
-        id: 'prediction-test',
-        label: 'Prediction Test',
-        icon: ShieldCheck,
-        to: '/prediction-tests',
       },
     ],
   },
@@ -173,16 +175,10 @@ export const adminNavigation: NavigationItem[] = [
     ],
   },
   {
-    id: 'staff',
-    label: 'Staff',
+    id: 'people',
+    label: 'People',
     icon: FolderKanban,
     children: [
-      {
-        id: 'staff-list',
-        label: 'Users',
-        icon: Users,
-        to: '/users',
-      },
       {
         id: 'tutor-list',
         label: 'Tutor List',
@@ -191,15 +187,9 @@ export const adminNavigation: NavigationItem[] = [
       },
       {
         id: 'marketing-list',
-        label: 'Marketing List',
+        label: 'Education Counsellors',
         icon: Megaphone,
         to: '/marketings',
-      },
-      {
-        id: 'staff-permission',
-        label: 'Roles',
-        icon: ShieldCheck,
-        to: '/staff-permissions',
       },
       {
         id: 'paid-leave',
@@ -210,10 +200,35 @@ export const adminNavigation: NavigationItem[] = [
     ],
   },
   {
+    id: 'access',
+    label: 'Access',
+    icon: KeyRound,
+    children: [
+      {
+        id: 'staff-list',
+        label: 'Users',
+        icon: Users,
+        to: '/users',
+      },
+      {
+        id: 'staff-permission',
+        label: 'Roles',
+        icon: ShieldCheck,
+        to: '/staff-permissions',
+      },
+    ],
+  },
+  {
     id: 'finance',
     label: 'Finance',
     icon: Receipt,
     children: [
+      {
+        id: 'student-payment',
+        label: 'Payment',
+        icon: CreditCard,
+        to: '/student-payments',
+      },
       {
         id: 'bookkeeping',
         label: 'Bookkeeping',
@@ -227,6 +242,12 @@ export const adminNavigation: NavigationItem[] = [
         to: '/tutor-report',
       },
       {
+        id: 'tutor-salary-bonus',
+        label: 'Tutor Salary Bonus',
+        icon: ClipboardList,
+        to: '/tutor-salary-bonus',
+      },
+      {
         id: 'marketing-report',
         label: 'Marketing Report',
         icon: PieChart,
@@ -235,9 +256,34 @@ export const adminNavigation: NavigationItem[] = [
     ],
   },
   {
-    id: 'branch',
-    label: 'Branch',
-    icon: School,
-    to: '/branches',
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings2,
+    children: [
+      {
+        id: 'branch',
+        label: 'Branch',
+        icon: School,
+        to: '/branches',
+      },
+      {
+        id: 'institution',
+        label: 'Institutions',
+        icon: School,
+        to: '/institutions',
+      },
+      {
+        id: 'occupation',
+        label: 'Occupations',
+        icon: ClipboardList,
+        to: '/occupations',
+      },
+      {
+        id: 'resource',
+        label: 'Resources',
+        icon: Megaphone,
+        to: '/resources',
+      },
+    ],
   },
 ]

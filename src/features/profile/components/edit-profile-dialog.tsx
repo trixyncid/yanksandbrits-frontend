@@ -201,8 +201,8 @@ export function EditProfileDialog({
           noValidate
           className="flex max-h-[90vh] flex-col"
         >
-          <div className="shrink-0 bg-[linear-gradient(135deg,#EDF4FF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9] ring-1 ring-[#BED2F2]">
+          <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
               <Pencil className="size-5" />
             </div>
             <DialogHeader className="pr-0">
@@ -274,7 +274,7 @@ export function EditProfileDialog({
                     placeholder="Pick birth date"
                     title="Birth date"
                     captionLayout="dropdown"
-                    className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+                    className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
                     align="start"
                   />
                 </Field>

@@ -18,7 +18,6 @@ import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { StudentProgramsTab } from '../components/student-programs-tab'
 import { StudentPaymentsTab } from '../components/student-payments-tab'
-import { StudentAccountCard } from '../components/student-account-card'
 import { deleteStudent, getStudentInitials } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
 import { useStudentQuery } from '../hooks/use-student-query'
@@ -81,7 +80,7 @@ export default function StudentDetailPage() {
     return (
       <AdminShell>
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#4274B9]">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
             <UserRound className="size-6" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-slate-900">
@@ -138,26 +137,26 @@ export default function StudentDetailPage() {
         <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/students"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4274B9]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
           >
             <ArrowLeft className="size-4" />
             Students
           </Link>
         </div>
 
-        <section className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] border border-[#D7E4F6] bg-[linear-gradient(135deg,#F8FBFF_0%,#FFFFFF_42%,#EDF4FF_100%)] shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)]">
+        <section className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] border border-[#D7E4F6] bg-[linear-gradient(135deg,#F5F8FF_0%,#FFFFFF_42%,#E8EEFF_100%)] shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)]">
           <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
               <div className="relative shrink-0">
                 <div className="absolute -inset-3 rounded-[1.75rem] bg-[radial-gradient(circle_at_center,rgba(66,116,185,0.22),transparent_70%)]" />
-                <div className="relative inline-flex size-20 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(160deg,#4274B9_0%,#2F5A94_100%)] text-2xl font-bold tracking-wide text-white shadow-lg shadow-[#4274B9]/30 sm:size-24">
+                <div className="relative inline-flex size-20 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(160deg,#253CA1_0%,#1B2A5A_100%)] text-2xl font-bold tracking-wide text-white shadow-lg shadow-[#253CA1]/30 sm:size-24">
                   {getStudentInitials(student.fullName)}
                 </div>
               </div>
 
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#4274B9] uppercase ring-1 ring-[#BED2F2]">
+                  <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#253CA1] uppercase ring-1 ring-[#C8D4F5]">
                     {student.pin}
                   </span>
                   <span
@@ -170,20 +169,6 @@ export default function StudentDetailPage() {
                   >
                     {student.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
-                  {student.hasAccount ? (
-                    <span
-                      className={cn(
-                        'rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1',
-                        student.accountActive
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
-                          : 'bg-amber-50 text-amber-700 ring-amber-100',
-                      )}
-                    >
-                      {student.accountActive
-                        ? 'Portal Active'
-                        : 'Portal Inactive'}
-                    </span>
-                  ) : null}
                 </div>
                 <h2 className="mt-3 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                   {student.fullName}
@@ -193,11 +178,11 @@ export default function StudentDetailPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
                   <span className="inline-flex items-center gap-1.5">
-                    <Building2 className="size-3.5 text-[#4274B9]" />
+                    <Building2 className="size-3.5 text-[#253CA1]" />
                     {student.branch}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <UserRound className="size-3.5 text-[#4274B9]" />
+                    <UserRound className="size-3.5 text-[#253CA1]" />
                     {student.counsellor}
                   </span>
                 </div>
@@ -261,7 +246,7 @@ export default function StudentDetailPage() {
                 className="sm:col-span-2"
               />
               <DetailItem label="Phone (Mobile)" value={student.mobilePhone} />
-              <DetailItem label="Phone (Home)" value={student.homePhone} />
+              <DetailItem label="Phone (Parents)" value={student.homePhone} />
               <DetailItem label="Phone (Others)" value={student.othersPhone} />
               <DetailItem
                 label="Occupation"
@@ -307,8 +292,6 @@ export default function StudentDetailPage() {
           </aside>
         </div>
 
-        <StudentAccountCard student={student} />
-
         <section className="animate-in fade-in slide-in-from-bottom-2 delay-150 space-y-4">
           <div className="flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:max-w-md">
             {(
@@ -324,7 +307,7 @@ export default function StudentDetailPage() {
                 className={cn(
                   'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
                   tab === item.id
-                    ? 'bg-[#4274B9] text-white shadow-md shadow-[#4274B9]/25'
+                    ? 'bg-[#253CA1] text-white shadow-md shadow-[#253CA1]/25'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
                 )}
               >

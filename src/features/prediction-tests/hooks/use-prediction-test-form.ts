@@ -1,16 +1,32 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import type { ApiErrorBody } from '../../../shared/api/types'
 import { notify } from '../../../shared/lib/notify'
+import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
+import {
+  useAuthUser,
+  useIsAcademicLeader,
+  useIsManager,
+  useIsProgramReviewer,
+  useIsRestrictedMarketing,
+  useLocksPaymentStatus,
+} from '../../auth/hooks/use-permissions'
+import { hasAuthRole } from '../../auth/types/auth'
 import {
   createPredictionTest,
   emptyPredictionTestFormValues,
   updatePredictionTest,
 } from '../api/prediction-tests-api'
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
-import { predictionTestFormSchema } from '../schema/prediction-test-form-schema'
+import {
+  academicLeaderPredictionTestFormSchema,
+  educationCounsellorPredictionTestFormSchema,
+  predictionTestFormSchemaFor,
+} from '../schema/prediction-test-form-schema'
 import type {
   PredictionTestFormErrors,
   PredictionTestFormValues,
@@ -22,6 +38,45 @@ type UsePredictionTestFormOptions = {
   initialValues?: PredictionTestFormValues
 }
 
+const apiFieldToFormField: Record<string, keyof PredictionTestFormValues> = {
+  student: 'studentId',
+  branch: 'branchId',
+  ielts_program: 'ieltsProgram',
+  listening: 'listening',
+  reading: 'reading',
+  writing: 'writing',
+  speaking: 'speaking',
+  math: 'math',
+  schedule_note: 'scheduleNote',
+  description: 'description',
+  amount: 'amount',
+  status: 'status',
+}
+
+function formErrorsFromApi(error: unknown): PredictionTestFormErrors {
+  if (!axios.isAxiosError(error)) {
+    return {}
+  }
+
+  const details = (error.response?.data as ApiErrorBody | undefined)?.details
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return {}
+  }
+
+  const next: PredictionTestFormErrors = {}
+  for (const [apiField, value] of Object.entries(
+    details as Record<string, unknown>,
+  )) {
+    const formField = apiFieldToFormField[apiField]
+    if (!formField) continue
+    const message = Array.isArray(value) ? value[0] : value
+    if (typeof message === 'string' && message.trim()) {
+      next[formField] = message
+    }
+  }
+  return next
+}
+
 export function usePredictionTestForm({
   mode,
   testId,
@@ -29,6 +84,16 @@ export function usePredictionTestForm({
 }: UsePredictionTestFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const invalidateNavBadges = useInvalidateNavBadges()
+  const isEducationCounsellor = useIsRestrictedMarketing()
+  const isAcademicLeader = useIsAcademicLeader()
+  const locksPaymentStatus = useLocksPaymentStatus()
+  const isProgramReviewer = useIsProgramReviewer()
+  const isManager = useIsManager()
+  const authUser = useAuthUser()
+  const canSetManagerApproval =
+    !isProgramReviewer &&
+    (isManager || hasAuthRole(authUser, 'systemadmin'))
   const [values, setValues] = useState<PredictionTestFormValues>(initialValues)
   const [errors, setErrors] = useState<PredictionTestFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,12 +106,20 @@ export function usePredictionTestForm({
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
-  function validateForm(nextValues: PredictionTestFormValues) {
-    const result = predictionTestFormSchema.safeParse(nextValues)
+  function validateForm(
+    nextValues: PredictionTestFormValues,
+    course: string | null,
+  ) {
+    const schema = isProgramReviewer
+      ? academicLeaderPredictionTestFormSchema
+      : isEducationCounsellor
+        ? educationCounsellorPredictionTestFormSchema(course)
+        : predictionTestFormSchemaFor(course)
+    const result = schema.safeParse(nextValues)
 
     if (result.success) {
       setErrors({})
-      return true
+      return null
     }
 
     const nextErrors: PredictionTestFormErrors = {}
@@ -60,19 +133,26 @@ export function usePredictionTestForm({
     }
 
     setErrors(nextErrors)
-    return false
+    return (
+      Object.values(nextErrors).find((message) => Boolean(message)) ??
+      'Please check the highlighted fields and try again.'
+    )
   }
 
-  async function submit() {
-    const isValid = validateForm(values)
+  async function submit(course: string | null = null) {
+    const payload: PredictionTestFormValues =
+      locksPaymentStatus && mode === 'create'
+        ? { ...values, status: 'pending' }
+        : values
+    const validationMessage = validateForm(payload, course)
 
-    if (!isValid) {
+    if (validationMessage) {
       notify('error', {
         title:
           mode === 'create'
             ? 'Unable to add prediction test'
             : 'Unable to update prediction test',
-        description: 'Please check the highlighted fields and try again.',
+        description: validationMessage,
       })
       return
     }
@@ -80,14 +160,24 @@ export function usePredictionTestForm({
     setIsSubmitting(true)
 
     try {
+      const apiOptions = {
+        omitPayment: isProgramReviewer,
+        includeAcademicLeaderReview: isProgramReviewer,
+        includeManagerApproval: canSetManagerApproval,
+        includeSessions:
+          isAcademicLeader && values.academicLeaderDecision === 'approve',
+        course,
+      }
+
       if (mode === 'create') {
-        const created = await createPredictionTest(values)
+        const created = await createPredictionTest(payload, apiOptions)
         await queryClient.invalidateQueries({
           queryKey: predictionTestQueryKeys.all,
         })
+        invalidateNavBadges()
         notify('success', {
           title: 'Prediction test created',
-          description: `${created.studentName} has been added.`,
+          description: `Prediction test for ${created.studentName} has been added.`,
         })
         void navigate({ to: '/prediction-tests' })
         return
@@ -97,16 +187,21 @@ export function usePredictionTestForm({
         return
       }
 
-      const updated = await updatePredictionTest(testId, values)
+      const updated = await updatePredictionTest(testId, payload, apiOptions)
       await queryClient.invalidateQueries({
         queryKey: predictionTestQueryKeys.all,
       })
+      invalidateNavBadges()
       notify('success', {
         title: 'Prediction test updated',
-        description: `${updated.studentName} has been saved.`,
+        description: `Prediction test for ${updated.studentName} has been saved.`,
       })
       void navigate({ to: '/prediction-tests' })
     } catch (error) {
+      const fieldErrors = formErrorsFromApi(error)
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors((current) => ({ ...current, ...fieldErrors }))
+      }
       notify('error', {
         title:
           mode === 'create'

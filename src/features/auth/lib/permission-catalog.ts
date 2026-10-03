@@ -2,6 +2,7 @@
 
 export const PAGE_VIEW_PERMISSIONS = {
   dashboard: 'api_dashboard.view_dashboard',
+  marketingDashboard: 'api_dashboard.view_marketing_dashboard',
   studentReport: 'api_dashboard.view_student_report',
   appointmentByTutor: 'api_dashboard.view_appointment_by_tutor',
 } as const
@@ -93,6 +94,12 @@ export const PERMISSION_MODULES = {
     change: 'lookups.change_occupation',
     delete: 'lookups.delete_occupation',
   },
+  resources: {
+    view: 'lookups.view_resource',
+    add: 'lookups.add_resource',
+    change: 'lookups.change_resource',
+    delete: 'lookups.delete_resource',
+  },
   bookkeeping: {
     view: 'payroll.view_bookkeeping',
     add: 'payroll.add_bookkeeping',
@@ -104,6 +111,12 @@ export const PERMISSION_MODULES = {
     add: 'payroll.add_tutorsalarycalculation',
     change: 'payroll.change_tutorsalarycalculation',
     delete: 'payroll.delete_tutorsalarycalculation',
+  },
+  tutorSalaryBonus: {
+    view: 'compensation.view_tutorsalarybonustier',
+    add: 'compensation.add_tutorsalarybonustier',
+    change: 'compensation.change_tutorsalarybonustier',
+    delete: 'compensation.delete_tutorsalarybonustier',
   },
   marketingSalary: {
     view: 'payroll.view_marketingsalarycalculation',

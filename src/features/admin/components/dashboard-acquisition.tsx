@@ -7,7 +7,7 @@ import {
 } from './dashboard-section'
 
 const SOURCE_COLORS = [
-  '#4274B9',
+  '#253CA1',
   '#3D9B6E',
   '#D97706',
   '#7C6BC4',
@@ -122,7 +122,7 @@ export function DashboardCourseInterest({
       {items.length === 0 ? (
         <DashboardEmptyState message="No course interest data in this period." />
       ) : (
-        <ol className="flex-1 space-y-3">
+        <ol className="flex-1 space-y-2">
           {items.map((item, index) => {
             const width = Math.max((item.count / max) * 100, item.count > 0 ? 8 : 0)
             const share = total > 0 ? Math.round((item.count / total) * 100) : 0
@@ -146,7 +146,7 @@ export function DashboardCourseInterest({
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-[#2F5A94]"
+                      className="h-full rounded-full bg-[#1B2A5A]"
                       style={{ width: `${width}%` }}
                     />
                   </div>

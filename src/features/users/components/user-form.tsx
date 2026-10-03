@@ -1,16 +1,22 @@
 import { parseISO } from 'date-fns'
 import type { FormEvent, ReactNode } from 'react'
 
+import type { StaffEntityKind } from '../lib/staff-entity-config'
+import { RoleAccountForm } from './role-account-form'
+
 import { Button } from '../../../shared/components/ui/button'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import {
+  EMPLOYMENT_TYPE_OPTIONS,
   STAFF_TYPE_OPTIONS,
+  WORKING_DAYS_PER_WEEK_OPTIONS,
   type UserFormErrors,
   type UserFormValues,
 } from '../api/users-api'
@@ -75,6 +81,8 @@ type UserFormProps = {
   errors: UserFormErrors
   isSubmitting: boolean
   entityLabel: string
+  entityKind?: StaffEntityKind
+  defaultRoleCode?: string
   onChange: <K extends keyof UserFormValues>(
     field: K,
     value: UserFormValues[K],
@@ -89,12 +97,56 @@ export function UserForm({
   errors,
   isSubmitting,
   entityLabel,
+  entityKind = 'staff',
+  defaultRoleCode,
+  onChange,
+  onSubmit,
+  onCancel,
+}: UserFormProps) {
+  if (entityKind === 'tutor' || entityKind === 'marketing') {
+    return (
+      <RoleAccountForm
+        mode={mode}
+        kind={entityKind}
+        defaultRoleCode={defaultRoleCode}
+        values={values}
+        errors={errors}
+        isSubmitting={isSubmitting}
+        entityLabel={entityLabel}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />
+    )
+  }
+
+  return (
+    <StaffAccountForm
+      mode={mode}
+      values={values}
+      errors={errors}
+      isSubmitting={isSubmitting}
+      entityLabel={entityLabel}
+      onChange={onChange}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+    />
+  )
+}
+
+function StaffAccountForm({
+  mode,
+  values,
+  errors,
+  isSubmitting,
+  entityLabel,
   onChange,
   onSubmit,
   onCancel,
 }: UserFormProps) {
   const branchesQuery = useBranchesQuery()
   const rolesQuery = useStaffPermissionsQuery()
+  const showTutorEmployment = entityLabel === 'Tutor'
 
   const roleOptions = (rolesQuery.data?.data ?? []).filter(
     (role) => role.code !== 'student',
@@ -148,7 +200,11 @@ export function UserForm({
             label="Initial"
             htmlFor="initial"
             error={errors.initial}
-            hint="Optional unique initials (max 2 characters)."
+            hint={
+              entityLabel === 'Marketing'
+                ? 'Unique initials used for marketing commission attribution (max 2 characters).'
+                : 'Optional unique initials (max 2 characters).'
+            }
           >
             <Input
               id="initial"
@@ -256,7 +312,7 @@ export function UserForm({
               placeholder="Pick birth date"
               title="Birth date"
               captionLayout="dropdown"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -298,7 +354,7 @@ export function UserForm({
             />
           </Field>
           <Field
-            label="Phone (Home)"
+            label="Phone (Parents)"
             htmlFor="homePhone"
             error={errors.homePhone}
           >
@@ -356,14 +412,22 @@ export function UserForm({
           <Field
             label="Staff Type"
             htmlFor="staffType"
-            error={errors.staffType}
+            error={errors.staffTypes}
           >
             <Select
               id="staffType"
               containerClassName="w-full sm:w-full"
-              value={values.staffType}
-              onChange={(event) => onChange('staffType', event.target.value)}
+              value={values.staffTypes[0] ?? ''}
+              onChange={(event) =>
+                onChange(
+                  'staffTypes',
+                  event.target.value
+                    ? [event.target.value as UserFormValues['staffTypes'][number]]
+                    : [],
+                )
+              }
             >
+              <option value="">Select staff type</option>
               {STAFF_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -371,6 +435,68 @@ export function UserForm({
               ))}
             </Select>
           </Field>
+
+          {showTutorEmployment ? (
+            <>
+              <Field
+                label="Employment Type"
+                htmlFor="employmentType"
+                error={errors.employmentType}
+                hint="Used to match tutor salary bonus tiers."
+              >
+                <Select
+                  id="employmentType"
+                  containerClassName="w-full sm:w-full"
+                  value={values.employmentType}
+                  onChange={(event) => {
+                    const next = event.target
+                      .value as UserFormValues['employmentType']
+                    onChange('employmentType', next)
+                    if (next !== 'FT' && next !== 'PT') {
+                      onChange('workingDaysPerWeek', '')
+                    }
+                  }}
+                >
+                  <option value="">Select employment type</option>
+                  {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              {values.employmentType === 'FT' ||
+              values.employmentType === 'PT' ? (
+              <Field
+                label="Working Days / Week"
+                htmlFor="workingDaysPerWeek"
+                error={errors.workingDaysPerWeek}
+                hint="5 or 6 days — used with bonus tiers."
+              >
+                <Select
+                  id="workingDaysPerWeek"
+                  containerClassName="w-full sm:w-full"
+                  value={values.workingDaysPerWeek}
+                  onChange={(event) =>
+                    onChange(
+                      'workingDaysPerWeek',
+                      event.target
+                        .value as UserFormValues['workingDaysPerWeek'],
+                    )
+                  }
+                >
+                  <option value="">Select working days</option>
+                  {WORKING_DAYS_PER_WEEK_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              ) : null}
+            </>
+          ) : null}
 
           <Field
             label="Paid Leave"
@@ -396,7 +522,7 @@ export function UserForm({
               onChange={(date) => onChange('resignDate', toDateString(date))}
               placeholder="Optional resign date"
               title="Resign date"
-              className="h-12 w-full min-w-0 justify-start rounded-xl border-slate-200 bg-[#F4F6FA] px-4 font-medium"
+              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
               align="start"
             />
           </Field>
@@ -420,12 +546,12 @@ export function UserForm({
                 <label
                   key={role.id}
                   htmlFor={`role-${role.id}`}
-                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 py-3 text-sm text-slate-600"
+                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-full border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm"
                 >
                   <input
                     id={`role-${role.id}`}
                     type="checkbox"
-                    className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
+                    className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
                     checked={values.groupIds.includes(role.id)}
                     onChange={(event) =>
                       toggleGroup(role.id, event.target.checked)
@@ -449,27 +575,17 @@ export function UserForm({
           <FieldError message={errors.groupIds} />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="isActive">Active Status</Label>
-          <label
-            htmlFor="isActive"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-[#F4F6FA] px-4 text-sm text-slate-600"
-          >
-            <input
-              id="isActive"
-              type="checkbox"
-              className="size-4 rounded border-slate-300 text-[#4274B9] focus:ring-[#4274B9]/40"
-              checked={values.isActive}
-              onChange={(event) => onChange('isActive', event.target.checked)}
-            />
-            <span>
-              {values.isActive
-                ? 'Account is active'
-                : 'Account is inactive'}
-            </span>
-          </label>
-          <FieldError message={errors.isActive} />
-        </div>
+        <StatusToggle
+          id="user-is-active"
+          value={values.isActive}
+          onChange={(next) => onChange('isActive', next)}
+          description={
+            values.isActive
+              ? 'Account can sign in and appear in staff lists.'
+              : 'Account is blocked from signing in.'
+          }
+          error={errors.isActive}
+        />
       </section>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-6">
