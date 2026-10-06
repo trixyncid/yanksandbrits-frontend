@@ -1,11 +1,14 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
-import { useLocksPaymentStatus } from '../../auth/hooks/use-permissions'
+import {
+  useCanApproveInstallmentPlan,
+  useLocksPaymentStatus,
+} from '../../auth/hooks/use-permissions'
 import {
   createStudentPayment,
   createEmptyStudentPaymentFormValues,
@@ -19,7 +22,7 @@ import {
   emptyTermFormValues,
   takeMatchingServerTermId,
 } from '../lib/payment-display'
-import { studentPaymentFormSchema } from '../schema/student-payment-form-schema'
+import { createStudentPaymentFormSchema } from '../schema/student-payment-form-schema'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentFormValues,
@@ -36,6 +39,7 @@ type UseStudentPaymentFormOptions = {
   returnToStudentId?: string
   /** After cancel/create without student return, go back to prospective students. */
   returnToProspectiveStudents?: boolean
+  installmentPlanApproved?: boolean
 }
 
 export function useStudentPaymentForm({
@@ -44,11 +48,19 @@ export function useStudentPaymentForm({
   initialValues = createEmptyStudentPaymentFormValues(),
   returnToStudentId,
   returnToProspectiveStudents = false,
+  installmentPlanApproved = false,
 }: UseStudentPaymentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const invalidateNavBadges = useInvalidateNavBadges()
+  const pretestCreditRef = useRef(0)
+  const scheduleCapRef = useRef(Math.max(2, initialValues.terms.length))
+  const allowEnrolledProspectRef = useRef(
+    mode === 'edit' &&
+      Boolean(initialValues.studentId && initialValues.prospectiveStudentId),
+  )
   const lockTransactionStatus = useLocksPaymentStatus()
+  const canApproveInstallmentPlan = useCanApproveInstallmentPlan()
   const [values, setValues] = useState<StudentPaymentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentPaymentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -88,6 +100,14 @@ export function useStudentPaymentForm({
   }
 
   function addTerm(initial?: Partial<StudentPaymentTermFormValues>) {
+    if (values.terms.length >= scheduleCapRef.current) {
+      notify('error', {
+        title: 'Two payments is the maximum',
+        description: 'Choose pay in full or 2 payments only.',
+      })
+      return
+    }
+    const key = createTermFormKey()
     setValues((current) => ({
       ...current,
       terms: [
@@ -95,11 +115,21 @@ export function useStudentPaymentForm({
         {
           ...emptyTermFormValues(),
           ...initial,
-          key: createTermFormKey(),
+          key,
         },
       ],
     }))
     setErrors((current) => ({ ...current, terms: undefined }))
+    return key
+  }
+
+  function replaceTerms(terms: StudentPaymentTermFormValues[]) {
+    setValues((current) => ({ ...current, terms }))
+    setErrors((current) => ({
+      ...current,
+      terms: undefined,
+      termErrors: {},
+    }))
   }
 
   function removeTerm(key: string) {
@@ -115,15 +145,37 @@ export function useStudentPaymentForm({
     })
   }
 
+  const setPretestCredit = useCallback((amount: number) => {
+    pretestCreditRef.current = Number.isFinite(amount) ? amount : 0
+  }, [])
+
   function validateForm(nextValues: StudentPaymentFormValues) {
-    const result = studentPaymentFormSchema.safeParse(nextValues)
+    const requireInstallmentAmounts = !(
+      nextValues.installmentPlan === 'two' &&
+      !installmentPlanApproved &&
+      !canApproveInstallmentPlan
+    )
+    const result = createStudentPaymentFormSchema(
+      pretestCreditRef.current,
+      scheduleCapRef.current,
+      requireInstallmentAmounts,
+      allowEnrolledProspectRef.current,
+    ).safeParse(nextValues)
 
     if (result.success) {
       setErrors({})
-      return true
+      return []
     }
 
     const nextErrors: StudentPaymentFormErrors = { termErrors: {} }
+    const messages: string[] = []
+    const seen = new Set<string>()
+
+    function pushMessage(key: string, message: string) {
+      if (seen.has(key)) return
+      seen.add(key)
+      messages.push(message)
+    }
 
     for (const issue of result.error.issues) {
       const [root, index, nested] = issue.path
@@ -131,18 +183,35 @@ export function useStudentPaymentForm({
       if (root === 'terms') {
         if (typeof index !== 'number') {
           nextErrors.terms = issue.message
+          pushMessage('terms', issue.message)
           continue
         }
         const termKey = nextValues.terms[index]?.key
         if (!termKey || typeof nested !== 'string') {
           nextErrors.terms = issue.message
+          pushMessage('terms', issue.message)
           continue
         }
         nextErrors.termErrors ??= {}
-        nextErrors.termErrors[termKey] = {
-          ...nextErrors.termErrors[termKey],
-          [nested]: issue.message,
+        const field = nested as 'amount' | 'paymentDate' | 'branchId' | 'status' | 'description'
+        if (!nextErrors.termErrors[termKey]?.[field]) {
+          nextErrors.termErrors[termKey] = {
+            ...nextErrors.termErrors[termKey],
+            [field]: issue.message,
+          }
         }
+        const label =
+          field === 'amount'
+            ? 'Amount'
+            : field === 'paymentDate'
+              ? 'Payment date'
+              : field === 'branchId'
+                ? 'Payment branch'
+                : 'Installment'
+        pushMessage(
+          `${termKey}:${field}`,
+          `Installment ${index + 1} ${label.toLowerCase()}: ${issue.message}`,
+        )
         continue
       }
 
@@ -152,14 +221,16 @@ export function useStudentPaymentForm({
           root === 'prospectiveStudentId' ||
           root === 'title' ||
           root === 'fullAmount' ||
+          root === 'discountAmount' ||
           root === 'terms')
       ) {
         nextErrors[root] = issue.message
+        pushMessage(root, issue.message)
       }
     }
 
     setErrors(nextErrors)
-    return false
+    return messages.length > 0 ? messages : ['Check the highlighted fields.']
   }
 
   function navigateAfterSave() {
@@ -181,6 +252,7 @@ export function useStudentPaymentForm({
     payment: StudentPaymentListItem,
     formTerms: StudentPaymentTermFormValues[],
   ) {
+    let latest = payment
     const knownIds = new Set(
       formTerms
         .map((term) => term.id)
@@ -195,9 +267,11 @@ export function useStudentPaymentForm({
         formTerm.id ?? takeMatchingServerTermId(formTerm, unmatched)
       if (!termId) continue
       for (const file of files) {
-        await uploadStudentPaymentTermProof(payment.id, termId, file)
+        latest = await uploadStudentPaymentTermProof(latest.id, termId, file)
       }
     }
+
+    return latest
   }
 
   async function persistTerm(
@@ -334,15 +408,15 @@ export function useStudentPaymentForm({
   }
 
   async function submit() {
-    const isValid = validateForm(values)
+    const validationMessages = validateForm(values)
 
-    if (!isValid) {
+    if (validationMessages.length > 0) {
       notify('error', {
         title:
           mode === 'create'
             ? 'Unable to record payment'
             : 'Unable to update payment',
-        description: 'Please check the highlighted fields and try again.',
+        description: validationMessages.slice(0, 3).join(' '),
       })
       return
     }
@@ -359,10 +433,19 @@ export function useStudentPaymentForm({
           queryKey: studentPaymentQueryKeys.all,
         })
         invalidateNavBadges()
-        notify('success', {
-          title: 'Payment recorded',
-          description: `${created.title} for ${created.studentName} has been added.`,
-        })
+        notify(
+          'success',
+          created.installmentPlan === 'two' && !created.installmentPlanApproved
+            ? {
+                title: 'Submitted for approval',
+                description:
+                  'Finance, a branch manager, or a system admin still needs to approve this 2-payment plan.',
+              }
+            : {
+                title: 'Payment recorded',
+                description: `${created.title} for ${created.studentName} has been added.`,
+              },
+        )
         navigateAfterSave()
         return
       }
@@ -371,10 +454,12 @@ export function useStudentPaymentForm({
         return
       }
 
-      const updated = await updateStudentPayment(paymentId, values, {
-        omitStatus: lockTransactionStatus,
-      })
-      await uploadStagedProofs(updated, values.terms)
+      const updated = await uploadStagedProofs(
+        await updateStudentPayment(paymentId, values, {
+          omitStatus: lockTransactionStatus,
+        }),
+        values.terms,
+      )
       await queryClient.invalidateQueries({
         queryKey: studentPaymentQueryKeys.all,
       })
@@ -402,10 +487,19 @@ export function useStudentPaymentForm({
         ...mapped,
         terms: orderedTerms,
       })
-      notify('success', {
-        title: 'Payment updated',
-        description: `${updated.title} has been saved.`,
-      })
+      notify(
+        'success',
+        updated.installmentPlan === 'two' && !updated.installmentPlanApproved
+          ? {
+              title: 'Submitted for approval',
+              description:
+                'Finance, a branch manager, or a system admin still needs to approve this 2-payment plan.',
+            }
+          : {
+              title: 'Payment updated',
+              description: `${updated.title} has been saved.`,
+            },
+      )
       return updated
     } catch (error) {
       notify('error', {
@@ -430,10 +524,12 @@ export function useStudentPaymentForm({
     errors,
     isSubmitting,
     updateField,
+    setPretestCredit,
     updateTerm,
     persistTerm,
     persistNewTerm,
     addTerm,
+    replaceTerms,
     removeTerm,
     submit,
     cancel,

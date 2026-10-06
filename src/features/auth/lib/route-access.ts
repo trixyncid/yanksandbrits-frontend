@@ -43,6 +43,7 @@ const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
   { prefix: '/prediction-tests', module: 'predictionTests' },
   { prefix: '/programs', module: 'programs' },
   { prefix: '/classrooms', module: 'classrooms' },
+  { prefix: '/tutor-allocations', module: 'tutorAllocations' },
   { prefix: '/full-schedule', module: 'schedules' },
   {
     prefix: '/appointment-by-tutor',
@@ -146,6 +147,25 @@ export function canAccessRoute(
     return true
   }
 
+  if (
+    pathname.startsWith('/student-groups') &&
+    hasAuthRole(user, 'academic-leader') &&
+    !hasAuthRole(user, 'systemadmin') &&
+    !hasAuthRole(user, 'branch-manager') &&
+    !hasAuthRole(user, 'manager')
+  ) {
+    return false
+  }
+
+  if (
+    pathname.startsWith('/student-groups') &&
+    (hasAuthRole(user, 'education-counsellor') ||
+      hasAuthRole(user, 'marketing')) &&
+    !hasAuthRole(user, 'academic-leader')
+  ) {
+    return true
+  }
+
   const requirement = resolveRouteRequirement(pathname)
   if (!requirement) {
     return true
@@ -219,6 +239,7 @@ export function getDefaultStaffPath(
     '/full-schedule',
     '/programs',
     '/classrooms',
+    '/tutor-allocations',
     '/users',
     '/paid-leaves',
     '/branches',

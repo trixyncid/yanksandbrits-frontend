@@ -8,14 +8,11 @@ import type { ApiErrorBody } from '../../../shared/api/types'
 import { notify } from '../../../shared/lib/notify'
 import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
 import {
-  useAuthUser,
+  useCanAssignGeneralEnglishTutor,
   useIsAcademicLeader,
-  useIsManager,
   useIsProgramReviewer,
-  useIsRestrictedMarketing,
   useLocksPaymentStatus,
 } from '../../auth/hooks/use-permissions'
-import { hasAuthRole } from '../../auth/types/auth'
 import {
   createPredictionTest,
   emptyPredictionTestFormValues,
@@ -24,8 +21,7 @@ import {
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
 import {
   academicLeaderPredictionTestFormSchema,
-  educationCounsellorPredictionTestFormSchema,
-  predictionTestFormSchemaFor,
+  predictionTestFormSchema,
 } from '../schema/prediction-test-form-schema'
 import type {
   PredictionTestFormErrors,
@@ -41,16 +37,15 @@ type UsePredictionTestFormOptions = {
 const apiFieldToFormField: Record<string, keyof PredictionTestFormValues> = {
   student: 'studentId',
   branch: 'branchId',
-  ielts_program: 'ieltsProgram',
   listening: 'listening',
   reading: 'reading',
   writing: 'writing',
   speaking: 'speaking',
   math: 'math',
-  schedule_note: 'scheduleNote',
   description: 'description',
   amount: 'amount',
   status: 'status',
+  general_english_tutor: 'generalEnglishTutorId',
 }
 
 function formErrorsFromApi(error: unknown): PredictionTestFormErrors {
@@ -85,15 +80,10 @@ export function usePredictionTestForm({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const invalidateNavBadges = useInvalidateNavBadges()
-  const isEducationCounsellor = useIsRestrictedMarketing()
   const isAcademicLeader = useIsAcademicLeader()
   const locksPaymentStatus = useLocksPaymentStatus()
   const isProgramReviewer = useIsProgramReviewer()
-  const isManager = useIsManager()
-  const authUser = useAuthUser()
-  const canSetManagerApproval =
-    !isProgramReviewer &&
-    (isManager || hasAuthRole(authUser, 'systemadmin'))
+  const canAssignGeneralEnglishTutor = useCanAssignGeneralEnglishTutor()
   const [values, setValues] = useState<PredictionTestFormValues>(initialValues)
   const [errors, setErrors] = useState<PredictionTestFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -106,15 +96,10 @@ export function usePredictionTestForm({
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
-  function validateForm(
-    nextValues: PredictionTestFormValues,
-    course: string | null,
-  ) {
-    const schema = isProgramReviewer
+  function validateForm(nextValues: PredictionTestFormValues) {
+    const schema = isAcademicLeader
       ? academicLeaderPredictionTestFormSchema
-      : isEducationCounsellor
-        ? educationCounsellorPredictionTestFormSchema(course)
-        : predictionTestFormSchemaFor(course)
+      : predictionTestFormSchema
     const result = schema.safeParse(nextValues)
 
     if (result.success) {
@@ -144,7 +129,7 @@ export function usePredictionTestForm({
       locksPaymentStatus && mode === 'create'
         ? { ...values, status: 'pending' }
         : values
-    const validationMessage = validateForm(payload, course)
+    const validationMessage = validateForm(payload)
 
     if (validationMessage) {
       notify('error', {
@@ -162,10 +147,7 @@ export function usePredictionTestForm({
     try {
       const apiOptions = {
         omitPayment: isProgramReviewer,
-        includeAcademicLeaderReview: isProgramReviewer,
-        includeManagerApproval: canSetManagerApproval,
-        includeSessions:
-          isAcademicLeader && values.academicLeaderDecision === 'approve',
+        includeGeneralEnglishTutor: canAssignGeneralEnglishTutor,
         course,
       }
 

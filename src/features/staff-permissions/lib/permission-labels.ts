@@ -64,6 +64,11 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     singular: 'classroom',
     description: 'Rooms that can be booked on the timetable.',
   },
+  tutorallocation: {
+    label: 'Tutor allocation',
+    singular: 'tutor allocation',
+    description: 'Private and group classes, their tutors, and their schedule.',
+  },
   classschedule: {
     label: 'Class schedule',
     singular: 'class session',
@@ -202,6 +207,7 @@ const APP_COPY: Record<string, PermissionAppCopy> = {
   prospects: { label: 'Leads' },
   programs: { label: 'Academics' },
   classrooms: { label: 'Academics' },
+  tutor_allocations: { label: 'Academics' },
   schedules: { label: 'Academics' },
   account: { label: 'Access' },
   auth: { label: 'Access' },

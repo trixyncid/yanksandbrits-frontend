@@ -54,6 +54,8 @@ type StudentPaymentDto = {
   prospective_student_name?: string | null
   title: string | null
   full_amount: number
+  discount_amount?: number
+  amount_due?: number
   paid_amount: number
   status: string
   linked_prediction_test_amount?: number
@@ -66,6 +68,10 @@ type StudentPaymentDto = {
   commission_base_amount?: number
   prediction_folded_into_commission?: boolean
   prediction_claimed_elsewhere?: boolean
+  installment_plan?: string
+  installment_plan_approved?: boolean
+  installment_plan_approved_at?: string | null
+  installment_plan_approved_by_name?: string | null
   terms?: StudentPaymentTermDto[]
   created_at: string
   created_by_name?: string | null
@@ -120,6 +126,7 @@ function mapPayment(
     studentName: displayName,
     title: dto.title ?? '',
     fullAmount: dto.full_amount ?? 0,
+    discountAmount: dto.discount_amount ?? 0,
     paidAmount: dto.paid_amount ?? 0,
     status: mapPaymentPlanStatusFromApi(dto.status),
     terms,
@@ -139,20 +146,32 @@ function mapPayment(
     })),
     commissionBaseAmount:
       dto.commission_base_amount ??
-      (dto.full_amount ?? 0) + (dto.linked_prediction_test_amount ?? 0),
+      Math.max(0, (dto.full_amount ?? 0) - (dto.discount_amount ?? 0)) +
+        (dto.linked_prediction_test_amount ?? 0),
     predictionFoldedIntoCommission:
       dto.prediction_folded_into_commission ?? false,
     predictionClaimedElsewhere: dto.prediction_claimed_elsewhere ?? false,
+    installmentPlan:
+      dto.installment_plan === 'two' || (dto.terms?.length ?? 0) >= 2
+        ? 'two'
+        : 'full',
+    installmentPlanApproved: dto.installment_plan_approved ?? false,
+    installmentPlanApprovedAt: dto.installment_plan_approved_at ?? '',
+    installmentPlanApprovedBy: dto.installment_plan_approved_by_name ?? '',
   }
 }
 
 function toWritePayload(
   values: StudentPaymentFormValues,
-  options?: { omitStatus?: boolean },
+  options?: { omitStatus?: boolean; omitOwner?: boolean },
 ) {
   const payload: Record<string, unknown> = {
     title: values.title.trim(),
     full_amount: parseCurrencyValue(values.fullAmount),
+    discount_amount: parseCurrencyValue(values.discountAmount),
+    ...(values.installmentPlan
+      ? { installment_plan: values.installmentPlan }
+      : {}),
     terms: values.terms.map((term) => {
       const termPayload: Record<string, unknown> = {
         amount: parseCurrencyValue(term.amount),
@@ -169,12 +188,14 @@ function toWritePayload(
       return termPayload
     }),
   }
-  if (values.studentId) {
-    payload.student = Number(values.studentId)
-    payload.prospective_student = null
-  } else if (values.prospectiveStudentId) {
-    payload.prospective_student = Number(values.prospectiveStudentId)
-    payload.student = null
+  if (!options?.omitOwner) {
+    if (values.studentId) {
+      payload.student = Number(values.studentId)
+      payload.prospective_student = null
+    } else if (values.prospectiveStudentId) {
+      payload.prospective_student = Number(values.prospectiveStudentId)
+      payload.student = null
+    }
   }
   return payload
 }
@@ -260,7 +281,10 @@ export async function updateStudentPayment(
 ): Promise<StudentPaymentListItem> {
   const { data } = await httpClient.patch<
     ApiSuccessEnvelope<StudentPaymentDto>
-  >(adminPath(`/payments/${id}`), toWritePayload(values, options))
+  >(
+    adminPath(`/payments/${id}`),
+    toWritePayload(values, { ...options, omitOwner: true }),
+  )
   const studentsById = await loadStudentLookup()
   return mapPayment(data.data, studentsById)
 }
@@ -299,6 +323,16 @@ export async function deleteStudentPaymentTerm(
   const { data } = await httpClient.delete<
     ApiSuccessEnvelope<StudentPaymentDto>
   >(adminPath(`/payments/${paymentId}/terms/${termId}`))
+  const studentsById = await loadStudentLookup()
+  return mapPayment(data.data, studentsById)
+}
+
+export async function approveStudentPaymentInstallmentPlan(
+  paymentId: string,
+): Promise<StudentPaymentListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
+    adminPath(`/payments/${paymentId}/approve-installment-plan`),
+  )
   const studentsById = await loadStudentLookup()
   return mapPayment(data.data, studentsById)
 }
@@ -389,6 +423,8 @@ export function studentPaymentToFormValues(
     prospectiveStudentId: payment.prospectiveStudentId ?? '',
     title: payment.title,
     fullAmount: String(payment.fullAmount || ''),
+    discountAmount: String(payment.discountAmount || ''),
+    installmentPlan: payment.installmentPlan,
     terms:
       payment.terms.length > 0
         ? payment.terms.map((term) => ({
@@ -410,6 +446,8 @@ export function createEmptyStudentPaymentFormValues(): StudentPaymentFormValues 
     prospectiveStudentId: '',
     title: '',
     fullAmount: '',
+    discountAmount: '',
+    installmentPlan: '',
     terms: [],
   }
 }

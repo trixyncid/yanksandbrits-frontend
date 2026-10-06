@@ -8,6 +8,7 @@ import {
 import { formatCurrencyAmount } from '../../../shared/lib/currency'
 import {
   firstProofUrl,
+  planAmountDue,
   planStatusLabel,
   planStatusTone,
   proofCount,
@@ -27,54 +28,81 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
+
 export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
   {
-    id: 'student',
-    accessorFn: (row) => `${row.studentPin} ${row.studentName}`,
+    id: 'studentDetail',
+    accessorFn: (row) => `${row.studentName} ${row.studentPin} ${row.title}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Student Detail" />
+      <DataTableColumnHeader column={column} title="Student's Detail" />
     ),
-    cell: ({ row }) => (
-      <p className="text-sm font-semibold text-slate-900">
-        {row.original.studentPin} | {row.original.studentName}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'title',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" align="center" />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.title}
-      </p>
-    ),
+    cell: ({ row }) => {
+      const isProspect =
+        Boolean(row.original.prospectiveStudentId) && !row.original.studentId
+      return (
+        <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
+          <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
+            {getInitials(row.original.studentName)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {row.original.studentName || '—'}
+              </p>
+              {row.original.studentPin ? (
+                <span className="rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[11px] font-semibold text-[#253CA1]">
+                  {row.original.studentPin}
+                </span>
+              ) : null}
+              {isProspect ? (
+                <DataTableBadge tone="primary">Prospect</DataTableBadge>
+              ) : null}
+            </div>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              {row.original.title || '—'}
+            </p>
+          </div>
+        </div>
+      )
+    },
   },
   {
     id: 'amount',
     accessorFn: (row) => row.fullAmount,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Paid / Planned" align="center" />
+      <DataTableColumnHeader column={column} title="Full / Paid" align="center" />
     ),
-    cell: ({ row }) => (
-      <div className="mx-auto w-40 text-center">
-        <p className="text-xs font-semibold text-slate-800 tabular-nums">
-          {formatCurrencyAmount(row.original.paidAmount)}
-          <span className="font-medium text-slate-400">
-            {' '}
-            / {formatCurrencyAmount(row.original.fullAmount)}
-          </span>
-        </p>
-        <div className="mt-1.5">
-          <PaymentProgress
-            paidAmount={row.original.paidAmount}
-            fullAmount={row.original.fullAmount}
-            compact
-          />
+    cell: ({ row }) => {
+      const due = planAmountDue(
+        row.original.fullAmount,
+        row.original.discountAmount,
+        row.original.linkedPredictionTestAmount,
+      )
+      const covered = row.original.fullAmount > 0 && due === 0
+      return (
+        <div className="mx-auto w-44 text-center">
+          <p className="text-xs font-semibold text-slate-800 tabular-nums">
+            {formatCurrencyAmount(row.original.fullAmount)}
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium text-slate-500 tabular-nums">
+            Paid {formatCurrencyAmount(row.original.paidAmount)}
+          </p>
+          <div className="mt-1.5">
+            <PaymentProgress
+              paidAmount={covered ? 1 : row.original.paidAmount}
+              fullAmount={covered ? 1 : due}
+              compact
+            />
+          </div>
         </div>
-      </div>
-    ),
+      )
+    },
   },
   {
     accessorKey: 'status',
@@ -100,9 +128,24 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
       />
     ),
     cell: ({ row }) => (
-      <p className="mx-auto max-w-48 text-center text-xs text-slate-500">
-        {summarizeTerms(row.original.terms)}
-      </p>
+      <div className="mx-auto max-w-48 text-center">
+        <p className="text-xs text-slate-500">
+          {summarizeTerms(row.original.terms)}
+        </p>
+        {row.original.installmentPlan === 'two' ? (
+          <div className="mt-1.5">
+            <DataTableBadge
+              tone={
+                row.original.installmentPlanApproved ? 'success' : 'warning'
+              }
+            >
+              {row.original.installmentPlanApproved
+                ? 'Plan approved'
+                : 'Awaiting approval'}
+            </DataTableBadge>
+          </div>
+        ) : null}
+      </div>
     ),
   },
   {
@@ -110,7 +153,7 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Created"
+        title="Created At"
         align="center"
       />
     ),

@@ -4,11 +4,10 @@ import { Plus } from 'lucide-react'
 import {
   ClearListFiltersButton,
   DataTable,
+  ListFilterSelect,
   ListToolbarFilters,
 } from '../../../shared/components/data-table'
-import { FeaturePageAtmosphere } from '../../../shared/components/feature-page'
 import { Button } from '../../../shared/components/ui/button'
-import { Select } from '../../../shared/components/ui/select'
 import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
@@ -54,76 +53,90 @@ export default function StudentPaymentListPage() {
 
   const clearFilters = () => setFilters({ ...EMPTY_FILTERS })
 
+  function openCreate() {
+    void navigate({
+      to: '/student-payments/new',
+      search: {
+        studentId: undefined,
+        prospectiveStudentId: undefined,
+      },
+    })
+  }
+
   const listFilters = (
     <ListToolbarFilters>
-      <Select
+      <ListFilterSelect
+        label="Status"
+        ariaLabel="Filter by plan status"
         value={status}
-        onChange={(event) =>
-          setFilters({ status: event.target.value as PlanStatusFilter })
-        }
-        containerClassName="w-full sm:w-[160px]"
-        className="h-9 border-white/80 bg-white/80 py-1.5 shadow-sm backdrop-blur-md"
-        aria-label="Filter by plan status"
-      >
-        <option value="all">All plans</option>
-        <option value="incomplete">Incomplete</option>
-        <option value="complete">Complete</option>
-      </Select>
-      <ClearListFiltersButton visible={hasActiveFilters} onClear={clearFilters} />
+        idleValue="all"
+        onChange={(next) => setFilters({ status: next as PlanStatusFilter })}
+        options={[
+          { value: 'all', label: 'All plans' },
+          { value: 'incomplete', label: 'Incomplete' },
+          { value: 'complete', label: 'Complete' },
+        ]}
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={clearFilters}
+        className="h-10 rounded-full border-slate-200 bg-white hover:bg-slate-50"
+      />
     </ListToolbarFilters>
   )
 
   return (
-    <AdminShell>
-      <FeaturePageAtmosphere>
-        <div className="animate-in fade-in slide-in-from-bottom-2 space-y-2">
-          {paymentsQuery.isLoading ? <StudentPaymentListLoadingState /> : null}
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
+              Payments
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-slate-500">
+              Track tuition plans, installments, and what is still owed.
+            </p>
+          </div>
+          <Can module="studentPayments" action="add">
+            <Button
+              onClick={openCreate}
+              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
+            >
+              <Plus className="size-4" />
+              Add Payment
+            </Button>
+          </Can>
+        </div>
 
-          {paymentsQuery.isError ? (
-            <div className="space-y-2">
-              <div className="flex justify-end">{listFilters}</div>
-              <StudentPaymentListErrorState
-                onRetry={() => void paymentsQuery.refetch()}
-              />
-            </div>
-          ) : null}
+        {paymentsQuery.isLoading ? <StudentPaymentListLoadingState /> : null}
 
-          {paymentsQuery.isSuccess ? (
+        {paymentsQuery.isError ? (
+          <div className="space-y-2">
+            {listFilters}
+            <StudentPaymentListErrorState
+              onRetry={() => void paymentsQuery.refetch()}
+            />
+          </div>
+        ) : null}
+
+        {paymentsQuery.isSuccess ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
             <DataTable
-              variant="glass"
-              title="Payment List"
-              description="Track tuition payment plans and installments."
+              title="Plans"
+              description="Search and manage tuition payment plans."
               totalLabel="payment plans"
               columns={studentPaymentListColumns}
               data={paymentsQuery.data.data}
               searchPlaceholder="Search by student name, PIN..."
+              searchVariant="pill"
               globalFilterFn={filterStudentPayment}
               initialPageSize={10}
               emptyMessage="No payment plans found"
               toolbarFilters={listFilters}
-              toolbarActions={
-                <Can module="studentPayments" action="add">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      void navigate({
-                        to: '/student-payments/new',
-                        search: {
-                          studentId: undefined,
-                          prospectiveStudentId: undefined,
-                        },
-                      })
-                    }
-                  >
-                    <Plus className="size-4" />
-                    Add Payment Plan
-                  </Button>
-                </Can>
-              }
             />
-          ) : null}
-        </div>
-      </FeaturePageAtmosphere>
+          </div>
+        ) : null}
+      </div>
     </AdminShell>
   )
 }

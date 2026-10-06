@@ -1,28 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  CreditCard,
-  ImagePlus,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { ChevronDown, ImagePlus, Plus, Trash2, X } from 'lucide-react'
 import { parseISO } from 'date-fns'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { DataTableBadge } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../shared/components/ui/dialog'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
@@ -36,23 +21,21 @@ import { notify } from '../../../shared/lib/notify'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
-import {
-  deleteStudentPaymentTerm,
-  bulkUpdateStudentPaymentTermStatus,
-  uploadStudentPaymentTermProof,
-} from '../api/student-payments-api'
+import { deleteStudentPaymentTerm } from '../api/student-payments-api'
 import {
   emptyTermFormValues,
-  installmentAmountCap,
   installmentExceedsRemaining,
-  remainingLabel,
+  splitCurrencyAmount,
   summarizeFormCollection,
   termStatusLabel,
   termStatusTone,
+  todayIsoDate,
+  unallocatedPlanAmount,
 } from '../lib/payment-display'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentListItem,
+  StudentPaymentTerm,
   StudentPaymentTermFormValues,
   StudentPaymentTermStatus,
 } from '../types/student-payment'
@@ -60,11 +43,21 @@ import type {
 const MAX_PROOF_BYTES = 5 * 1024 * 1024
 const CHECKBOX_CLASS =
   'size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40'
+const EMPTY_FILES: File[] = []
+const SPLIT_PARTS = [1, 2] as const
 
-const STATUS_OPTIONS: { value: StudentPaymentTermStatus; label: string }[] = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'void', label: 'Void' },
+const STATUS_OPTIONS: {
+  value: StudentPaymentTermStatus
+  label: string
+  activeClass: string
+}[] = [
+  { value: 'pending', label: 'Pending', activeClass: 'bg-[#253CA1] text-white shadow-sm' },
+  {
+    value: 'approved',
+    label: 'Approved',
+    activeClass: 'bg-emerald-600 text-white shadow-sm',
+  },
+  { value: 'void', label: 'Void', activeClass: 'bg-rose-600 text-white shadow-sm' },
 ]
 
 function FieldError({ message }: { message?: string }) {
@@ -90,7 +83,7 @@ function toDateString(date: Date | undefined) {
 }
 
 function formatDisplayDate(value?: string) {
-  if (!value) return '—'
+  if (!value) return 'No date'
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -99,32 +92,94 @@ function formatDisplayDate(value?: string) {
 }
 
 function formatFileSize(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`
-  }
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function useObjectUrls(files: File[]) {
+function useObjectUrls(files: File[] | undefined) {
+  const list = files && files.length > 0 ? files : EMPTY_FILES
   const [urls, setUrls] = useState<string[]>([])
 
   useEffect(() => {
-    const next = files.map((file) => URL.createObjectURL(file))
+    const next = list.map((file) => URL.createObjectURL(file))
     setUrls(next)
     return () => {
-      for (const url of next) {
-        URL.revokeObjectURL(url)
-      }
+      for (const url of next) URL.revokeObjectURL(url)
     }
-  }, [files])
+  }, [list])
 
   return urls
 }
 
-type DialogMode = { type: 'create' } | { type: 'edit'; key: string }
+function splitHint(total: number, parts: number) {
+  if (parts === 2) return 'One payment now. Amounts can differ.'
+  const amounts = splitCurrencyAmount(total, parts)
+  if (amounts.length === 0) return 'Amount due is zero'
+  const first = amounts[0] ?? 0
+  return formatCurrencyAmount(first)
+}
+
+function splitLabel(parts: number) {
+  return parts === 1 ? 'Pay in full' : '2 payments'
+}
+
+function InstallmentPlanNotice({
+  termCount,
+  savedTermCount,
+  approved,
+  approvedBy,
+  canApprove,
+  isApproving,
+  onApprove,
+}: {
+  termCount: number
+  savedTermCount: number
+  approved: boolean
+  approvedBy: string
+  canApprove: boolean
+  isApproving: boolean
+  onApprove?: () => void
+}) {
+  if (termCount < 2) return null
+
+  const savedAndApproved = approved
+  if (savedAndApproved) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        2-payment plan approved
+        {approvedBy ? ` by ${approvedBy}` : ''}.
+      </div>
+    )
+  }
+
+  if (canApprove && savedTermCount >= 1 && onApprove) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p className="text-sm text-amber-950">
+          This 2-payment plan is waiting for approval from finance, a branch
+          manager, or a system admin. Installments stay pending until then.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          disabled={isApproving}
+          onClick={onApprove}
+        >
+          {isApproving ? 'Approving…' : 'Approve 2-payment plan'}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+      {canApprove
+        ? 'Saving approves this 2-payment plan. Enter each payment amount yourself — they do not have to match.'
+        : 'Payment amounts stay blank until finance, a branch manager, or a system admin approves this plan. The two payments can be different amounts.'}
+    </div>
+  )
+}
 
 export function StudentPaymentTermsFields({
   terms,
@@ -132,13 +187,21 @@ export function StudentPaymentTermsFields({
   lockStatus,
   savedTerms,
   plannedAmount,
+  zeroIsCapped = false,
   paymentId,
   defaultBranchId = '',
+  installmentPlan = '',
+  onInstallmentPlanChange,
+  installmentPlanApproved = false,
+  installmentPlanApprovedBy = '',
+  canApproveInstallmentPlan = false,
+  isApprovingInstallmentPlan = false,
+  savedTermCount = 0,
+  onApproveInstallmentPlan,
   onAdd,
+  onReplace,
   onRemove,
   onChange,
-  onPersistTerm,
-  onPersistNewTerm,
   onProofUploaded,
 }: {
   terms: StudentPaymentTermFormValues[]
@@ -146,111 +209,134 @@ export function StudentPaymentTermsFields({
   lockStatus: boolean
   savedTerms?: StudentPaymentListItem['terms']
   plannedAmount: string
+  zeroIsCapped?: boolean
   paymentId?: string
   defaultBranchId?: string
-  onAdd: (initial?: Partial<StudentPaymentTermFormValues>) => void
+  installmentPlan?: 'full' | 'two' | ''
+  onInstallmentPlanChange?: (plan: 'full' | 'two') => void
+  installmentPlanApproved?: boolean
+  installmentPlanApprovedBy?: string
+  canApproveInstallmentPlan?: boolean
+  isApprovingInstallmentPlan?: boolean
+  savedTermCount?: number
+  onApproveInstallmentPlan?: () => void
+  onAdd: (initial?: Partial<StudentPaymentTermFormValues>) => void | string
+  onReplace: (terms: StudentPaymentTermFormValues[]) => void
   onRemove: (key: string) => void
-  onChange: (
-    key: string,
-    patch: Partial<StudentPaymentTermFormValues>,
-  ) => void
-  onPersistTerm?: (
-    key: string,
-    patch: Partial<StudentPaymentTermFormValues>,
-  ) => Promise<StudentPaymentListItem | null>
-  onPersistNewTerm?: (
-    initial?: Partial<StudentPaymentTermFormValues>,
-  ) => Promise<{
-    payment: StudentPaymentListItem
-    termKey: string
-    termId: string
-  } | null>
+  onChange: (key: string, patch: Partial<StudentPaymentTermFormValues>) => void
   onProofUploaded?: (payment: StudentPaymentListItem) => void
 }) {
   const queryClient = useQueryClient()
   const invalidateNavBadges = useInvalidateNavBadges()
   const branchesQuery = useBranchesQuery()
   const branches = branchesQuery.data?.data ?? []
-  const summary = summarizeFormCollection(plannedAmount, terms)
-  const remainingValue = Math.abs(summary.remaining)
-  const [dialogMode, setDialogMode] = useState<DialogMode | null>(null)
-  const [draft, setDraft] = useState<StudentPaymentTermFormValues>(
-    emptyTermFormValues('pending', defaultBranchId),
+  const planned = parseCurrencyValue(plannedAmount)
+  const canReplaceSchedule = terms.every((term) => !term.id)
+  const scheduleDirty = terms.some(
+    (term) =>
+      parseCurrencyValue(term.amount) > 0 ||
+      term.description.trim().length > 0 ||
+      (term.proofFiles?.length ?? 0) > 0,
   )
-  const [pendingProofs, setPendingProofs] = useState<File[]>([])
-  const [isApplying, setIsApplying] = useState(false)
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const [pendingSplit, setPendingSplit] = useState<number | null>(null)
+  const [explicitPlan, setExplicitPlan] = useState<1 | 2 | null>(null)
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
-  const [bulkStatus, setBulkStatus] = useState<StudentPaymentTermStatus | ''>('')
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false)
-  const pendingPreviewUrls = useObjectUrls(pendingProofs)
+  const amountsLocked =
+    installmentPlan === 'two' &&
+    !installmentPlanApproved &&
+    !canApproveInstallmentPlan
+  const planChoice: 1 | 2 | null =
+    installmentPlan === 'two'
+      ? 2
+      : installmentPlan === 'full'
+        ? 1
+        : explicitPlan
 
-  const selectableTerms = terms.filter((term) => Boolean(term.id) || !paymentId)
-  const allSelectableSelected =
-    selectableTerms.length > 0 &&
-    selectableTerms.every((term) => selectedKeys.includes(term.key))
-  const someSelectableSelected = selectableTerms.some((term) =>
-    selectedKeys.includes(term.key),
-  )
-
-  const editingTerm =
-    dialogMode?.type === 'edit'
-      ? terms.find((term) => term.key === dialogMode.key)
-      : null
-  const editingSaved = editingTerm?.id
-    ? savedTerms?.find((item) => item.id === editingTerm.id)
-    : undefined
-  const canAttachProof = draft.status === 'pending'
-  const amountCap = installmentAmountCap({
-    plannedAmount,
-    terms,
-    editingKey: dialogMode?.type === 'edit' ? dialogMode.key : null,
-    editingId: editingTerm?.id,
-    nextStatus: draft.status,
-  })
-  const amountExceedsRemaining = installmentExceedsRemaining({
-    plannedAmount,
-    terms,
-    editingKey: dialogMode?.type === 'edit' ? dialogMode.key : null,
-    editingId: editingTerm?.id,
-    nextStatus: draft.status,
-    nextAmount: draft.amount,
-  })
+  const allSelected =
+    terms.length > 0 && terms.every((term) => selectedKeys.includes(term.key))
 
   useEffect(() => {
-    if (!dialogMode) return
-    if (dialogMode.type === 'create') {
-      setDraft(emptyTermFormValues('pending', defaultBranchId))
-      setPendingProofs([])
-      return
-    }
-    const term = terms.find((item) => item.key === dialogMode.key)
-    if (term) {
-      setDraft({ ...term })
-      setPendingProofs(term.proofFiles ? [...term.proofFiles] : [])
-    }
-    // Only reset when the dialog opens or switches target — keep staged files while editing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- terms captured on open
-  }, [dialogMode])
+    setSelectedKeys((current) => {
+      const next = current.filter((key) =>
+        terms.some((term) => term.key === key),
+      )
+      return next.length === current.length ? current : next
+    })
+  }, [terms])
 
-  function addProofFiles(fileList: FileList | null) {
-    if (!fileList?.length) return
-    const next: File[] = []
-    for (const file of Array.from(fileList)) {
-      if (file.size > MAX_PROOF_BYTES) {
-        notify('error', {
-          title: 'File too large',
-          description: `${file.name} must be 5 MB or smaller.`,
-        })
-        continue
-      }
-      next.push(file)
-    }
-    if (next.length === 0) return
-    setPendingProofs((current) => [...current, ...next])
+  useEffect(() => {
+    const failed = terms.find((term) => errors.termErrors?.[term.key])
+    if (failed) setOpenKey(failed.key)
+  }, [errors, terms])
+
+  function branchName(term: StudentPaymentTermFormValues) {
+    return (
+      branches.find((branch) => branch.id === term.branchId)?.name ??
+      savedTerms?.find((item) => item.id === term.id)?.branch ??
+      ''
+    )
   }
 
-  function removePendingProof(index: number) {
-    setPendingProofs((current) => current.filter((_, i) => i !== index))
+  function addSecondPayment() {
+    if (amountsLocked || planChoice !== 2 || terms.length !== 1) return
+    const key = onAdd({
+      amount: '',
+      status: 'pending',
+      branchId: defaultBranchId,
+    })
+    if (typeof key === 'string') setOpenKey(key)
+    setPendingSplit(null)
+  }
+
+  function applySplit(parts: number) {
+    if (planned <= 0 || !canReplaceSchedule) return
+    const start = todayIsoDate()
+    const next = [
+      {
+        ...emptyTermFormValues('pending', defaultBranchId),
+        amount: parts === 1 ? String(planned) : '',
+        paymentDate: start,
+      },
+    ]
+    onReplace(next)
+    onInstallmentPlanChange?.(parts === 1 ? 'full' : 'two')
+    setExplicitPlan(parts === 1 ? 1 : 2)
+    setOpenKey(defaultBranchId ? null : (next[0]?.key ?? null))
+    setPendingSplit(null)
+    setSelectedKeys([])
+  }
+
+  function requestSplit(parts: number) {
+    if (planned <= 0) return
+    if (terms.length > 0 && scheduleDirty) {
+      setPendingSplit(parts)
+      return
+    }
+    applySplit(parts)
+  }
+
+  function selectPlan(parts: 1 | 2) {
+    if (planned <= 0 || parts === planChoice) return
+    if (!canReplaceSchedule && parts === 1 && terms.length > 1) return
+    if (!canReplaceSchedule) {
+      onInstallmentPlanChange?.(parts === 1 ? 'full' : 'two')
+      setExplicitPlan(parts)
+      if (parts === 2 && terms[0]) {
+        const firstAmount = parseCurrencyValue(terms[0].amount)
+        const holdsEntirePlan =
+          terms.length === 1 && firstAmount > 0 && firstAmount >= planned
+        if (
+          (holdsEntirePlan && terms[0].status !== 'approved') ||
+          (!canApproveInstallmentPlan && !installmentPlanApproved)
+        ) {
+          onChange(terms[0].key, { amount: '' })
+        }
+      }
+      return
+    }
+    requestSplit(parts)
   }
 
   function toggleTermSelected(key: string) {
@@ -261,240 +347,24 @@ export function StudentPaymentTermsFields({
     )
   }
 
-  function toggleSelectAll() {
-    if (allSelectableSelected) {
-      setSelectedKeys([])
-      return
-    }
-    setSelectedKeys(selectableTerms.map((term) => term.key))
-  }
-
-  function clearSelection() {
-    setSelectedKeys([])
-    setBulkStatus('')
-  }
-
-  async function handleBulkStatusApply() {
-    if (!bulkStatus || selectedKeys.length === 0 || isBulkSubmitting) {
-      return
-    }
-
-    const selectedTerms = terms.filter((term) => selectedKeys.includes(term.key))
-    if (selectedTerms.length === 0) {
-      return
-    }
-
+  function applyBulkStatus(status: StudentPaymentTermStatus) {
+    if (selectedKeys.length === 0 || isBulkSubmitting || lockStatus) return
     setIsBulkSubmitting(true)
     try {
-      let updatedCount = selectedTerms.length
-      if (paymentId) {
-        const termIds = selectedTerms
-          .map((term) => term.id)
-          .filter((id): id is string => Boolean(id))
-        if (termIds.length === 0) {
-          notify('error', {
-            title: 'Unable to update status',
-            description: 'Save the payment plan before bulk-updating installments.',
-          })
-          return
-        }
-        updatedCount = termIds.length
-        const payment = await bulkUpdateStudentPaymentTermStatus(
-          paymentId,
-          termIds,
-          bulkStatus,
-        )
-        await queryClient.invalidateQueries({
-          queryKey: studentPaymentQueryKeys.all,
-        })
-        invalidateNavBadges()
-        for (const term of selectedTerms) {
-          if (!term.id || !termIds.includes(term.id)) continue
-          const server = payment.terms.find((item) => item.id === term.id)
-          onChange(term.key, {
-            status: server?.status ?? bulkStatus,
-          })
-        }
-        onProofUploaded?.(payment)
-      } else {
-        for (const term of selectedTerms) {
-          onChange(term.key, { status: bulkStatus })
-        }
+      for (const term of terms) {
+        if (!selectedKeys.includes(term.key) || term.status === status) continue
+        onChange(term.key, { status })
       }
+      const label =
+        STATUS_OPTIONS.find((option) => option.value === status)?.label ??
+        status
       notify('success', {
         title: 'Status updated',
-        description: `Updated ${updatedCount} installment${updatedCount === 1 ? '' : 's'} to ${STATUS_OPTIONS.find((option) => option.value === bulkStatus)?.label ?? bulkStatus}.`,
+        description: `${selectedKeys.length} installment${selectedKeys.length === 1 ? '' : 's'} marked ${label.toLowerCase()}. Save the plan to keep it.`,
       })
-      clearSelection()
-    } catch (error) {
-      notify('error', {
-        title: 'Unable to update status',
-        description: getApiErrorMessage(error),
-      })
+      setSelectedKeys([])
     } finally {
       setIsBulkSubmitting(false)
-    }
-  }
-
-  async function handleDialogSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    event.stopPropagation()
-    if (!dialogMode || isApplying) return
-
-    const stagedFiles = canAttachProof ? pendingProofs : []
-    const patch: Partial<StudentPaymentTermFormValues> = {
-      amount: draft.amount,
-      paymentDate: draft.paymentDate,
-      status: draft.status,
-      description: draft.description,
-      branchId: draft.branchId,
-      proofFiles: stagedFiles,
-    }
-
-    if (
-      installmentExceedsRemaining({
-        plannedAmount,
-        terms,
-        editingKey: dialogMode.type === 'edit' ? dialogMode.key : null,
-        editingId:
-          dialogMode.type === 'edit'
-            ? terms.find((term) => term.key === dialogMode.key)?.id
-            : null,
-        nextStatus: draft.status,
-        nextAmount: draft.amount,
-      })
-    ) {
-      const cap =
-        installmentAmountCap({
-          plannedAmount,
-          terms,
-          editingKey: dialogMode.type === 'edit' ? dialogMode.key : null,
-          editingId:
-            dialogMode.type === 'edit'
-              ? terms.find((term) => term.key === dialogMode.key)?.id
-              : null,
-          nextStatus: draft.status,
-        }) ?? 0
-      notify('error', {
-        title: 'Amount exceeds remaining',
-        description: `Installment amount cannot be greater than the remaining plan balance (${formatCurrencyAmount(cap)}).`,
-      })
-      return
-    }
-
-    setIsApplying(true)
-    try {
-      if (dialogMode.type === 'create') {
-        if (paymentId && onPersistNewTerm) {
-          const created = await onPersistNewTerm(patch)
-          let payment = created?.payment ?? null
-
-          if (
-            paymentId &&
-            created?.termId &&
-            canAttachProof &&
-            stagedFiles.length > 0
-          ) {
-            for (const file of stagedFiles) {
-              payment = await uploadStudentPaymentTermProof(
-                paymentId,
-                created.termId,
-                file,
-              )
-            }
-            onChange(created.termKey, { proofFiles: [] })
-          }
-
-          await queryClient.invalidateQueries({
-            queryKey: studentPaymentQueryKeys.all,
-          })
-          invalidateNavBadges()
-          if (payment) onProofUploaded?.(payment)
-
-          notify('success', {
-            title: 'Installment added',
-            description:
-              stagedFiles.length > 0
-                ? `Installment and ${stagedFiles.length} proof file${stagedFiles.length === 1 ? '' : 's'} were saved.`
-                : 'Installment was saved to this payment plan.',
-          })
-          setDialogMode(null)
-          return
-        }
-
-        onAdd(patch)
-        notify('success', {
-          title: 'Installment added',
-          description:
-            stagedFiles.length > 0
-              ? `${stagedFiles.length} proof file${stagedFiles.length === 1 ? '' : 's'} staged — they upload when you save the plan.`
-              : 'Remember to save the payment plan.',
-        })
-        setDialogMode(null)
-        return
-      }
-
-      const term = terms.find((item) => item.key === dialogMode.key)
-      const canPersist =
-        Boolean(paymentId && term?.id && onPersistTerm)
-
-      let payment: StudentPaymentListItem | null = null
-      if (canPersist && onPersistTerm) {
-        payment = await onPersistTerm(dialogMode.key, patch)
-        await queryClient.invalidateQueries({
-          queryKey: studentPaymentQueryKeys.all,
-        })
-        invalidateNavBadges()
-      } else {
-        onChange(dialogMode.key, patch)
-      }
-
-      if (
-        paymentId &&
-        term?.id &&
-        canAttachProof &&
-        stagedFiles.length > 0
-      ) {
-        for (const file of stagedFiles) {
-          payment = await uploadStudentPaymentTermProof(
-            paymentId,
-            term.id,
-            file,
-          )
-        }
-        await queryClient.invalidateQueries({
-          queryKey: studentPaymentQueryKeys.all,
-        })
-        onChange(dialogMode.key, { proofFiles: [] })
-      }
-
-      if (payment) onProofUploaded?.(payment)
-
-      if (canPersist) {
-        notify('success', {
-          title: 'Installment saved',
-          description:
-            stagedFiles.length > 0
-              ? `Details and ${stagedFiles.length} proof file${stagedFiles.length === 1 ? '' : 's'} were saved.`
-              : 'Installment details were saved.',
-        })
-      } else {
-        notify('success', {
-          title: 'Installment updated',
-          description:
-            stagedFiles.length > 0
-              ? `${stagedFiles.length} proof file${stagedFiles.length === 1 ? '' : 's'} staged — they upload when you save the plan.`
-              : 'Remember to save the payment plan.',
-        })
-      }
-      setDialogMode(null)
-    } catch (error) {
-      notify('error', {
-        title: 'Unable to apply installment',
-        description: getApiErrorMessage(error),
-      })
-    } finally {
-      setIsApplying(false)
     }
   }
 
@@ -503,14 +373,14 @@ export function StudentPaymentTermsFields({
       notify('error', {
         title: 'Cannot delete installment',
         description:
-          'Add more than one installment to enable delete. A payment plan must keep at least one.',
+          'Add another installment first. A payment plan keeps at least one.',
       })
       return
     }
 
     requestDeleteConfirm({
       title: 'Delete installment?',
-      description: `This will permanently remove installment ${index + 1}${
+      description: `This removes installment ${index + 1}${
         term.amount
           ? ` (${formatCurrencyAmount(parseCurrencyValue(term.amount))})`
           : ''
@@ -519,10 +389,7 @@ export function StudentPaymentTermsFields({
         void (async () => {
           try {
             if (paymentId && term.id) {
-              const payment = await deleteStudentPaymentTerm(
-                paymentId,
-                term.id,
-              )
+              const payment = await deleteStudentPaymentTerm(paymentId, term.id)
               await queryClient.invalidateQueries({
                 queryKey: studentPaymentQueryKeys.all,
               })
@@ -532,6 +399,7 @@ export function StudentPaymentTermsFields({
             } else {
               onRemove(term.key)
             }
+            if (openKey === term.key) setOpenKey(null)
             notify('success', {
               title: 'Installment deleted',
               description: `Installment ${index + 1} has been removed.`,
@@ -548,45 +416,86 @@ export function StudentPaymentTermsFields({
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">Installments</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Review terms in the table. Open an installment to edit details and
-            attach proof in one step. Delete is available when the plan has more
-            than one installment.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              'rounded-full px-3 py-1 text-xs font-semibold tabular-nums',
-              summary.remaining > 0
-                ? 'bg-amber-50 text-amber-700'
-                : summary.remaining < 0
-                  ? 'bg-rose-50 text-rose-700'
-                  : 'bg-emerald-50 text-emerald-700',
-            )}
-          >
-            {remainingLabel(summary.remaining)}
-            {summary.remaining === 0
-              ? ''
-              : ` ${formatCurrencyAmount(remainingValue)}`}
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setDialogMode({ type: 'create' })}
-          >
-            <Plus className="size-3.5" />
-            Add installment
-          </Button>
-        </div>
-      </div>
-
+    <div className="space-y-4">
       {errors.terms ? <FieldError message={errors.terms} /> : null}
+
+      {planned > 0 || terms.length > 0 ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Payment plan">
+            {SPLIT_PARTS.map((parts) => {
+              const isActive = planChoice === parts
+              const lockedFull =
+                parts === 1 && !canReplaceSchedule && terms.length > 1
+              return (
+                <button
+                  key={parts}
+                  type="button"
+                  aria-pressed={isActive}
+                  data-active={isActive ? 'true' : 'false'}
+                  disabled={planned <= 0 || lockedFull}
+                  onClick={() => selectPlan(parts)}
+                  className={cn(
+                    'rounded-2xl border px-3 py-2.5 text-left transition',
+                    isActive
+                      ? 'border-[#253CA1] bg-[#F5F8FF] ring-2 ring-[#253CA1]'
+                      : 'border-slate-200 bg-white hover:border-[#C8D4F5] hover:bg-[#F5F8FF]',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="block text-sm font-semibold text-slate-800">
+                      {splitLabel(parts)}
+                    </span>
+                    {isActive ? (
+                      <span className="text-[10px] font-semibold tracking-wide text-[#253CA1] uppercase">
+                        Selected
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-slate-400">
+                    {splitHint(planned, parts)}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {planChoice === 2 || pendingSplit === 2 ? (
+            <InstallmentPlanNotice
+              termCount={Math.max(terms.length, planChoice === 2 || pendingSplit === 2 ? 2 : 0)}
+              savedTermCount={savedTermCount}
+              approved={installmentPlanApproved}
+              approvedBy={installmentPlanApprovedBy}
+              canApprove={canApproveInstallmentPlan}
+              isApproving={isApprovingInstallmentPlan}
+              onApprove={onApproveInstallmentPlan}
+            />
+          ) : null}
+          {pendingSplit ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <p className="text-sm text-amber-900">
+                Replace this schedule with {splitLabel(pendingSplit).toLowerCase()}?
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setPendingSplit(null)}
+                >
+                  Keep current
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => applySplit(pendingSplit)}
+                >
+                  Replace
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {!lockStatus && selectedKeys.length > 0 ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-[#C8D4F5] bg-[#F5F8FF] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -596,632 +505,684 @@ export function StudentPaymentTermsFields({
             </span>{' '}
             selected
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Select
-              value={bulkStatus}
-              onChange={(event) =>
-                setBulkStatus(event.target.value as StudentPaymentTermStatus | '')
-              }
-              containerClassName="w-full sm:w-[180px]"
-              aria-label="Bulk installment status"
-              disabled={isBulkSubmitting}
-            >
-              <option value="">Set status…</option>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            {STATUS_OPTIONS.map((option) => (
               <Button
-                type="button"
-                size="sm"
-                disabled={!bulkStatus || isBulkSubmitting}
-                onClick={() => void handleBulkStatusApply()}
-              >
-                {isBulkSubmitting ? 'Updating…' : 'Apply'}
-              </Button>
-              <Button
+                key={option.value}
                 type="button"
                 size="sm"
                 variant="secondary"
                 disabled={isBulkSubmitting}
-                onClick={clearSelection}
+                onClick={() => applyBulkStatus(option.value)}
               >
-                Clear
+                {option.label}
               </Button>
-            </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isBulkSubmitting}
+              onClick={() => setSelectedKeys([])}
+            >
+              Clear
+            </Button>
           </div>
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200">
-        <table className="min-w-[48rem] w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/90 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-              {!lockStatus ? (
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className={CHECKBOX_CLASS}
-                    checked={allSelectableSelected}
-                    ref={(element) => {
-                      if (element) {
-                        element.indeterminate =
-                          someSelectableSelected && !allSelectableSelected
-                      }
-                    }}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all installments"
-                  />
-                </th>
+      {terms.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center">
+          <p className="text-sm font-semibold text-slate-800">
+            No installments yet
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+            {planned > 0
+              ? 'Choose pay in full or 2 payments above.'
+              : 'The amount due is zero, so this plan can be saved without installments.'}
+          </p>
+        </div>
+      ) : (
+        <ol className="space-y-3">
+          {terms.map((term, index) => (
+            <InstallmentCard
+              key={term.key}
+              index={index}
+              term={term}
+              saved={savedTerms?.find((item) => item.id === term.id)}
+              errors={errors.termErrors?.[term.key]}
+              open={openKey === term.key}
+              selected={selectedKeys.includes(term.key)}
+              lockStatus={lockStatus}
+              lockAmount={amountsLocked}
+              hideFillAmount={planChoice === 2 && index === 0}
+              showSelection={!lockStatus && terms.length > 1}
+              canDelete={terms.length > 1}
+              plannedAmount={plannedAmount}
+              zeroIsCapped={zeroIsCapped}
+              terms={terms}
+              branches={branches}
+              branchesLoading={branchesQuery.isLoading}
+              branchLabel={branchName(term)}
+              onToggle={() =>
+                setOpenKey((current) => (current === term.key ? null : term.key))
+              }
+              onToggleSelected={() => toggleTermSelected(term.key)}
+              onChange={(patch) => onChange(term.key, patch)}
+              onDelete={() => handleDeleteTerm(term, index)}
+            />
+          ))}
+        </ol>
+      )}
+
+      {terms.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {planChoice === 2 && terms.length === 1 && !amountsLocked ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={addSecondPayment}
+            >
+              <Plus className="size-3.5" />
+              Add second payment
+            </Button>
+          ) : null}
+          {!lockStatus && terms.length > 1 ? (
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedKeys(
+                  allSelected ? [] : terms.map((term) => term.key),
+                )
+              }
+              className="ml-auto text-xs font-semibold text-[#253CA1] hover:underline"
+            >
+              {allSelected ? 'Clear selection' : 'Select all'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function InstallmentCard({
+  index,
+  term,
+  saved,
+  errors,
+  open,
+  selected,
+  lockStatus,
+  lockAmount = false,
+  hideFillAmount = false,
+  showSelection,
+  canDelete,
+  plannedAmount,
+  zeroIsCapped = false,
+  terms,
+  branches,
+  branchesLoading,
+  branchLabel,
+  onToggle,
+  onToggleSelected,
+  onChange,
+  onDelete,
+}: {
+  index: number
+  term: StudentPaymentTermFormValues
+  saved?: StudentPaymentTerm
+  errors?: Partial<
+    Record<'amount' | 'status' | 'description' | 'paymentDate' | 'branchId', string>
+  >
+  open: boolean
+  selected: boolean
+  lockStatus: boolean
+  lockAmount?: boolean
+  hideFillAmount?: boolean
+  showSelection: boolean
+  canDelete: boolean
+  plannedAmount: string
+  zeroIsCapped?: boolean
+  terms: StudentPaymentTermFormValues[]
+  branches: Array<{ id: string; name: string }>
+  branchesLoading: boolean
+  branchLabel: string
+  onToggle: () => void
+  onToggleSelected: () => void
+  onChange: (patch: Partial<StudentPaymentTermFormValues>) => void
+  onDelete: () => void
+}) {
+  const amountValue = parseCurrencyValue(term.amount)
+  const exceeds = installmentExceedsRemaining({
+    plannedAmount,
+    zeroIsCapped,
+    terms,
+    editingKey: term.key,
+    editingId: term.id,
+    nextStatus: term.status,
+    nextAmount: term.amount,
+  })
+  const room = Math.max(
+    0,
+    unallocatedPlanAmount(plannedAmount, terms) +
+      (term.status === 'void' ? 0 : amountValue),
+  )
+  const hasError = Boolean(
+    errors?.amount ||
+      errors?.paymentDate ||
+      errors?.status ||
+      errors?.description ||
+      errors?.branchId,
+  )
+  const proofCount =
+    (saved?.attachments.length ?? 0) + (term.proofFiles?.length ?? 0)
+
+  return (
+    <li
+      className={cn(
+        'overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm',
+        term.status === 'void' && 'bg-rose-50/30',
+        selected && 'border-[#C8D4F5] ring-1 ring-[#253CA1]/15',
+        hasError && 'border-rose-200',
+      )}
+    >
+      <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
+        {showSelection ? (
+          <input
+            type="checkbox"
+            className={cn(CHECKBOX_CLASS, 'mt-1')}
+            checked={selected}
+            onChange={onToggleSelected}
+            aria-label={`Select installment ${index + 1}`}
+          />
+        ) : null}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        >
+          <span
+            className={cn(
+              'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+              term.status === 'approved'
+                ? 'bg-emerald-600'
+                : term.status === 'void'
+                  ? 'bg-rose-400'
+                  : 'bg-[#253CA1]',
+            )}
+          >
+            {index + 1}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  'text-sm font-bold tabular-nums text-slate-900',
+                  term.status === 'void' && 'text-slate-400 line-through',
+                )}
+              >
+                {term.amount ? formatCurrencyAmount(amountValue) : 'Amount not set'}
+              </span>
+              {!open ? (
+                <DataTableBadge tone={termStatusTone(term.status)}>
+                  {termStatusLabel(term.status)}
+                </DataTableBadge>
               ) : null}
-              <th className="w-12 px-3 py-3">#</th>
-              <th className="px-3 py-3">Amount</th>
-              <th className="px-3 py-3">Payment date</th>
-              <th className="px-3 py-3">Branch</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Proof</th>
-              <th className="px-3 py-3">Notes</th>
-              <th className="w-24 px-3 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {terms.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={lockStatus ? 8 : 9}
-                  className="px-3 py-10 text-center text-sm text-slate-500"
-                >
-                  No installments yet. Use{' '}
-                  <button
-                    type="button"
-                    onClick={() => setDialogMode({ type: 'create' })}
-                    className="font-semibold text-[#253CA1] underline-offset-2 hover:underline"
-                  >
-                    Add installment
-                  </button>{' '}
-                  to get started.
-                </td>
-              </tr>
+              {!term.id ? (
+                <span className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+                  New
+                </span>
+              ) : null}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-slate-500">
+              {formatDisplayDate(term.paymentDate)}
+              {branchLabel ? ` · ${branchLabel}` : ''}
+              {proofCount > 0
+                ? ` · ${proofCount} proof${proofCount === 1 ? '' : 's'}`
+                : ''}
+              {term.description.trim() ? ` · ${term.description.trim()}` : ''}
+            </span>
+            {hasError && !open ? (
+              <span className="mt-1 block text-xs text-rose-500">
+                {errors?.amount ||
+                  errors?.paymentDate ||
+                  errors?.branchId ||
+                  errors?.status ||
+                  errors?.description}
+              </span>
             ) : null}
-            {terms.map((term, index) => {
-              const saved = savedTerms?.find((item) => item.id === term.id)
-              const termErrors = errors.termErrors?.[term.key]
-              const hasRowError = Boolean(
-                termErrors?.amount ||
-                  termErrors?.paymentDate ||
-                  termErrors?.status ||
-                  termErrors?.description ||
-                  termErrors?.branchId,
-              )
-              const isSelected = selectedKeys.includes(term.key)
-
-              return (
-                <tr
-                  key={term.key}
-                  className={cn(
-                    'border-b border-slate-100 last:border-b-0',
-                    term.status === 'void' && 'bg-rose-50/40',
-                    term.status === 'approved' && 'bg-emerald-50/30',
-                    !term.id && 'bg-slate-50/50',
-                    hasRowError && 'bg-rose-50/60',
-                    isSelected && 'bg-[#F5F8FF]',
-                  )}
-                >
-                  {!lockStatus ? (
-                    <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        className={CHECKBOX_CLASS}
-                        checked={isSelected}
-                        disabled={Boolean(paymentId) && !term.id}
-                        onChange={() => toggleTermSelected(term.key)}
-                        aria-label={`Select installment ${index + 1}`}
-                      />
-                    </td>
-                  ) : null}
-                  <td className="px-3 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold text-white">
-                        {index + 1}
-                      </span>
-                      {!term.id ? (
-                        <span className="text-[10px] font-semibold text-slate-400">
-                          Unsaved
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
-
-                  <td className="px-3 py-3 font-semibold tabular-nums text-slate-900">
-                    {term.amount
-                      ? formatCurrencyAmount(parseCurrencyValue(term.amount))
-                      : '—'}
-                    <FieldError message={termErrors?.amount} />
-                  </td>
-
-                  <td className="px-3 py-3 text-slate-700">
-                    {formatDisplayDate(term.paymentDate)}
-                    <FieldError message={termErrors?.paymentDate} />
-                  </td>
-
-                  <td className="px-3 py-3 text-slate-700">
-                    {branches.find((branch) => branch.id === term.branchId)
-                      ?.name ??
-                      saved?.branch ??
-                      (term.branchId ? `#${term.branchId}` : '—')}
-                    <FieldError message={termErrors?.branchId} />
-                  </td>
-
-                  <td className="px-3 py-3">
-                    <DataTableBadge tone={termStatusTone(term.status)}>
-                      {termStatusLabel(term.status)}
-                    </DataTableBadge>
-                    <FieldError message={termErrors?.status} />
-                  </td>
-
-                  <td className="px-3 py-3">
-                    {(saved?.attachments.length ?? 0) > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {saved!.attachments.map((attachment, fileIndex) => (
-                          <a
-                            key={attachment.id}
-                            href={attachment.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={`Proof ${fileIndex + 1}`}
-                            className="size-9 overflow-hidden rounded-lg ring-1 ring-[#C8D4F5] transition hover:ring-[#253CA1]"
-                          >
-                            <img
-                              src={attachment.fileUrl}
-                              alt={`Proof ${fileIndex + 1}`}
-                              className="size-full object-cover"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                    ) : (term.proofFiles?.length ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
-                        <ImagePlus className="size-3" />
-                        {term.proofFiles!.length} ready to upload
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-400">
-                        {term.status === 'pending' ? 'None yet' : '—'}
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="max-w-[12rem] px-3 py-3">
-                    <p className="truncate text-slate-600">
-                      {term.description.trim() || '—'}
-                    </p>
-                    <FieldError message={termErrors?.description} />
-                  </td>
-
-                  <td className="px-3 py-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        aria-label={`Edit installment ${index + 1}`}
-                        onClick={() =>
-                          setDialogMode({ type: 'edit', key: term.key })
-                        }
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#253CA1]"
-                      >
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete installment ${index + 1}`}
-                        title={
-                          terms.length <= 1
-                            ? 'Add more than one installment to enable delete'
-                            : `Delete installment ${index + 1}`
-                        }
-                        disabled={terms.length <= 1}
-                        onClick={() => handleDeleteTerm(term, index)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+          </span>
+          <ChevronDown
+            className={cn(
+              'mt-1 size-4 shrink-0 text-slate-400 transition',
+              open && 'rotate-180',
+            )}
+          />
+        </button>
+        <button
+          type="button"
+          aria-label={`Delete installment ${index + 1}`}
+          title={
+            canDelete
+              ? `Delete installment ${index + 1}`
+              : 'Add another installment before deleting this one'
+          }
+          disabled={!canDelete}
+          onClick={onDelete}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
       </div>
 
-      <Dialog
-        open={dialogMode !== null}
-        onOpenChange={(open) => {
-          if (!open && !isApplying) setDialogMode(null)
-        }}
-      >
-        <DialogContent
-          showClose
-          className="flex max-h-[min(90vh,52rem)] flex-col overflow-hidden p-0 sm:max-w-lg"
-        >
-          <form
-            onSubmit={(event) => void handleDialogSubmit(event)}
-            noValidate
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
-                <CreditCard className="size-5" />
-              </div>
-              <DialogHeader className="pr-0">
-                <DialogTitle>
-                  {dialogMode?.type === 'create'
-                    ? 'Add installment'
-                    : 'Edit installment'}
-                </DialogTitle>
-                <DialogDescription>
-                  Fill in the installment details and optionally attach payment
-                  proof images. Files are listed first, then uploaded when you
-                  confirm.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="installment-amount">Amount</Label>
-                  <CurrencyInput
-                    id="installment-amount"
-                    value={draft.amount}
-                    onValueChange={(digits) =>
-                      setDraft((current) => ({ ...current, amount: digits }))
-                    }
-                    placeholder="0"
-                  />
-                  {amountCap != null ? (
-                    <p
-                      className={cn(
-                        'text-xs',
-                        amountExceedsRemaining
-                          ? 'font-medium text-rose-600'
-                          : 'text-slate-400',
-                      )}
-                    >
-                      {amountExceedsRemaining
-                        ? `Amount cannot exceed the remaining balance of ${formatCurrencyAmount(amountCap)}.`
-                        : `Remaining on plan: ${formatCurrencyAmount(amountCap)}.`}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="installment-date">Payment date</Label>
-                  <DatePicker
-                    value={parseDateValue(draft.paymentDate)}
-                    onChange={(date) =>
-                      setDraft((current) => ({
-                        ...current,
-                        paymentDate: toDateString(date),
-                      }))
-                    }
-                    placeholder="Pick payment date"
-                    title="Payment date"
-                    className="h-12 w-full justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
-                    align="start"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="installment-branch">Payment branch</Label>
-                <Select
-                  id="installment-branch"
-                  containerClassName="w-full"
-                  value={draft.branchId}
-                  disabled={branchesQuery.isLoading}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      branchId: event.target.value,
-                    }))
-                  }
-                >
-                  <option value="">Select branch...</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </Select>
-                <p className="text-xs text-slate-400">
-                  Branch where this installment was made. Used for marketing
-                  commission attribution.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="installment-status">Status</Label>
-                <Select
-                  id="installment-status"
-                  containerClassName="w-full"
-                  value={draft.status}
-                  disabled={lockStatus}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      status: event.target
-                        .value as StudentPaymentTermFormValues['status'],
-                    }))
-                  }
-                >
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="void">Void</option>
-                </Select>
-                {lockStatus ? (
-                  <p className="text-xs text-slate-400">
-                    You can view this status. Finance updates it.
-                  </p>
+      {open ? (
+        <div className="space-y-4 border-t border-slate-100 px-3 py-4 sm:px-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={`installment-amount-${term.key}`}>Amount</Label>
+                {!lockAmount &&
+                !hideFillAmount &&
+                term.status !== 'void' &&
+                room > 0 &&
+                amountValue !== room ? (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-[#253CA1] hover:underline"
+                    onClick={() => onChange({ amount: String(room) })}
+                  >
+                    Fill {formatCurrencyAmount(room)}
+                  </button>
                 ) : null}
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="installment-notes">Notes</Label>
-                <Textarea
-                  id="installment-notes"
-                  className="min-h-20"
-                  value={draft.description}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  placeholder="Optional notes for this installment"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">
-                  Payment proof
+              <CurrencyInput
+                id={`installment-amount-${term.key}`}
+                value={lockAmount ? '' : term.amount}
+                onValueChange={(digits) => onChange({ amount: digits })}
+                placeholder="0"
+                disabled={lockAmount}
+                aria-invalid={Boolean(errors?.amount) || exceeds}
+              />
+              {lockAmount ? (
+                <p className="text-xs text-slate-500">
+                  Available after the 2-payment plan is approved.
                 </p>
-                {(editingSaved?.attachments.length ?? 0) > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                      Uploaded proofs ({editingSaved!.attachments.length})
-                    </p>
-                    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                      {editingSaved!.attachments.map((attachment, fileIndex) => (
-                        <li
-                          key={attachment.id}
-                          className="overflow-hidden rounded-xl border border-slate-200 bg-white"
-                        >
-                          <a
-                            href={attachment.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block aspect-square bg-slate-50"
-                          >
-                            <img
-                              src={attachment.fileUrl}
-                              alt={`Proof ${fileIndex + 1}`}
-                              className="size-full object-cover"
-                            />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-
-                {canAttachProof ? (
-                  <>
-                    <label
-                      htmlFor="installment-proof"
-                      className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 text-sm text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF]"
-                    >
-                      <ImagePlus className="size-4 shrink-0 text-[#253CA1]" />
-                      <span className="flex-1 truncate">
-                        Click to select one or more images
-                      </span>
-                      <input
-                        id="installment-proof"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="sr-only"
-                        onChange={(event) => {
-                          addProofFiles(event.target.files)
-                          event.target.value = ''
-                        }}
-                      />
-                    </label>
-
-                    {pendingProofs.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                          Ready to upload ({pendingProofs.length})
-                        </p>
-                        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                          {pendingProofs.map((file, fileIndex) => (
-                            <li
-                              key={`${file.name}-${file.size}-${file.lastModified}-${fileIndex}`}
-                              className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white"
-                            >
-                              <div className="aspect-square bg-slate-50">
-                                {pendingPreviewUrls[fileIndex] ? (
-                                  <img
-                                    src={pendingPreviewUrls[fileIndex]}
-                                    alt={file.name}
-                                    className="size-full object-cover"
-                                  />
-                                ) : null}
-                              </div>
-                              <button
-                                type="button"
-                                aria-label={`Remove ${file.name}`}
-                                onClick={() => removePendingProof(fileIndex)}
-                                className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                              >
-                                <X className="size-3" />
-                              </button>
-                              <p className="truncate px-1.5 py-1 text-[10px] text-slate-500">
-                                {formatFileSize(file.size)}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-
-                    <p className="text-xs text-slate-400">
-                      {pendingProofs.length > 0
-                        ? editingTerm?.id && paymentId
-                          ? 'Previews upload when you click Apply.'
-                          : 'Previews upload when you save the payment plan.'
-                        : 'Select one or more images (max 5 MB each).'}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-xs text-slate-400">
-                    Proof can only be attached while the installment is pending.
-                  </p>
-                )}
-              </div>
+              ) : exceeds ? (
+                <p className="text-xs font-medium text-rose-600">
+                  {errors?.amount ||
+                    'This amount is above what is left on the plan.'}
+                </p>
+              ) : (
+                <FieldError message={errors?.amount} />
+              )}
             </div>
+            <div className="space-y-2">
+              <Label>Payment date</Label>
+              <DatePicker
+                value={parseDateValue(term.paymentDate)}
+                onChange={(date) => onChange({ paymentDate: toDateString(date) })}
+                placeholder="Pick payment date"
+                title="Payment date"
+                className="h-12 w-full justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
+                align="start"
+              />
+              <FieldError message={errors?.paymentDate} />
+            </div>
+          </div>
 
-            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setDialogMode(null)}
-                disabled={isApplying}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor={`installment-branch-${term.key}`}>
+                Payment branch
+              </Label>
+              <Select
+                id={`installment-branch-${term.key}`}
+                containerClassName="w-full"
+                value={term.branchId}
+                disabled={branchesLoading}
+                onChange={(event) => onChange({ branchId: event.target.value })}
               >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isApplying || amountExceedsRemaining}>
-                {isApplying
-                  ? 'Applying…'
-                  : dialogMode?.type === 'create'
-                    ? 'Add installment'
-                    : 'Apply'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </section>
+                <option value="">Select branch...</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </Select>
+              <FieldError message={errors?.branchId} />
+            </div>
+            <div className="space-y-2">
+              <p
+                id={`installment-status-${term.key}`}
+                className="text-sm font-medium text-slate-700"
+              >
+                Status
+              </p>
+              <StatusPicker
+                value={term.status}
+                disabled={lockStatus}
+                labelledBy={`installment-status-${term.key}`}
+                onChange={(status) => onChange({ status })}
+              />
+              {lockStatus ? (
+                <p className="text-xs text-slate-400">
+                  You can view this status. Finance updates it.
+                </p>
+              ) : null}
+              <FieldError message={errors?.status} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`installment-notes-${term.key}`}>Notes</Label>
+            <Textarea
+              id={`installment-notes-${term.key}`}
+              className="min-h-20"
+              value={term.description}
+              onChange={(event) => onChange({ description: event.target.value })}
+              placeholder="Optional note, such as transfer reference"
+            />
+            <FieldError message={errors?.description} />
+          </div>
+
+          <ProofEditor
+            termKey={term.key}
+            status={term.status}
+            files={term.proofFiles}
+            savedAttachments={saved?.attachments ?? []}
+            onAddFiles={(files) =>
+              onChange({ proofFiles: [...(term.proofFiles ?? []), ...files] })
+            }
+            onRemoveFile={(fileIndex) =>
+              onChange({
+                proofFiles: (term.proofFiles ?? []).filter(
+                  (_, proofIndex) => proofIndex !== fileIndex,
+                ),
+              })
+            }
+          />
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+function StatusPicker({
+  value,
+  disabled,
+  labelledBy,
+  onChange,
+}: {
+  value: StudentPaymentTermStatus
+  disabled: boolean
+  labelledBy: string
+  onChange: (status: StudentPaymentTermStatus) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      className="grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1"
+    >
+      {STATUS_OPTIONS.map((option) => {
+        const selected = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'h-8 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60',
+              selected ? option.activeClass : 'text-slate-500 hover:text-slate-800',
+            )}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ProofEditor({
+  termKey,
+  status,
+  files,
+  savedAttachments,
+  onAddFiles,
+  onRemoveFile,
+}: {
+  termKey: string
+  status: StudentPaymentTermStatus
+  files: File[] | undefined
+  savedAttachments: StudentPaymentTerm['attachments']
+  onAddFiles: (files: File[]) => void
+  onRemoveFile: (index: number) => void
+}) {
+  const previewUrls = useObjectUrls(files)
+  const pending = files ?? EMPTY_FILES
+
+  function addProofFiles(fileList: FileList | null) {
+    if (!fileList?.length) return
+    const next: File[] = []
+    for (const file of Array.from(fileList)) {
+      if (file.size > MAX_PROOF_BYTES) {
+        notify('error', {
+          title: 'File too large',
+          description: `${file.name} must be 5 MB or smaller.`,
+        })
+        continue
+      }
+      next.push(file)
+    }
+    if (next.length > 0) onAddFiles(next)
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-slate-900">Payment proof</p>
+      {savedAttachments.length > 0 ? (
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {savedAttachments.map((attachment, fileIndex) => (
+            <li key={attachment.id}>
+              <a
+                href={attachment.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block aspect-square overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200"
+              >
+                <img
+                  src={attachment.fileUrl}
+                  alt={`Proof ${fileIndex + 1}`}
+                  className="size-full object-cover"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {status === 'pending' ? (
+        <>
+          <label
+            htmlFor={`installment-proof-${termKey}`}
+            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 text-sm text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF]"
+          >
+            <ImagePlus className="size-4 shrink-0 text-[#253CA1]" />
+            <span className="flex-1 truncate">Add proof images</span>
+            <input
+              id={`installment-proof-${termKey}`}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={(event) => {
+                addProofFiles(event.target.files)
+                event.target.value = ''
+              }}
+            />
+          </label>
+          {pending.length > 0 ? (
+            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {pending.map((file, fileIndex) => (
+                <li
+                  key={`${file.name}-${file.size}-${file.lastModified}-${fileIndex}`}
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white"
+                >
+                  <div className="aspect-square bg-slate-50">
+                    {previewUrls[fileIndex] ? (
+                      <img
+                        src={previewUrls[fileIndex]}
+                        alt={file.name}
+                        className="size-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() => onRemoveFile(fileIndex)}
+                    className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-500 shadow-sm hover:text-rose-600"
+                  >
+                    <X className="size-3" />
+                  </button>
+                  <p className="truncate px-1.5 py-1 text-[10px] text-slate-500">
+                    {formatFileSize(file.size)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="text-xs text-slate-400">
+            {pending.length > 0
+              ? 'These images upload when you save the plan.'
+              : 'Images up to 5 MB, while the installment is pending.'}
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-slate-400">
+          Switch this installment back to pending to attach proof.
+        </p>
+      )}
+    </div>
   )
 }
 
 export function PaymentCollectionSummary({
   plannedAmount,
+  courseFee = 0,
   terms,
-  linkedPredictionAmount = 0,
 }: {
   plannedAmount: string
+  courseFee?: number
   terms: StudentPaymentTermFormValues[]
-  linkedPredictionAmount?: number
 }) {
   const summary = summarizeFormCollection(plannedAmount, terms)
-  const remainingValue = Math.abs(summary.remaining)
-  const commissionBase = summary.planned + linkedPredictionAmount
+  const scheduled = summary.approved + summary.pending
+  const unscheduled = Math.max(0, summary.planned - scheduled)
+  const overScheduled = Math.max(0, scheduled - summary.planned)
+  const scale = Math.max(summary.planned, scheduled, 1)
+  const approvedPct = (summary.approved / scale) * 100
+  const pendingPct = (summary.pending / scale) * 100
 
   const message =
-    summary.planned <= 0
-      ? 'Enter a planned amount to track collection progress.'
-      : summary.remaining > 0
-        ? `${formatCurrencyAmount(summary.remaining)} still needed from approved installments.`
-        : summary.remaining < 0
-          ? `Approved installments exceed the plan by ${formatCurrencyAmount(remainingValue)}.`
-          : 'Approved installments cover the planned amount.'
+    courseFee <= 0
+      ? 'Enter a course fee to see whether the schedule covers what is owed.'
+      : summary.planned <= 0
+        ? 'Discount and pretest credit cover the course fee. Nothing is left to collect.'
+        : overScheduled > 0
+          ? `This schedule is ${formatCurrencyAmount(overScheduled)} over the amount due.`
+          : unscheduled > 0
+            ? `${formatCurrencyAmount(unscheduled)} of the amount due is still not on the schedule.`
+            : summary.remaining > 0
+              ? `The schedule covers the amount due. ${formatCurrencyAmount(summary.remaining)} still needs approval.`
+              : summary.remaining < 0
+                ? `Approved installments are ${formatCurrencyAmount(Math.abs(summary.remaining))} over the amount due.`
+                : 'Approved installments cover the amount due.'
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[#D7E4F6] bg-[linear-gradient(180deg,#F5F8FF_0%,#FFFFFF_100%)] p-4 sm:p-5">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryStat label="Planned" value={summary.planned} />
-        <SummaryStat
-          label="Approved"
-          value={summary.approved}
-          hint={`${summary.approvedCount} installment${summary.approvedCount === 1 ? '' : 's'}`}
+    <div className="space-y-3 rounded-2xl border border-[#D7E4F6] bg-[linear-gradient(180deg,#F5F8FF_0%,#FFFFFF_100%)] p-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            Collected
+          </p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900">
+            {formatCurrencyAmount(summary.approved)}
+            <span className="ml-1 text-sm font-medium text-slate-400">
+              of {formatCurrencyAmount(summary.planned)} due
+            </span>
+          </p>
+        </div>
+        <p className="text-sm font-semibold tabular-nums text-[#253CA1]">
+          {summary.percent}% approved
+        </p>
+      </div>
+
+      <div
+        className="flex h-2.5 overflow-hidden rounded-full bg-slate-200/80"
+        role="img"
+        aria-label={`${summary.percent}% of the plan is approved`}
+      >
+        <div
+          className="h-full bg-emerald-500 transition-[width] duration-300"
+          style={{ width: `${approvedPct}%` }}
         />
-        <SummaryStat
-          label="Pending"
-          value={summary.pending}
-          hint={`${summary.pendingCount} awaiting approval`}
-        />
-        <SummaryStat
-          label={remainingLabel(summary.remaining)}
-          value={remainingValue}
-          tone={
-            summary.remaining > 0
-              ? 'warning'
-              : summary.remaining < 0
-                ? 'danger'
-                : 'success'
-          }
+        <div
+          className="h-full bg-[#253CA1] transition-[width] duration-300"
+          style={{ width: `${pendingPct}%` }}
         />
       </div>
-      {linkedPredictionAmount > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/90 px-3 py-2.5 ring-1 ring-[#C8D4F5]">
-          <div>
-            <p className="text-[11px] font-semibold tracking-wide text-[#253CA1] uppercase">
-              Linked pretest in plan
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Commission base = planned + pretest (once per person)
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-bold tabular-nums text-[#1B2A5A]">
-              +{formatCurrencyAmount(linkedPredictionAmount)}
-            </p>
-            <p className="text-xs font-semibold tabular-nums text-slate-700">
-              {formatCurrencyAmount(commissionBase)} total
-            </p>
-          </div>
-        </div>
-      ) : null}
-      <PaymentProgress
-        paidAmount={summary.approved}
-        fullAmount={summary.planned}
-      />
+
+      <div className="grid grid-cols-3 gap-2">
+        <LegendDot
+          color="bg-emerald-500"
+          label="Approved"
+          value={formatCurrencyAmount(summary.approved)}
+        />
+        <LegendDot
+          color="bg-[#253CA1]"
+          label="Pending"
+          value={formatCurrencyAmount(summary.pending)}
+        />
+        <LegendDot
+          color={overScheduled > 0 ? 'bg-rose-400' : 'bg-slate-300'}
+          label={overScheduled > 0 ? 'Over' : 'Unscheduled'}
+          value={formatCurrencyAmount(
+            overScheduled > 0 ? overScheduled : unscheduled,
+          )}
+        />
+      </div>
+
       <p className="text-sm text-slate-500">{message}</p>
     </div>
   )
 }
 
-function SummaryStat({
+function LegendDot({
+  color,
   label,
   value,
-  hint,
-  tone = 'neutral',
 }: {
+  color: string
   label: string
-  value: number
-  hint?: string
-  tone?: 'neutral' | 'warning' | 'danger' | 'success'
+  value: string
 }) {
   return (
-    <div className="min-w-0 rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-100">
-      <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+        <span className={cn('size-2 rounded-full', color)} />
         {label}
       </p>
-      <p
-        className={cn(
-          'mt-1 text-sm font-bold tabular-nums',
-          tone === 'warning' && 'text-amber-700',
-          tone === 'danger' && 'text-rose-700',
-          tone === 'success' && 'text-emerald-700',
-          tone === 'neutral' && 'text-slate-900',
-        )}
-      >
-        {formatCurrencyAmount(value)}
+      <p className="mt-0.5 truncate text-xs font-semibold tabular-nums text-slate-700">
+        {value}
       </p>
-      {hint ? <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p> : null}
     </div>
   )
 }
@@ -1232,16 +1193,21 @@ export function Field({
   error,
   children,
   hint,
+  required,
 }: {
   label: string
   htmlFor: string
   error?: string
   children: ReactNode
   hint?: string
+  required?: boolean
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
       <FieldError message={error} />

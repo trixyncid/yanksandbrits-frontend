@@ -21,7 +21,7 @@ export const prospectiveStudentFormSchema = z
     gender: z.enum(['male', 'female'], {
       message: 'Select a gender.',
     }),
-    course: z.enum(['TOE', 'IEL', 'GET', 'SAT', 'HSK'], {
+    course: z.enum(['TOE', 'IEL', 'GET', 'SAT', 'HSK', 'GEN'], {
       message: 'Select a prediction test.',
     }),
     status: z.enum([

@@ -19,7 +19,7 @@ export type ResponseStatusUi =
   | 'cancelled'
   | 'enrolled'
 
-export type CourseCode = 'TOE' | 'IEL' | 'GET' | 'SAT' | 'HSK'
+export type CourseCode = 'TOE' | 'IEL' | 'GET' | 'SAT' | 'HSK' | 'GEN'
 export type LanguageTestCode = 'IELTS' | 'TOEFL' | 'SAT'
 export type ProspectResource =
   | 'Instagram'
@@ -145,6 +145,7 @@ export const COURSE_OPTIONS: { value: CourseCode; label: string }[] = [
   { value: 'GET', label: 'IELTS Prediction Test - General Training' },
   { value: 'SAT', label: 'SAT Prediction Test' },
   { value: 'HSK', label: 'HSK Prediction Test' },
+  { value: 'GEN', label: 'General English' },
 ]
 
 const COURSE_LABELS: Record<string, string> = {
@@ -153,6 +154,7 @@ const COURSE_LABELS: Record<string, string> = {
   GET: 'IELTS Prediction Test - General Training',
   SAT: 'SAT Prediction Test',
   HSK: 'HSK Prediction Test',
+  GEN: 'General English',
   // Legacy codes kept for display until historical rows are fully migrated
   TOR: 'TOEFL Prediction Test - ITP',
   TOG: 'TOEFL Prediction Test - ITP',
@@ -215,6 +217,12 @@ export const PREDICTION_PROGRAM_CODES = [
   'HSK_4',
   'HSK_5',
   'HSK_6',
+  'GEN_A1',
+  'GEN_A2',
+  'GEN_B1',
+  'GEN_B2',
+  'GEN_C1',
+  'GEN_C2',
 ] as const
 
 export type PredictionProgramCode = (typeof PREDICTION_PROGRAM_CODES)[number]
@@ -256,16 +264,33 @@ export const HSK_PROGRAM_OPTIONS: {
   { value: 'HSK_6', label: 'HSK 6' },
 ]
 
+export const GENERAL_ENGLISH_PROGRAM_OPTIONS: {
+  value: Extract<
+    PredictionProgramCode,
+    'GEN_A1' | 'GEN_A2' | 'GEN_B1' | 'GEN_B2' | 'GEN_C1' | 'GEN_C2'
+  >
+  label: string
+}[] = [
+  { value: 'GEN_A1', label: 'A1 (Starter)' },
+  { value: 'GEN_A2', label: 'A2 (Elementary)' },
+  { value: 'GEN_B1', label: 'B1 (Pre-Intermediate)' },
+  { value: 'GEN_B2', label: 'B2 (Intermediate)' },
+  { value: 'GEN_C1', label: 'C1 (Upper-Intermediate)' },
+  { value: 'GEN_C2', label: 'C2 (Advanced)' },
+]
+
 const PREDICTION_PROGRAM_OPTIONS = [
   ...IELTS_PROGRAM_OPTIONS,
   ...TOEFL_PROGRAM_OPTIONS,
   ...HSK_PROGRAM_OPTIONS,
+  ...GENERAL_ENGLISH_PROGRAM_OPTIONS,
 ]
 
 export function programOptionsForCourse(code: string | null | undefined) {
   if (isIeltsCourse(code)) return IELTS_PROGRAM_OPTIONS
   if (isToeflCourse(code)) return TOEFL_PROGRAM_OPTIONS
   if (isHskCourse(code)) return HSK_PROGRAM_OPTIONS
+  if (isGeneralEnglishCourse(code)) return GENERAL_ENGLISH_PROGRAM_OPTIONS
   return []
 }
 
@@ -288,6 +313,12 @@ export function isIeltsAcademicCourse(
 
 export function isSatCourse(code: string | null | undefined): boolean {
   return code === 'SAT'
+}
+
+export function isGeneralEnglishCourse(
+  code: string | null | undefined,
+): boolean {
+  return code === 'GEN'
 }
 
 export function isHskCourse(code: string | null | undefined): boolean {

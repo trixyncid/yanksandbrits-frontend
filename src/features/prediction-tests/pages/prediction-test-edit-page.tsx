@@ -23,8 +23,6 @@ import { PredictionTestForm } from '../components/prediction-test-form'
 import { usePredictionTestForm } from '../hooks/use-prediction-test-form'
 import { usePredictionTestQuery } from '../hooks/use-prediction-test-query'
 import type {
-  AcademicLeaderDecision,
-  AcademicLeaderStatus,
   PredictionTestFormValues,
   PredictionTestListItem,
   PredictionTestStatus,
@@ -83,18 +81,6 @@ export default function PredictionTestEditPage() {
       meta={{
         attachments: test.attachments,
         studentCourse: test.studentCourse,
-        managerApproved: test.managerApproved,
-        listeningTutorName: test.listeningTutorName,
-        readingTutorName: test.readingTutorName,
-        writingTutorName: test.writingTutorName,
-        speakingTutorName: test.speakingTutorName,
-        mathTutorName: test.mathTutorName,
-        ieltsProgram: test.ieltsProgram,
-        listeningSessions: test.listeningSessions,
-        readingSessions: test.readingSessions,
-        writingSessions: test.writingSessions,
-        speakingSessions: test.speakingSessions,
-        mathSessions: test.mathSessions,
       }}
       detail={{
         studentId: test.studentId,
@@ -104,9 +90,6 @@ export default function PredictionTestEditPage() {
         educationCounsellor: test.educationCounsellor,
         branch: test.branch,
         status: test.status,
-        managerApproved: test.managerApproved,
-        academicLeaderStatus: test.academicLeaderStatus,
-        academicLeaderDecision: test.academicLeaderDecision,
         createdAt: test.createdAt,
         updatedAt: test.updatedAt,
       }}
@@ -127,12 +110,6 @@ function PredictionTestEditForm({
   meta: {
     attachments: PredictionTestListItem['attachments']
     studentCourse: string | null
-    managerApproved: boolean
-    listeningTutorName: string
-    readingTutorName: string
-    writingTutorName: string
-    speakingTutorName: string
-    mathTutorName: string
   }
   detail: {
     studentId: string
@@ -142,9 +119,6 @@ function PredictionTestEditForm({
     educationCounsellor: string
     branch: string
     status: PredictionTestStatus
-    managerApproved: boolean
-    academicLeaderStatus: AcademicLeaderStatus
-    academicLeaderDecision: AcademicLeaderDecision | null
     createdAt: string
     updatedAt: string
   }
@@ -228,23 +202,6 @@ function PredictionTestEditForm({
                       {paymentStatusLabel(detail.status)}
                     </DataTableBadge>
                   )}
-                  {hidePayment ? null : (
-                    <DataTableBadge
-                      tone={detail.managerApproved ? 'success' : 'info'}
-                    >
-                      {detail.managerApproved
-                        ? 'Approved by BM'
-                        : 'Awaiting Approval by BM'}
-                    </DataTableBadge>
-                  )}
-                  <DataTableBadge
-                    tone={reviewStatusTone(
-                      detail.academicLeaderStatus,
-                      detail.academicLeaderDecision,
-                    )}
-                  >
-                    {reviewStatusLabel(detail.academicLeaderDecision)}
-                  </DataTableBadge>
                   {isAcademicLeader ? null : (
                     <Link
                       to="/prospective-students/$prospectiveStudentId/edit"
@@ -315,19 +272,4 @@ function paymentStatusTone(status: PredictionTestStatus) {
   if (status === 'approved') return 'success' as const
   if (status === 'pending') return 'info' as const
   return 'danger' as const
-}
-
-function reviewStatusLabel(decision: AcademicLeaderDecision | null) {
-  if (decision === 'reject') return 'Changes Requested by AL'
-  if (decision === 'approve') return 'Approved by AL'
-  return 'Awaiting Approval by AL'
-}
-
-function reviewStatusTone(
-  status: AcademicLeaderStatus,
-  decision: AcademicLeaderDecision | null,
-) {
-  if (decision === 'reject') return 'warning' as const
-  if (decision === 'approve' || status === 'reviewed') return 'success' as const
-  return 'info' as const
 }

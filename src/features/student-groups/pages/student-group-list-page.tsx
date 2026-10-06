@@ -5,6 +5,7 @@ import { DataTable } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
+import { useIsRestrictedMarketing } from '../../auth/hooks/use-permissions'
 import { studentGroupListColumns } from '../components/student-group-list-columns'
 import {
   StudentGroupListErrorState,
@@ -29,6 +30,7 @@ function filterStudentGroup(row: StudentGroupListItem, search: string) {
 
 export default function StudentGroupListPage() {
   const navigate = useNavigate()
+  const isCounsellor = useIsRestrictedMarketing()
   const groupsQuery = useStudentGroupsQuery()
 
   return (
@@ -54,14 +56,23 @@ export default function StudentGroupListPage() {
             initialPageSize={10}
             emptyMessage="No student groups found"
             toolbarActions={
-              <Can module="studentGroups" action="add">
+              isCounsellor ? (
                 <Button
                   onClick={() => void navigate({ to: '/student-groups/new' })}
                 >
                   <Plus className="size-4" />
                   Add New Student Group
                 </Button>
-              </Can>
+              ) : (
+                <Can module="studentGroups" action="add">
+                  <Button
+                    onClick={() => void navigate({ to: '/student-groups/new' })}
+                  >
+                    <Plus className="size-4" />
+                    Add New Student Group
+                  </Button>
+                </Can>
+              )
             }
           />
         ) : null}

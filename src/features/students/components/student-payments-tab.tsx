@@ -15,6 +15,7 @@ import { PaymentProgress } from '../../student-payments/components/student-payme
 import { useStudentPaymentsQuery } from '../../student-payments/hooks/use-student-payments-query'
 import {
   firstProofUrl,
+  planAmountDue,
   planStatusLabel,
   planStatusTone,
   proofCount,
@@ -96,13 +97,10 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">Payment History</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Payment plans and installments recorded for this student.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <p className="text-sm text-slate-500">
+          Plans and installments recorded for this student.
+        </p>
         <Button variant="secondary" size="sm" onClick={openCreate}>
           <CreditCard className="size-3.5" />
           Add Payment Plan
@@ -148,6 +146,14 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
             const count = proofCount(payment.terms)
             const proofUrl = firstProofUrl(payment.terms)
 
+            const due = planAmountDue(
+              payment.fullAmount,
+              payment.discountAmount,
+              payment.linkedPredictionTestAmount,
+            )
+            const covered = payment.fullAmount > 0 && due === 0
+            const left = due - payment.paidAmount
+
             return (
               <article
                 key={payment.id}
@@ -162,18 +168,38 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
                       <DataTableBadge tone={planStatusTone(payment.status)}>
                         {planStatusLabel(payment.status)}
                       </DataTableBadge>
+                      {payment.installmentPlan === 'two' ? (
+                        <DataTableBadge
+                          tone={
+                            payment.installmentPlanApproved
+                              ? 'success'
+                              : 'warning'
+                          }
+                        >
+                          {payment.installmentPlanApproved
+                            ? 'Plan approved'
+                            : 'Awaiting approval'}
+                        </DataTableBadge>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm font-semibold text-slate-800 tabular-nums">
                       {formatCurrencyAmount(payment.paidAmount)}
                       <span className="font-medium text-slate-400">
                         {' '}
-                        / {formatCurrencyAmount(payment.fullAmount)}
+                        / {formatCurrencyAmount(due)}
                       </span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {left > 0
+                        ? `${formatCurrencyAmount(left)} remaining`
+                        : left < 0
+                          ? `${formatCurrencyAmount(Math.abs(left))} over the amount due`
+                          : 'Nothing remaining'}
                     </p>
                     <div className="mt-2 max-w-xs">
                       <PaymentProgress
-                        paidAmount={payment.paidAmount}
-                        fullAmount={payment.fullAmount}
+                        paidAmount={covered ? 1 : payment.paidAmount}
+                        fullAmount={covered ? 1 : due}
                       />
                     </div>
                     <p className="mt-2 text-xs text-slate-400">

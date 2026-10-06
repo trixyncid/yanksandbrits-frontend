@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import {
   courseLabel,
+  isGeneralEnglishCourse,
   isSatCourse,
   isToeflCourse,
 } from '../../../shared/api/choices'
@@ -10,7 +11,6 @@ import {
   DataTableColumnHeader,
 } from '../../../shared/components/data-table'
 import type {
-  AcademicLeaderStatus,
   PredictionTestListItem,
   PredictionTestStatus,
 } from '../types/prediction-test'
@@ -48,35 +48,6 @@ function statusLabel(status: PredictionTestStatus) {
   }
 
   return 'Void'
-}
-
-function academicLeaderStatusTone(
-  status: AcademicLeaderStatus,
-  decision: PredictionTestListItem['academicLeaderDecision'],
-) {
-  if (decision === 'reject') {
-    return 'warning' as const
-  }
-  if (decision === 'approve' || status === 'reviewed') {
-    return 'success' as const
-  }
-  return 'info' as const
-}
-
-function academicLeaderStatusLabel(
-  status: AcademicLeaderStatus,
-  decision: PredictionTestListItem['academicLeaderDecision'],
-) {
-  if (decision === 'reject') {
-    return 'Changes requested'
-  }
-  if (decision === 'approve') {
-    return 'Proceed'
-  }
-  if (status === 'reviewed') {
-    return 'Reviewed'
-  }
-  return 'Pending Review'
 }
 
 function getInitials(name: string) {
@@ -136,10 +107,14 @@ export function getPredictionTestListColumns(options?: {
   },
   {
     id: 'skills',
-    accessorFn: (row) =>
-      [row.listening, row.reading, row.writing, row.speaking, row.math]
+    accessorFn: (row) => {
+      if (isGeneralEnglishCourse(row.studentCourse)) {
+        return row.writtenTestScore == null ? '' : `WT ${row.writtenTestScore}`
+      }
+      return [row.listening, row.reading, row.writing, row.speaking, row.math]
         .map((value) => (value == null ? '' : String(value)))
-        .join(' '),
+        .join(' ')
+    },
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -148,6 +123,22 @@ export function getPredictionTestListColumns(options?: {
       />
     ),
     cell: ({ row }) => {
+      if (isGeneralEnglishCourse(row.original.studentCourse)) {
+        const writtenTest = row.original.writtenTestScore
+        if (writtenTest == null) {
+          return (
+            <p className="text-center text-xs font-medium text-slate-400">-</p>
+          )
+        }
+        return (
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-[#F5F8FF] px-1.5 py-0.5 text-[11px] leading-none tabular-nums ring-1 ring-[#C8D4F5]/80">
+              <span className="font-semibold text-[#253CA1]">WT</span>
+              <span className="font-medium text-slate-700">{writtenTest}</span>
+            </span>
+          </div>
+        )
+      }
       const toefl = isToeflCourse(row.original.studentCourse)
       const sat = isSatCourse(row.original.studentCourse)
       const skills = sat
@@ -215,56 +206,6 @@ export function getPredictionTestListColumns(options?: {
       },
     )
   }
-
-  if (!hidePayment) {
-    columns.push({
-      id: 'managerApproval',
-      accessorFn: (row) => (row.managerApproved ? 'approved' : 'pending'),
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Manager Approval"
-          align="center"
-        />
-      ),
-      cell: ({ row }) => (
-        <div className="text-center">
-          <DataTableBadge
-            tone={row.original.managerApproved ? 'success' : 'info'}
-          >
-            {row.original.managerApproved ? 'Approved' : 'Pending'}
-          </DataTableBadge>
-        </div>
-      ),
-    })
-  }
-
-  columns.push({
-    id: 'academicLeaderStatus',
-    accessorFn: (row) => row.academicLeaderStatus,
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Academic Leader Status"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge
-          tone={academicLeaderStatusTone(
-            row.original.academicLeaderStatus,
-            row.original.academicLeaderDecision,
-          )}
-        >
-          {academicLeaderStatusLabel(
-            row.original.academicLeaderStatus,
-            row.original.academicLeaderDecision,
-          )}
-        </DataTableBadge>
-      </div>
-    ),
-  })
 
   columns.push(
   {

@@ -126,21 +126,78 @@ export function takeMatchingServerTermId(
   return unmatched.shift()?.id
 }
 
-export function emptyTermFormValues(
-  status: StudentPaymentTermStatus = 'pending',
-  branchId = '',
-) {
+export function todayIsoDate() {
   const today = new Date()
   const year = today.getFullYear()
   const month = String(today.getMonth() + 1).padStart(2, '0')
   const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
+/** Move an ISO date by whole months, clamping to the last day of the target month. */
+export function shiftIsoDate(isoDate: string, months: number) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  if (!match || months === 0) return isoDate
+  const year = Number(match[1])
+  const monthIndex = Number(match[2]) - 1
+  const day = Number(match[3])
+  const target = new Date(year, monthIndex + months, 1)
+  const lastDay = new Date(
+    target.getFullYear(),
+    target.getMonth() + 1,
+    0,
+  ).getDate()
+  const clamped = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    Math.min(day, lastDay),
+  )
+  const nextYear = clamped.getFullYear()
+  const nextMonth = String(clamped.getMonth() + 1).padStart(2, '0')
+  const nextDay = String(clamped.getDate()).padStart(2, '0')
+  return `${nextYear}-${nextMonth}-${nextDay}`
+}
+
+/** Split a whole-rupiah total into `parts`, putting any remainder on the last share. */
+export function splitCurrencyAmount(total: number, parts: number) {
+  const count = Math.floor(parts)
+  if (count < 1 || total <= 0) return []
+  const base = Math.floor(total / count)
+  const amounts = Array.from({ length: count }, () => base)
+  amounts[count - 1] = total - base * (count - 1)
+  return amounts
+}
+
+/** Planned amount minus non-void installment amounts. Negative means the schedule is over. */
+export function unallocatedPlanAmount(
+  plannedAmount: string | number,
+  terms: Array<{ status: StudentPaymentTermStatus; amount: string | number }>,
+) {
+  const planned =
+    typeof plannedAmount === 'number'
+      ? plannedAmount
+      : parseCurrencyValue(plannedAmount)
+  let scheduled = 0
+  for (const term of terms) {
+    if (term.status === 'void') continue
+    scheduled +=
+      typeof term.amount === 'number'
+        ? term.amount
+        : parseCurrencyValue(term.amount)
+  }
+  return planned - scheduled
+}
+
+export function emptyTermFormValues(
+  status: StudentPaymentTermStatus = 'pending',
+  branchId = '',
+) {
   return {
     key: createTermFormKey(),
     amount: '',
     status,
     description: '',
-    paymentDate: `${year}-${month}-${day}`,
+    paymentDate: todayIsoDate(),
     branchId,
   }
 }
@@ -235,6 +292,8 @@ export function installmentAmountCap(options: {
   editingKey?: string | null
   editingId?: string | null
   nextStatus: StudentPaymentTermStatus
+  /** When true, a zero plan balance rejects any positive installment. */
+  zeroIsCapped?: boolean
 }): number | null {
   if (options.nextStatus === 'void') {
     return null
@@ -244,8 +303,11 @@ export function installmentAmountCap(options: {
     typeof options.plannedAmount === 'number'
       ? options.plannedAmount
       : parseCurrencyValue(options.plannedAmount)
-  if (planned <= 0) {
+  if (planned < 0) {
     return null
+  }
+  if (planned === 0) {
+    return options.zeroIsCapped ? 0 : null
   }
 
   let approvedOthers = 0
@@ -276,6 +338,7 @@ export function installmentExceedsRemaining(options: {
   editingId?: string | null
   nextStatus: StudentPaymentTermStatus
   nextAmount: string | number
+  zeroIsCapped?: boolean
 }): boolean {
   const cap = installmentAmountCap(options)
   if (cap == null) return false
@@ -286,11 +349,24 @@ export function installmentExceedsRemaining(options: {
   return amount > cap
 }
 
+export function planAmountDue(
+  fullAmount: number,
+  discountAmount: number,
+  pretestCredit: number,
+) {
+  const full = Math.max(0, fullAmount)
+  const discount = Math.min(Math.max(0, discountAmount), full)
+  const credit = Math.max(0, pretestCredit)
+  return Math.max(0, full - discount - credit)
+}
+
 export function livePlanStatus(
-  planned: number,
+  amountDue: number,
   approved: number,
+  courseFee = amountDue,
 ): StudentPaymentPlanStatus {
-  return planned > 0 && approved >= planned ? 'complete' : 'incomplete'
+  if (courseFee > 0 && approved >= amountDue) return 'complete'
+  return 'incomplete'
 }
 
 export function remainingLabel(remaining: number) {

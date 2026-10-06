@@ -14,24 +14,13 @@ import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import type { PredictionTestListFilters } from '../api/prediction-test-query-keys'
 
 type StatusFilter = NonNullable<PredictionTestListFilters['status']>
-type ManagerApprovalFilter = NonNullable<
-  PredictionTestListFilters['managerApproval']
->
-type AcademicLeaderStatusFilter = NonNullable<
-  PredictionTestListFilters['academicLeaderStatus']
->
 
 type PredictionTestListFiltersProps = {
   status: StatusFilter
-  managerApproval: ManagerApprovalFilter
-  academicLeaderStatus: AcademicLeaderStatusFilter
-  defaultAcademicLeaderStatus: AcademicLeaderStatusFilter
   counsellorId: string
   hidePayment: boolean
   hideCounsellor: boolean
   onStatusChange: (status: StatusFilter) => void
-  onManagerApprovalChange: (status: ManagerApprovalFilter) => void
-  onAcademicLeaderStatusChange: (status: AcademicLeaderStatusFilter) => void
   onCounsellorChange: (counsellorId: string) => void
   onClear: () => void
 }
@@ -45,15 +34,10 @@ function isNestedPopoverTarget(target: EventTarget | null) {
 
 export function PredictionTestListFiltersMenu({
   status,
-  managerApproval,
-  academicLeaderStatus,
-  defaultAcademicLeaderStatus,
   counsellorId,
   hidePayment,
   hideCounsellor,
   onStatusChange,
-  onManagerApprovalChange,
-  onAcademicLeaderStatusChange,
   onCounsellorChange,
   onClear,
 }: PredictionTestListFiltersProps) {
@@ -73,16 +57,8 @@ export function PredictionTestListFiltersMenu({
     [counsellorsQuery.data],
   )
   const paymentActive = !hidePayment && status !== 'all'
-  const managerActive = !hidePayment && managerApproval !== 'all'
-  const academicLeaderActive =
-    academicLeaderStatus !== defaultAcademicLeaderStatus
   const counsellorActive = !hideCounsellor && Boolean(counsellorId)
-  const activeCount = [
-    paymentActive,
-    managerActive,
-    academicLeaderActive,
-    counsellorActive,
-  ].filter(Boolean).length
+  const activeCount = [paymentActive, counsellorActive].filter(Boolean).length
 
   return (
     <Popover>
@@ -160,53 +136,6 @@ export function PredictionTestListFiltersMenu({
               </Select>
             </FilterField>
           )}
-          {hidePayment ? null : (
-            <FilterField
-              id={`${fieldId}-manager`}
-              label="Manager approval"
-            >
-              <Select
-                id={`${fieldId}-manager`}
-                value={managerApproval}
-                onChange={(event) =>
-                  onManagerApprovalChange(
-                    event.target.value as ManagerApprovalFilter,
-                  )
-                }
-                containerClassName="w-full sm:w-full"
-                className={cn('h-10', managerActive && activeControlClassName)}
-                aria-label="Filter by branch manager approval"
-              >
-                <option value="all">All approvals</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-              </Select>
-            </FilterField>
-          )}
-          <FilterField
-            id={`${fieldId}-academic-leader`}
-            label="Academic leader"
-          >
-            <Select
-              id={`${fieldId}-academic-leader`}
-              value={academicLeaderStatus}
-              onChange={(event) =>
-                onAcademicLeaderStatusChange(
-                  event.target.value as AcademicLeaderStatusFilter,
-                )
-              }
-              containerClassName="w-full sm:w-full"
-              className={cn(
-                'h-10',
-                academicLeaderActive && activeControlClassName,
-              )}
-              aria-label="Filter by academic leader status"
-            >
-              <option value="all">All statuses</option>
-              <option value="pending_review">Pending review</option>
-              <option value="reviewed">Reviewed</option>
-            </Select>
-          </FilterField>
           {hideCounsellor ? null : (
             <FilterField id={`${fieldId}-counsellor`} label="Counsellor">
               <SearchableSelect

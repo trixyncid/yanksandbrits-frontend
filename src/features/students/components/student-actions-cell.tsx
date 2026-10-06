@@ -25,7 +25,7 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
             params: { studentId: student.id },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+        className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
       >
         <Eye className="size-3.5" />
       </button>
@@ -39,42 +39,42 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
               params: { studentId: student.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
         >
           <Pencil className="size-3.5" />
         </button>
       </Can>
       <Can module="students" action="delete">
         <button
-        type="button"
-        aria-label={`Delete ${student.fullName}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete student?',
-            description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
-            onConfirm: () => {
-              void deleteStudent(student.id)
-                .then(async () => {
-                  await queryClient.invalidateQueries({
-                    queryKey: studentQueryKeys.all,
+          type="button"
+          aria-label={`Delete ${student.fullName}`}
+          onClick={() =>
+            requestDeleteConfirm({
+              title: 'Delete student?',
+              description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
+              onConfirm: () => {
+                void deleteStudent(student.id)
+                  .then(async () => {
+                    await queryClient.invalidateQueries({
+                      queryKey: studentQueryKeys.all,
+                    })
+                    notify('success', {
+                      title: 'Student deleted',
+                      description: `${student.pin} has been removed.`,
+                    })
                   })
-                  notify('success', {
-                    title: 'Student deleted',
-                    description: `${student.pin} has been removed.`,
+                  .catch((error) => {
+                    notify('error', {
+                      title: 'Unable to delete student',
+                      description: getApiErrorMessage(error),
+                    })
                   })
-                })
-                .catch((error) => {
-                  notify('error', {
-                    title: 'Unable to delete student',
-                    description: getApiErrorMessage(error),
-                  })
-                })
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
+              },
+            })
+          }
+          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
+        >
+          <Trash2 className="size-3.5" />
         </button>
       </Can>
     </div>

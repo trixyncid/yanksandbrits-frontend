@@ -57,6 +57,12 @@ export const PERMISSION_MODULES = {
     change: 'classrooms.change_classroom',
     delete: 'classrooms.delete_classroom',
   },
+  tutorAllocations: {
+    view: 'tutor_allocations.view_tutorallocation',
+    add: 'tutor_allocations.add_tutorallocation',
+    change: 'tutor_allocations.change_tutorallocation',
+    delete: 'tutor_allocations.delete_tutorallocation',
+  },
   schedules: {
     view: 'schedules.view_classschedule',
     add: 'schedules.add_classschedule',

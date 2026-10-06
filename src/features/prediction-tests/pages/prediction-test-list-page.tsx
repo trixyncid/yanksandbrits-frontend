@@ -7,8 +7,10 @@ import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
 import {
+  useIsAcademicLeader,
   useIsMarketing,
   useIsProgramReviewer,
+  useIsTutorReviewer,
   useLocksPaymentStatus,
   useModulePermissions,
 } from '../../auth/hooks/use-permissions'
@@ -24,78 +26,35 @@ import { usePredictionTestsQuery } from '../hooks/use-prediction-tests-query'
 import type { PredictionTestListItem } from '../types/prediction-test'
 
 type StatusFilter = NonNullable<PredictionTestListFilters['status']>
-type ManagerApprovalFilter = NonNullable<
-  PredictionTestListFilters['managerApproval']
->
-type AcademicLeaderStatusFilter = NonNullable<
-  PredictionTestListFilters['academicLeaderStatus']
->
 
 type PredictionTestListFilterState = {
   counsellorId: string
   status: StatusFilter
-  managerApproval: ManagerApprovalFilter
-  academicLeaderStatus: AcademicLeaderStatusFilter
 }
 
 const EMPTY_FILTERS: PredictionTestListFilterState = {
   counsellorId: '',
   status: 'all',
-  managerApproval: 'all',
-  academicLeaderStatus: 'all',
 }
 
 const STATUS_FILTERS: StatusFilter[] = ['all', 'pending', 'approved', 'void']
-const MANAGER_APPROVAL_FILTERS: ManagerApprovalFilter[] = [
-  'all',
-  'pending',
-  'approved',
-]
-const ACADEMIC_LEADER_STATUS_FILTERS: AcademicLeaderStatusFilter[] = [
-  'all',
-  'pending_review',
-  'reviewed',
-]
 
 function filterPredictionTest(row: PredictionTestListItem, search: string) {
   return row.studentName.toLowerCase().includes(search)
 }
 
-function defaultAcademicLeaderStatusFilter(options: {
-  isProgramReviewer: boolean
-}): AcademicLeaderStatusFilter {
-  // Reviewers work a pending-review queue; reviewed tests stay on finance /
-  // systemadmin / branch-manager (and counsellor) lists.
-  if (options.isProgramReviewer) return 'pending_review'
-  return 'all'
-}
-
 export default function PredictionTestListPage() {
   const navigate = useNavigate()
   const isProgramReviewer = useIsProgramReviewer()
-  const defaultAlStatus = defaultAcademicLeaderStatusFilter({
-    isProgramReviewer,
-  })
+  const isAcademicLeader = useIsAcademicLeader()
+  const isTutorReviewer = useIsTutorReviewer()
   const [filters, setFilters] = useSessionState<PredictionTestListFilterState>(
     'list-filters:prediction-tests',
-    {
-      ...EMPTY_FILTERS,
-      academicLeaderStatus: defaultAlStatus,
-    },
+    EMPTY_FILTERS,
   )
   const status = STATUS_FILTERS.includes(filters.status)
     ? filters.status
     : 'all'
-  const managerApproval = MANAGER_APPROVAL_FILTERS.includes(
-    filters.managerApproval,
-  )
-    ? filters.managerApproval
-    : 'all'
-  const academicLeaderStatus = ACADEMIC_LEADER_STATUS_FILTERS.includes(
-    filters.academicLeaderStatus,
-  )
-    ? filters.academicLeaderStatus
-    : defaultAlStatus
   const { canChange } = useModulePermissions('predictionTests')
   const lockPaymentStatus = useLocksPaymentStatus()
   const hideCounsellorFilter = useIsMarketing()
@@ -107,15 +66,9 @@ export default function PredictionTestListPage() {
       ? undefined
       : filters.counsellorId || undefined,
     status: hidePayment ? 'all' : status,
-    managerApproval: hidePayment ? 'approved' : managerApproval,
-    academicLeaderStatus,
   })
 
-  const clearFilters = () =>
-    setFilters({
-      ...EMPTY_FILTERS,
-      academicLeaderStatus: defaultAlStatus,
-    })
+  const clearFilters = () => setFilters(EMPTY_FILTERS)
 
   function openCreate() {
     void navigate({ to: '/prediction-tests/new' })
@@ -125,23 +78,11 @@ export default function PredictionTestListPage() {
     <ListToolbarFilters>
       <PredictionTestListFiltersMenu
         status={status}
-        managerApproval={managerApproval}
-        academicLeaderStatus={academicLeaderStatus}
-        defaultAcademicLeaderStatus={defaultAlStatus}
         counsellorId={filters.counsellorId}
         hidePayment={hidePayment}
         hideCounsellor={hideCounsellorFilter}
         onStatusChange={(next) =>
           setFilters((current) => ({ ...current, status: next }))
-        }
-        onManagerApprovalChange={(next) =>
-          setFilters((current) => ({ ...current, managerApproval: next }))
-        }
-        onAcademicLeaderStatusChange={(next) =>
-          setFilters((current) => ({
-            ...current,
-            academicLeaderStatus: next,
-          }))
         }
         onCounsellorChange={(counsellorId) =>
           setFilters((current) => ({ ...current, counsellorId }))
@@ -160,9 +101,11 @@ export default function PredictionTestListPage() {
               Prediction Tests
             </h1>
             <p className="mt-1 max-w-xl text-sm text-slate-500">
-              {hidePayment
-                ? 'Review prediction tests the branch manager has approved.'
-                : 'Review prediction test results, manager approval, and payments.'}
+              {isAcademicLeader
+                ? 'Review prediction test scores.'
+                : isTutorReviewer
+                  ? 'Review prediction tests, and General English Pre-Test students assigned to you.'
+                  : 'Review prediction test results and payments.'}
             </p>
           </div>
           <Can module="predictionTests" action="add">

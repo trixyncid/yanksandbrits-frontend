@@ -1,13 +1,9 @@
 import {
-  isCombinedIeltsProgram,
-  isHskCourse,
-  isIeltsCourse,
+  isGeneralEnglishCourse,
   isSatCourse,
   isToeflCourse,
   mapApprovalStatusFromApi,
   mapApprovalStatusToApi,
-  programOptionsForCourse,
-  type PredictionProgramCode,
 } from '../../../shared/api/choices'
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
@@ -15,12 +11,20 @@ import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { parseCurrencyValue } from '../../../shared/lib/currency'
 import type { ProspectiveStudentListItem } from '../../prospective-students/types/prospective-student'
 import type {
-  AcademicLeaderDecision,
-  AcademicLeaderStatus,
   PredictionTestAttachment,
   PredictionTestFormValues,
   PredictionTestListItem,
 } from '../types/prediction-test'
+import {
+  emptyGeneralEnglishSpeaking,
+  generalEnglishSpeakingFromApi,
+  generalEnglishSpeakingToApi,
+} from '../lib/general-english-speaking'
+import {
+  emptyGeneralEnglishWriting,
+  generalEnglishWritingFromApi,
+  generalEnglishWritingToApi,
+} from '../lib/general-english-writing'
 import type { PredictionTestListFilters } from './prediction-test-query-keys'
 import { adminPath } from '../../../shared/api/paths'
 
@@ -51,36 +55,22 @@ type PredictionTestDto = {
   marketing_name?: string | null
   branch?: number | null
   branch_name?: string | null
-  ielts_program?: string | null
-  manager_approved?: boolean | null
-  academic_leader_decision?: string | null
-  academic_leader_remarks?: string | null
-  academic_leader_status?: string | null
-  effective_ielts_program?: string | null
   listening: string | number | null
   reading: string | number | null
   writing: string | number | null
   speaking: string | number | null
   math?: string | number | null
-  listening_tutor?: number | null
-  reading_tutor?: number | null
-  writing_tutor?: number | null
-  speaking_tutor?: number | null
-  math_tutor?: number | null
-  listening_tutor_name?: string | null
-  reading_tutor_name?: string | null
-  writing_tutor_name?: string | null
-  speaking_tutor_name?: string | null
-  math_tutor_name?: string | null
-  listening_sessions?: number | null
-  reading_sessions?: number | null
-  writing_sessions?: number | null
-  speaking_sessions?: number | null
-  math_sessions?: number | null
-  schedule_morning?: boolean | null
-  schedule_afternoon?: boolean | null
-  schedule_evening?: boolean | null
-  schedule_note?: string | null
+  written_test_score?: string | number | null
+  general_english_tutor?: number | null
+  general_english_tutor_name?: string | null
+  general_english_speaking?: Record<
+    string,
+    boolean | string | null
+  > | null
+  general_english_writing?: Record<
+    string,
+    boolean | string | null
+  > | null
   description: string | null
   amount: number
   status: string
@@ -123,32 +113,6 @@ function mapAttachment(dto: PredictionTestAttachmentDto): PredictionTestAttachme
   }
 }
 
-function mapDecisionFromApi(
-  value: string | null | undefined,
-): AcademicLeaderDecision | null {
-  if (value === 'AP') return 'approve'
-  if (value === 'RJ') return 'reject'
-  return null
-}
-
-function mapAcademicLeaderStatusFromApi(
-  value: string | null | undefined,
-  decision: AcademicLeaderDecision | null,
-): AcademicLeaderStatus {
-  if (value === '2_RV' || decision != null) {
-    return 'reviewed'
-  }
-  return 'pending_review'
-}
-
-function mapDecisionToApi(
-  value: AcademicLeaderDecision | '',
-): string | null {
-  if (value === 'approve') return 'AP'
-  if (value === 'reject') return 'RJ'
-  return null
-}
-
 function mapItem(dto: PredictionTestDto): PredictionTestListItem {
   const attachments = (dto.attachments ?? []).map(mapAttachment)
   const paymentProofUrl = attachments[0]?.fileUrl || dto.imageURL || ''
@@ -161,44 +125,23 @@ function mapItem(dto: PredictionTestDto): PredictionTestListItem {
     studentPhone: dto.student_phone ?? '',
     studentSrNumber: dto.student_sr_number ?? '',
     studentCourse: dto.student_course ?? null,
-    ieltsProgram: (dto.ielts_program as PredictionProgramCode | null) ?? null,
-    managerApproved: Boolean(dto.manager_approved),
-    academicLeaderDecision: mapDecisionFromApi(dto.academic_leader_decision),
-    academicLeaderRemarks: dto.academic_leader_remarks ?? '',
-    academicLeaderStatus: mapAcademicLeaderStatusFromApi(
-      dto.academic_leader_status,
-      mapDecisionFromApi(dto.academic_leader_decision),
-    ),
-    effectiveIeltsProgram:
-      (dto.effective_ielts_program as PredictionProgramCode | null) ?? null,
     listening: scoreFromApi(dto.listening),
     reading: scoreFromApi(dto.reading),
     writing: scoreFromApi(dto.writing),
     speaking: scoreFromApi(dto.speaking),
     math: scoreFromApi(dto.math),
-    listeningTutorId:
-      dto.listening_tutor == null ? null : String(dto.listening_tutor),
-    readingTutorId:
-      dto.reading_tutor == null ? null : String(dto.reading_tutor),
-    writingTutorId:
-      dto.writing_tutor == null ? null : String(dto.writing_tutor),
-    speakingTutorId:
-      dto.speaking_tutor == null ? null : String(dto.speaking_tutor),
-    mathTutorId: dto.math_tutor == null ? null : String(dto.math_tutor),
-    listeningTutorName: dto.listening_tutor_name ?? '',
-    readingTutorName: dto.reading_tutor_name ?? '',
-    writingTutorName: dto.writing_tutor_name ?? '',
-    speakingTutorName: dto.speaking_tutor_name ?? '',
-    mathTutorName: dto.math_tutor_name ?? '',
-    listeningSessions: dto.listening_sessions ?? 0,
-    readingSessions: dto.reading_sessions ?? 0,
-    writingSessions: dto.writing_sessions ?? 0,
-    speakingSessions: dto.speaking_sessions ?? 0,
-    mathSessions: dto.math_sessions ?? 0,
-    scheduleMorning: Boolean(dto.schedule_morning),
-    scheduleAfternoon: Boolean(dto.schedule_afternoon),
-    scheduleEvening: Boolean(dto.schedule_evening),
-    scheduleNote: dto.schedule_note ?? '',
+    writtenTestScore: scoreFromApi(dto.written_test_score),
+    generalEnglishTutorId:
+      dto.general_english_tutor == null
+        ? null
+        : String(dto.general_english_tutor),
+    generalEnglishTutorName: dto.general_english_tutor_name ?? '',
+    generalEnglishSpeaking: generalEnglishSpeakingFromApi(
+      dto.general_english_speaking,
+    ),
+    generalEnglishWriting: generalEnglishWritingFromApi(
+      dto.general_english_writing,
+    ),
     description: dto.description ?? '',
     amount: dto.amount ?? 0,
     status: mapApprovalStatusFromApi(dto.status),
@@ -217,139 +160,41 @@ function tutorIdToApi(value: string): number | null {
   return value ? Number(value) : null
 }
 
-function sessionCountToApi(value: string): number {
-  const trimmed = value.trim()
-  if (trimmed === '') {
-    return 0
-  }
-  return Number(trimmed)
-}
-
-function sessionCountToFormValue(value: number | null | undefined): string {
-  if (value == null || value === 0) {
-    return ''
-  }
-  return String(value)
-}
-
-type SessionSlot = {
-  tutorKey:
-    | 'listeningTutorId'
-    | 'readingTutorId'
-    | 'writingTutorId'
-    | 'speakingTutorId'
-    | 'mathTutorId'
-  sessionsKey:
-    | 'listeningSessions'
-    | 'readingSessions'
-    | 'writingSessions'
-    | 'speakingSessions'
-    | 'mathSessions'
-}
-
-const LISTENING_SLOT: SessionSlot = {
-  tutorKey: 'listeningTutorId',
-  sessionsKey: 'listeningSessions',
-}
-const WRITING_SLOT: SessionSlot = {
-  tutorKey: 'writingTutorId',
-  sessionsKey: 'writingSessions',
-}
-const SPEAKING_SLOT: SessionSlot = {
-  tutorKey: 'speakingTutorId',
-  sessionsKey: 'speakingSessions',
-}
-const MATH_SLOT: SessionSlot = {
-  tutorKey: 'mathTutorId',
-  sessionsKey: 'mathSessions',
-}
-
-function clearSessionSlots(
-  values: PredictionTestFormValues,
-  slots: SessionSlot[],
-): PredictionTestFormValues {
-  const next = { ...values }
-  for (const slot of slots) {
-    next[slot.tutorKey] = ''
-    next[slot.sessionsKey] = ''
-  }
-  return next
-}
-
-/** Drop tutors and session counts that the current program layout does not use. */
-export function applySessionLayout(
-  values: PredictionTestFormValues,
-  course: string | null | undefined,
-): PredictionTestFormValues {
-  if (isSatCourse(course)) {
-    return clearSessionSlots(values, [LISTENING_SLOT, WRITING_SLOT, SPEAKING_SLOT])
-  }
-  if (isToeflCourse(course)) {
-    return clearSessionSlots(values, [SPEAKING_SLOT, MATH_SLOT])
-  }
-  if (
-    isIeltsCourse(course) &&
-    isCombinedIeltsProgram(values.ieltsProgram)
-  ) {
-    return clearSessionSlots(values, [WRITING_SLOT, SPEAKING_SLOT, MATH_SLOT])
-  }
-  if (isIeltsCourse(course) || isHskCourse(course)) {
-    return clearSessionSlots(values, [MATH_SLOT])
-  }
-  return values
-}
-
 function toJsonPayload(
   values: PredictionTestFormValues,
   options: {
     omitPayment?: boolean
-    includeAcademicLeaderReview?: boolean
-    includeManagerApproval?: boolean
-    includeSessions?: boolean
+    includeGeneralEnglishTutor?: boolean
     course?: string | null
   } = {},
 ) {
-  const sessionValues = applySessionLayout(values, options.course)
+  const generalEnglish = isGeneralEnglishCourse(options.course)
   const payload: Record<string, unknown> = {
-    student: Number(sessionValues.studentId),
-    ielts_program: sessionValues.ieltsProgram || null,
-    listening: scoreToApiValue(sessionValues.listening),
-    reading: scoreToApiValue(sessionValues.reading),
-    writing: scoreToApiValue(sessionValues.writing),
-    speaking: scoreToApiValue(sessionValues.speaking),
-    math: scoreToApiValue(sessionValues.math),
-    schedule_morning: sessionValues.scheduleMorning,
-    schedule_afternoon: sessionValues.scheduleAfternoon,
-    schedule_evening: sessionValues.scheduleEvening,
-    schedule_note: sessionValues.scheduleNote.trim() || null,
-    description: sessionValues.description.trim() || null,
+    student: Number(values.studentId),
+    listening: generalEnglish ? null : scoreToApiValue(values.listening),
+    reading: generalEnglish ? null : scoreToApiValue(values.reading),
+    writing: generalEnglish ? null : scoreToApiValue(values.writing),
+    speaking: generalEnglish ? null : scoreToApiValue(values.speaking),
+    math: generalEnglish ? null : scoreToApiValue(values.math),
+    written_test_score: generalEnglish
+      ? scoreToApiValue(values.writtenTestScore)
+      : null,
+    description: values.description.trim() || null,
   }
 
-  if (options.includeSessions) {
-    payload.listening_tutor = tutorIdToApi(sessionValues.listeningTutorId)
-    payload.reading_tutor = tutorIdToApi(sessionValues.readingTutorId)
-    payload.writing_tutor = tutorIdToApi(sessionValues.writingTutorId)
-    payload.speaking_tutor = tutorIdToApi(sessionValues.speakingTutorId)
-    payload.math_tutor = tutorIdToApi(sessionValues.mathTutorId)
-    payload.listening_sessions = sessionCountToApi(sessionValues.listeningSessions)
-    payload.reading_sessions = sessionCountToApi(sessionValues.readingSessions)
-    payload.writing_sessions = sessionCountToApi(sessionValues.writingSessions)
-    payload.speaking_sessions = sessionCountToApi(sessionValues.speakingSessions)
-    payload.math_sessions = sessionCountToApi(sessionValues.mathSessions)
-  }
-
-  if (options.includeManagerApproval) {
-    payload.manager_approved = values.managerApproved
-  }
-
-  if (options.includeAcademicLeaderReview) {
-    payload.academic_leader_decision = mapDecisionToApi(
-      values.academicLeaderDecision,
+  if (generalEnglish) {
+    payload.general_english_speaking = generalEnglishSpeakingToApi(
+      values.generalEnglishSpeaking,
     )
-    payload.academic_leader_remarks =
-      values.academicLeaderDecision === 'reject'
-        ? values.academicLeaderRemarks.trim() || null
-        : null
+    payload.general_english_writing = generalEnglishWritingToApi(
+      values.generalEnglishWriting,
+    )
+  }
+
+  if (options.includeGeneralEnglishTutor) {
+    payload.general_english_tutor = isGeneralEnglishCourse(options.course)
+      ? tutorIdToApi(values.generalEnglishTutorId)
+      : null
   }
 
   if (!options.omitPayment) {
@@ -371,18 +216,6 @@ export async function fetchPredictionTests(
 
   if (filters.status && filters.status !== 'all') {
     params.status = mapApprovalStatusToApi(filters.status)
-  }
-
-  if (filters.managerApproval && filters.managerApproval !== 'all') {
-    params.manager_approval = filters.managerApproval
-  }
-
-  if (
-    filters.academicLeaderStatus &&
-    filters.academicLeaderStatus !== 'all'
-  ) {
-    params.academic_leader_status =
-      filters.academicLeaderStatus === 'reviewed' ? '2_RV' : '1_PR'
   }
 
   const { items, total } = await fetchAllPages<PredictionTestDto>({
@@ -415,9 +248,7 @@ export async function createPredictionTest(
   values: PredictionTestFormValues,
   options: {
     omitPayment?: boolean
-    includeAcademicLeaderReview?: boolean
-    includeManagerApproval?: boolean
-    includeSessions?: boolean
+    includeGeneralEnglishTutor?: boolean
     course?: string | null
   } = {},
 ): Promise<PredictionTestListItem> {
@@ -444,9 +275,7 @@ export async function updatePredictionTest(
   values: PredictionTestFormValues,
   options: {
     omitPayment?: boolean
-    includeAcademicLeaderReview?: boolean
-    includeManagerApproval?: boolean
-    includeSessions?: boolean
+    includeGeneralEnglishTutor?: boolean
     course?: string | null
   } = {},
 ): Promise<PredictionTestListItem> {
@@ -508,44 +337,20 @@ export function predictionTestToFormValues(
 ): PredictionTestFormValues {
   const toefl = isToeflCourse(test.studentCourse)
   const sat = isSatCourse(test.studentCourse)
-  const allowedPrograms = new Set(
-    programOptionsForCourse(test.studentCourse).map((option) => option.value),
-  )
-  const assignedProgram =
-    test.ieltsProgram && allowedPrograms.has(test.ieltsProgram)
-      ? test.ieltsProgram
-      : ''
   return {
     studentId: test.studentId,
     branchId: test.branchId ?? '',
-    ieltsProgram: assignedProgram,
-    managerApproved: test.managerApproved,
-    academicLeaderDecision: test.academicLeaderDecision ?? '',
-    academicLeaderRemarks: test.academicLeaderRemarks ?? '',
     listening: sat ? '' : scoreToFormValue(test.listening),
     reading: scoreToFormValue(test.reading),
     writing: sat ? '' : scoreToFormValue(test.writing),
     speaking: toefl || sat ? '' : scoreToFormValue(test.speaking),
     math: sat ? scoreToFormValue(test.math) : '',
-    listeningTutorId: sat ? '' : (test.listeningTutorId ?? ''),
-    readingTutorId: test.readingTutorId ?? '',
-    writingTutorId: sat ? '' : (test.writingTutorId ?? ''),
-    speakingTutorId: toefl || sat ? '' : (test.speakingTutorId ?? ''),
-    mathTutorId: sat ? (test.mathTutorId ?? '') : '',
-    listeningSessions: sat
-      ? ''
-      : sessionCountToFormValue(test.listeningSessions),
-    readingSessions: sessionCountToFormValue(test.readingSessions),
-    writingSessions: sat
-      ? ''
-      : sessionCountToFormValue(test.writingSessions),
-    speakingSessions:
-      toefl || sat ? '' : sessionCountToFormValue(test.speakingSessions),
-    mathSessions: sat ? sessionCountToFormValue(test.mathSessions) : '',
-    scheduleMorning: test.scheduleMorning,
-    scheduleAfternoon: test.scheduleAfternoon,
-    scheduleEvening: test.scheduleEvening,
-    scheduleNote: test.scheduleNote,
+    writtenTestScore: isGeneralEnglishCourse(test.studentCourse)
+      ? scoreToFormValue(test.writtenTestScore)
+      : '',
+    generalEnglishTutorId: test.generalEnglishTutorId ?? '',
+    generalEnglishSpeaking: test.generalEnglishSpeaking,
+    generalEnglishWriting: test.generalEnglishWriting,
     description: test.description,
     amount: String(test.amount),
     status: test.status,
@@ -556,29 +361,15 @@ export function predictionTestToFormValues(
 export const emptyPredictionTestFormValues: PredictionTestFormValues = {
   studentId: '',
   branchId: '',
-  ieltsProgram: '',
-  managerApproved: false,
-  academicLeaderDecision: '',
-  academicLeaderRemarks: '',
   listening: '',
   reading: '',
   writing: '',
   speaking: '',
   math: '',
-  listeningTutorId: '',
-  readingTutorId: '',
-  writingTutorId: '',
-  speakingTutorId: '',
-  mathTutorId: '',
-  listeningSessions: '',
-  readingSessions: '',
-  writingSessions: '',
-  speakingSessions: '',
-  mathSessions: '',
-  scheduleMorning: false,
-  scheduleAfternoon: false,
-  scheduleEvening: false,
-  scheduleNote: '',
+  writtenTestScore: '',
+  generalEnglishTutorId: '',
+  generalEnglishSpeaking: emptyGeneralEnglishSpeaking(),
+  generalEnglishWriting: emptyGeneralEnglishWriting(),
   description: '',
   amount: '',
   status: 'pending',

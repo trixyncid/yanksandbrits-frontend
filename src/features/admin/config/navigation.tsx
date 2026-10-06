@@ -6,6 +6,7 @@ import {
   CreditCard,
   FolderKanban,
   GraduationCap,
+  UserRound,
   KeyRound,
   LayoutDashboard,
   Megaphone,
@@ -36,6 +37,8 @@ export type AppPath =
   | '/programs/new'
   | '/classrooms'
   | '/classrooms/new'
+  | '/tutor-allocations'
+  | '/tutor-allocations/new'
   | '/full-schedule'
   | '/users'
   | '/tutors'
@@ -159,6 +162,12 @@ export const adminNavigation: NavigationItem[] = [
         label: 'Classroom',
         icon: School,
         to: '/classrooms',
+      },
+      {
+        id: 'tutor-allocation',
+        label: 'Tutor Allocation',
+        icon: UserRound,
+        to: '/tutor-allocations',
       },
       {
         id: 'full-schedule',

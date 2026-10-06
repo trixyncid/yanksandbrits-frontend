@@ -49,19 +49,20 @@ function ProgramProgress({
   const capped = Math.max(0, Math.min(100, progressPercentage))
 
   return (
-    <div className="min-w-[9rem] space-y-1.5">
+    <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-medium text-slate-500">Sessions</span>
         <span className="text-sm font-semibold tabular-nums text-slate-800">
           {sessionsUsed}
           <span className="font-medium text-slate-400"> / {sessions}</span>
-        </span>
-        <span className="text-xs font-semibold tabular-nums text-[#1B2A5A]">
-          {capped}%
+          <span className="ml-2 text-xs font-semibold text-[#1B2A5A]">
+            {capped}%
+          </span>
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200/80">
         <div
-          className="h-full rounded-full bg-[#253CA1] transition-[width]"
+          className="h-full rounded-full bg-[linear-gradient(90deg,#253CA1,#4C6FE0)] transition-[width]"
           style={{ width: `${capped}%` }}
         />
       </div>
@@ -136,13 +137,12 @@ export function StudentProgramsTab({ student }: StudentProgramsTabProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">Program List</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Programs enrolled for this student.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <p className="text-sm text-slate-500">
+          {student.programs.length === 0
+            ? 'Track sessions, period, and status for each enrollment.'
+            : `${student.programs.length} enrollment${student.programs.length === 1 ? '' : 's'} on this record.`}
+        </p>
         <Button variant="secondary" size="sm" onClick={openCreate}>
           <BookOpen className="size-3.5" />
           Add Program
@@ -167,80 +167,69 @@ export function StudentProgramsTab({ student }: StudentProgramsTabProps) {
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50/80 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-              <tr>
-                <th className="px-6 py-3">Program</th>
-                <th className="px-4 py-3">Period</th>
-                <th className="px-4 py-3">Progress</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created by</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {student.programs.map((program) => (
-                <tr key={program.id} className="border-t border-slate-100">
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-slate-900">
+        <ul className="grid gap-4 p-4 sm:p-6">
+          {student.programs.map((program) => (
+            <li
+              key={program.id}
+              className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-base font-bold text-slate-900">
                       {program.title}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {program.code
-                        ? `${program.code}${program.description ? ` · ${program.description}` : ''}`
-                        : program.description || '—'}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">{program.period}</td>
-                  <td className="px-4 py-4">
+                    </h4>
+                    <ProgramStatusBadge status={program.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {program.code
+                      ? `${program.code}${program.description ? ` · ${program.description}` : ''}`
+                      : program.description || 'No description'}
+                  </p>
+                  <div className="mt-4 max-w-md">
                     <ProgramProgress
                       sessionsUsed={program.sessionsUsed}
                       sessions={program.sessions}
                       progressPercentage={program.progressPercentage}
                     />
-                  </td>
-                  <td className="px-4 py-4">
-                    <ProgramStatusBadge status={program.status} />
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {program.createdBy || '—'}
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => openDetails(program)}
-                      >
-                        <Eye className="size-3.5" />
-                        Details
-                      </Button>
-                      <button
-                        type="button"
-                        aria-label={`Download schedule PDF for ${program.title}`}
-                        disabled={downloadingId === program.id}
-                        onClick={() => void handleDownloadPdf(program)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50 disabled:opacity-60"
-                      >
-                        <FileText className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${program.title}`}
-                        onClick={() => handleDelete(program)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">
+                    Period {program.period || '—'}
+                    {program.createdBy ? ` · Added by ${program.createdBy}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 lg:shrink-0">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => openDetails(program)}
+                  >
+                    <Eye className="size-3.5" />
+                    Details
+                  </Button>
+                  <button
+                    type="button"
+                    aria-label={`Download schedule PDF for ${program.title}`}
+                    disabled={downloadingId === program.id}
+                    onClick={() => void handleDownloadPdf(program)}
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50 disabled:opacity-60"
+                  >
+                    <FileText className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${program.title}`}
+                    onClick={() => handleDelete(program)}
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       <StudentProgramDialog

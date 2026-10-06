@@ -16,6 +16,8 @@ export type StudentListItem = {
   branchId: string | null
   status: StudentStatus
   hasAccount: boolean
+  grn: string
+  prospectiveStudentId: string | null
 }
 
 export type StudentProgramItem = {

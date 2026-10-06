@@ -307,6 +307,30 @@ const classroomEditRoute = createRoute({
   ),
 })
 
+const tutorAllocationsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutor-allocations',
+  component: lazyRouteComponent(
+    () => import('../features/tutor-allocations/pages/tutor-allocation-list-page'),
+  ),
+})
+
+const tutorAllocationCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutor-allocations/new',
+  component: lazyRouteComponent(
+    () => import('../features/tutor-allocations/pages/tutor-allocation-create-page'),
+  ),
+})
+
+const tutorAllocationEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tutor-allocations/$allocationId/edit',
+  component: lazyRouteComponent(
+    () => import('../features/tutor-allocations/pages/tutor-allocation-edit-page'),
+  ),
+})
+
 const fullScheduleRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/full-schedule',
@@ -669,6 +693,9 @@ const routeTree = rootRoute.addChildren([
     classroomsRoute,
     classroomCreateRoute,
     classroomEditRoute,
+    tutorAllocationsRoute,
+    tutorAllocationCreateRoute,
+    tutorAllocationEditRoute,
     fullScheduleRoute,
     staffRoute,
     staffCreateRoute,

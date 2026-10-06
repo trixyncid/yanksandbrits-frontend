@@ -16,7 +16,7 @@ export const studentFormSchema = z.object({
   homePhone: z.string().trim(),
   othersPhone: z.string().trim(),
   occupationId: z.string().trim().min(1, 'Occupation is required.'),
-  institutionId: z.string().trim(),
+  institutionId: z.string().trim().min(1, 'Institution is required.'),
   country: z.string().trim(),
   university: z.string().trim(),
   major: z.string().trim(),

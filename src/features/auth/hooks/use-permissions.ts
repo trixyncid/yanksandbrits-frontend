@@ -77,7 +77,7 @@ export function useIsTutorReviewer() {
   return !hasAuthRole(user, 'systemadmin')
 }
 
-/** Academic leaders and tutors who can proceed or request a program change. */
+/** Academic leaders and tutors who review scores and do not manage payment. */
 export function useIsProgramReviewer() {
   const isAcademicLeader = useIsAcademicLeader()
   const isTutorReviewer = useIsTutorReviewer()
@@ -110,6 +110,45 @@ export function useLocksPaymentStatus() {
   return (
     hasAuthRole(user, 'branch-manager') ||
     hasAuthRole(user, 'manager') // legacy
+  )
+}
+
+/** CRO, branch manager, and system admin assign the General English tutor. */
+export function useCanAssignGeneralEnglishTutor() {
+  const user = useAuthStore((state) => state.user)
+  if (!user) return false
+  if (user.is_superuser) return true
+  return (
+    hasAuthRole(user, 'cro') ||
+    hasAuthRole(user, 'marketing-manager') ||
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') ||
+    hasAuthRole(user, 'systemadmin')
+  )
+}
+
+/** Branch manager and system admin approve a tutor allocation before academic leaders can see it. */
+export function useCanApproveTutorAllocation() {
+  const user = useAuthStore((state) => state.user)
+  if (!user) return false
+  if (user.is_superuser) return true
+  return (
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') ||
+    hasAuthRole(user, 'systemadmin')
+  )
+}
+
+/** Finance, branch manager, and system admin approve a 2-payment plan. */
+export function useCanApproveInstallmentPlan() {
+  const user = useAuthStore((state) => state.user)
+  if (!user) return false
+  if (user.is_superuser) return true
+  return (
+    hasAuthRole(user, 'finance') ||
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') ||
+    hasAuthRole(user, 'systemadmin')
   )
 }
 

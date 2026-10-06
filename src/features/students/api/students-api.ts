@@ -36,6 +36,8 @@ type StudentListDto = {
   referral: number | null
   referral_name: string | null
   gender: 'M' | 'F'
+  grn: string | null
+  prospective_student?: number | null
   user: number | null
   has_account: boolean
 }
@@ -102,6 +104,9 @@ function mapListItem(dto: StudentListDto): StudentListItem {
     branchId: dto.branch == null ? null : String(dto.branch),
     status: dto.is_active ? 'active' : 'inactive',
     hasAccount: dto.has_account,
+    grn: dto.grn ?? '',
+    prospectiveStudentId:
+      dto.prospective_student == null ? null : String(dto.prospective_student),
   }
 }
 
