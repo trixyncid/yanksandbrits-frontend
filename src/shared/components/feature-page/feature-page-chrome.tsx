@@ -88,13 +88,13 @@ export function FeatureHero({
           <div className="flex min-w-0 items-start gap-3">
             <div className="relative shrink-0">
               <div className="absolute -inset-1.5 rounded-[1.1rem] bg-[radial-gradient(circle_at_center,rgba(37,60,161,0.14),transparent_70%)]" />
-              <div className="relative inline-flex size-10 items-center justify-center rounded-xl bg-[linear-gradient(160deg,#253CA1_0%,#1B2A5A_100%)] text-white shadow-md shadow-[#253CA1]/25 sm:size-11">
+              <div className="relative inline-flex size-10 items-center justify-center rounded-xl bg-[linear-gradient(160deg,#253CA1_0%,#15225A_100%)] text-white shadow-md shadow-brand-500/25 sm:size-11">
                 <Icon className="size-5" strokeWidth={1.75} />
               </div>
             </div>
             <div className="min-w-0 pt-0.5">
               {eyebrow ? (
-                <p className="text-[10px] font-semibold tracking-[0.12em] text-[#253CA1] uppercase">
+                <p className="text-[10px] font-semibold tracking-[0.12em] text-brand-500 uppercase">
                   {eyebrow}
                 </p>
               ) : null}
@@ -150,6 +150,8 @@ type FormSectionCardProps = {
   children: ReactNode
   className?: string
   delayClassName?: string
+  /** `soft`: borderless white card with a quiet header, for the refreshed pages. */
+  tone?: 'default' | 'soft'
 }
 
 export function FormSectionCard({
@@ -159,7 +161,33 @@ export function FormSectionCard({
   children,
   className,
   delayClassName = '',
+  tone = 'soft',
 }: FormSectionCardProps) {
+  if (tone === 'soft') {
+    return (
+      <section
+        className={cn(
+          'animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] bg-white',
+          delayClassName,
+          className,
+        )}
+      >
+        <div className="flex items-start gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+          <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas text-ink">
+            <Icon className="size-[1.1rem]" strokeWidth={1.9} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-base font-bold tracking-tight text-ink">
+              {title}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+          </div>
+        </div>
+        <div className="space-y-4 p-5 sm:p-6">{children}</div>
+      </section>
+    )
+  }
+
   return (
     <section
       className={cn(
@@ -168,9 +196,9 @@ export function FormSectionCard({
         className,
       )}
     >
-      <div className="border-b border-slate-100 bg-[linear-gradient(90deg,#F5F8FF_0%,#FFFFFF_100%)] px-4 py-3 sm:px-5">
+      <div className="border-b border-slate-100 bg-[linear-gradient(90deg,#EEF1FB_0%,#FFFFFF_100%)] px-4 py-3 sm:px-5">
         <div className="flex items-start gap-2.5">
-          <div className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]/80">
+          <div className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-500 ring-1 ring-brand-200/80">
             <Icon className="size-4" strokeWidth={1.85} />
           </div>
           <div className="min-w-0">
@@ -206,14 +234,14 @@ export function ChoiceTile({
       className={cn(
         'relative flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition duration-200',
         selected
-          ? 'border-[#253CA1] bg-[linear-gradient(135deg,#F5F8FF_0%,#E8EEFF_100%)] shadow-sm shadow-[#253CA1]/10 ring-1 ring-[#253CA1]/20'
-          : 'border-slate-200/90 bg-white hover:border-[#C8D4F5] hover:bg-[#F5F8FF]/80',
+          ? 'border-brand-500 bg-[linear-gradient(135deg,#EEF1FB_0%,#DCE2F6_100%)] shadow-sm shadow-brand-500/10 ring-1 ring-brand-500/20'
+          : 'border-slate-200/90 bg-white hover:border-brand-200 hover:bg-brand-50/80',
       )}
     >
       <input
         type="radio"
         name={name}
-        className="mt-0.5 size-4 border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+        className="mt-0.5 size-4 border-slate-300 text-brand-500 focus:ring-brand-500/40"
         checked={selected}
         onChange={onSelect}
       />
@@ -247,7 +275,7 @@ export function ScoreTile({
   required,
 }: ScoreTileProps) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-[#C8D4F5] hover:shadow-md hover:shadow-[#253CA1]/8">
+    <div className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/8">
       <div
         aria-hidden
         className="absolute inset-x-0 top-0 h-0.5 opacity-80"

@@ -1,5 +1,4 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
 
 import {
   ClearListFiltersButton,
@@ -7,11 +6,10 @@ import {
   ListFilterSelect,
   ListToolbarFilters,
 } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
 import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
-import { Can } from '../../auth/components/can'
 import type { StudentPaymentListFilters } from '../api/student-payment-query-keys'
+import { StudentPaymentHero } from '../components/student-payment-hero'
 import { studentPaymentListColumns } from '../components/student-payment-list-columns'
 import {
   StudentPaymentListErrorState,
@@ -73,40 +71,28 @@ export default function StudentPaymentListPage() {
         onChange={(next) => setFilters({ status: next as PlanStatusFilter })}
         options={[
           { value: 'all', label: 'All plans' },
-          { value: 'incomplete', label: 'Incomplete' },
-          { value: 'complete', label: 'Complete' },
+          { value: 'incomplete', label: 'Still collecting' },
+          { value: 'complete', label: 'Fully paid' },
         ]}
       />
       <ClearListFiltersButton
         visible={hasActiveFilters}
         onClear={clearFilters}
-        className="h-10 rounded-full border-slate-200 bg-white hover:bg-slate-50"
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
       />
     </ListToolbarFilters>
   )
 
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Payments
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Track tuition plans, installments, and what is still owed.
-            </p>
-          </div>
-          <Can module="studentPayments" action="add">
-            <Button
-              onClick={openCreate}
-              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
-            >
-              <Plus className="size-4" />
-              Add Payment
-            </Button>
-          </Can>
-        </div>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <StudentPaymentHero
+          rows={paymentsQuery.data?.data ?? []}
+          loaded={paymentsQuery.isSuccess}
+          status={status}
+          onStatusChange={(next) => setFilters({ status: next })}
+          onAdd={openCreate}
+        />
 
         {paymentsQuery.isLoading ? <StudentPaymentListLoadingState /> : null}
 
@@ -122,16 +108,21 @@ export default function StudentPaymentListPage() {
         {paymentsQuery.isSuccess ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
             <DataTable
-              title="Plans"
-              description="Search and manage tuition payment plans."
+              variant="soft"
+              title="Payment plans"
+              description="Each plan shows the amount due, what has been paid, and its installments."
               totalLabel="payment plans"
               columns={studentPaymentListColumns}
               data={paymentsQuery.data.data}
-              searchPlaceholder="Search by student name, PIN..."
+              searchPlaceholder="Search by student name or PIN..."
               searchVariant="pill"
               globalFilterFn={filterStudentPayment}
               initialPageSize={10}
-              emptyMessage="No payment plans found"
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No payment plans match this filter'
+                  : 'No payment plans yet'
+              }
               toolbarFilters={listFilters}
             />
           </div>

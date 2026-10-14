@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-import { TUTOR_ALLOCATION_PROGRAM_CODES } from '../lib/programs'
+import {
+  usesProgramLines,
+  TUTOR_ALLOCATION_PROGRAM_CODES,
+} from '../lib/programs'
 import type {
   TutorAllocationClassType,
   TutorAllocationGroupSize,
@@ -22,11 +25,11 @@ const sessionCount = z
 export const tutorAllocationFormSchema = z
   .object({
     classType: z.enum(['private', 'group']),
-    groupSize: z.enum(['2', '3']),
+    groupSize: z.enum(['2', '3', '4']),
     program: z.enum(TUTOR_ALLOCATION_PROGRAM_CODES, {
       message: 'Select a program.',
     }),
-    studentIds: z.tuple([z.string(), z.string(), z.string()]),
+    studentIds: z.tuple([z.string(), z.string(), z.string(), z.string()]),
     sessionsPerWeek: z.enum(['', '1', '2', '3', '4_6']),
     availability: z.object({
       monday: z.array(z.string()),
@@ -42,6 +45,16 @@ export const tutorAllocationFormSchema = z
     writingTutorId: z.string(),
     speakingTutorId: z.string(),
     mathTutorId: z.string(),
+    listeningProgramId: z.string(),
+    readingProgramId: z.string(),
+    writingProgramId: z.string(),
+    speakingProgramId: z.string(),
+    mathProgramId: z.string(),
+    listeningNote: z.string(),
+    readingNote: z.string(),
+    writingNote: z.string(),
+    speakingNote: z.string(),
+    mathNote: z.string(),
     listeningSessions: sessionCount,
     readingSessions: sessionCount,
     writingSessions: sessionCount,
@@ -50,13 +63,53 @@ export const tutorAllocationFormSchema = z
     generalEnglishUnit1: z.string(),
     generalEnglishUnit1Sessions: sessionCount,
     generalEnglishUnit1TutorId: z.string(),
+    generalEnglishUnit1ProgramId: z.string(),
+    generalEnglishUnit1Note: z.string(),
     generalEnglishUnit2: z.string(),
     generalEnglishUnit2Sessions: sessionCount,
     generalEnglishUnit2TutorId: z.string(),
+    generalEnglishUnit2ProgramId: z.string(),
+    generalEnglishUnit2Note: z.string(),
     generalEnglishGrammarSessions: sessionCount,
     generalEnglishGrammarTutorId: z.string(),
+    generalEnglishGrammarProgramId: z.string(),
+    generalEnglishGrammarNote: z.string(),
+    computerSciencePrograms: z.array(
+      z.object({
+        programId: z.string(),
+        sessions: sessionCount,
+        tutorId: z.string(),
+        note: z.string(),
+      }),
+    ),
   })
   .superRefine((values, context) => {
+    if (usesProgramLines(values.program)) {
+      const chosen = values.computerSciencePrograms
+        .map((line) => line.programId.trim())
+        .filter(Boolean)
+      if (chosen.length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['computerSciencePrograms'],
+          message: 'Select a program.',
+        })
+      } else if (
+        values.computerSciencePrograms.some((line) => line.programId.trim() === '')
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['computerSciencePrograms'],
+          message: 'Select a program on every line.',
+        })
+      } else if (new Set(chosen).size !== chosen.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['computerSciencePrograms'],
+          message: 'Each program can only be added once.',
+        })
+      }
+    }
     const count = seatCount(values)
     const chosen = values.studentIds.slice(0, count)
     if (chosen.some((studentId) => studentId.trim() === '')) {

@@ -136,8 +136,8 @@ export function MarketingBonusTierDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showClose className="overflow-hidden p-0 sm:max-w-md">
         <form onSubmit={handleSubmit} noValidate>
-          <div className="bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="bg-gradient-to-br from-brand-50 via-white to-white px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
               <Banknote className="size-5" />
             </div>
             <DialogHeader className="pr-0">
@@ -146,15 +146,15 @@ export function MarketingBonusTierDialog({
               </DialogTitle>
               <DialogDescription>
                 {commissionPeriodLabels[periodType]} flat IDR bonus for{' '}
-                {marketingName}. Leave max amount empty for an open-ended top
-                tier.
+                {marketingName}. Leave “up to” empty for the top tier with no
+                limit.
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="space-y-4 px-6 py-5">
             <div className="space-y-2">
-              <Label htmlFor="bonus-min-amount">Min amount</Label>
+              <Label htmlFor="bonus-min-amount">From amount (IDR)</Label>
               <CurrencyInput
                 id="bonus-min-amount"
                 value={values.minAmount}
@@ -164,7 +164,7 @@ export function MarketingBonusTierDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bonus-max-amount">Max amount</Label>
+              <Label htmlFor="bonus-max-amount">Up to amount (IDR)</Label>
               <CurrencyInput
                 id="bonus-max-amount"
                 value={values.maxAmount}
@@ -185,10 +185,10 @@ export function MarketingBonusTierDialog({
             </div>
           </div>
 
-          <DialogFooter className="mt-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 bg-canvas/70 px-6 py-4">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
@@ -197,7 +197,7 @@ export function MarketingBonusTierDialog({
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting}>
               <Banknote className="size-3.5" />
-              {isSubmitting ? 'Saving...' : isUpdate ? 'Update' : 'Add'}
+              {isSubmitting ? 'Saving...' : isUpdate ? 'Save tier' : 'Add tier'}
             </Button>
           </DialogFooter>
         </form>

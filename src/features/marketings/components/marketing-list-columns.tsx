@@ -1,20 +1,24 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+  ActionColumnHeader,
+  ActiveStatusPill,
+  LeaveBalancePill,
+  PersonIdentityCell,
+  SoftPill,
+} from '../../users/components/people-ui'
 import type { MarketingListItem, MarketingRole } from '../types/marketing'
 import { MarketingActionsCell } from './marketing-actions-cell'
 
 function roleTone(code: string) {
   if (code === 'branch-manager' || code === 'manager') {
-    return 'info' as const
+    return 'ink' as const
   }
   if (code === 'education-counsellor' || code === 'marketing') {
-    return 'primary' as const
+    return 'brand' as const
   }
-  return 'neutral' as const
+  return 'muted' as const
 }
 
 function roleLabels(roles: MarketingRole[]) {
@@ -29,23 +33,24 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
     id: 'marketingDetail',
     accessorFn: (row) => `${row.pin} ${row.fullName} ${row.email}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Counsellor Detail" />
+      <DataTableColumnHeader column={column} title="Counsellor" />
     ),
     cell: ({ row }) => (
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-slate-900">
-            {row.original.pin} - {row.original.fullName}
-          </p>
-          <DataTableBadge
-            tone={row.original.gender === 'male' ? 'info' : 'primary'}
-          >
-            {row.original.gender === 'male' ? 'Male' : 'Female'}
-          </DataTableBadge>
-        </div>
-        <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
-        <p className="text-xs text-slate-500">{row.original.phone || '-'}</p>
-      </div>
+      <PersonIdentityCell
+        name={row.original.fullName}
+        seed={row.original.id}
+        pin={row.original.pin}
+        muted={!row.original.isActive}
+        lines={[
+          row.original.email,
+          [
+            row.original.phone,
+            row.original.gender === 'male' ? 'Male' : 'Female',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        ]}
+      />
     ),
   },
   {
@@ -59,46 +64,19 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
         <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
           {row.original.roles.length ? (
             row.original.roles.map((role) => (
-              <DataTableBadge
+              <SoftPill
                 key={role.code || role.name}
                 tone={roleTone(role.code)}
+                dot={false}
               >
                 {role.name}
-              </DataTableBadge>
+              </SoftPill>
             ))
           ) : (
-            <p className="text-xs font-medium text-slate-600">—</p>
+            <span className="text-xs text-slate-400">—</span>
           )}
         </div>
       </div>
-    ),
-  },
-  {
-    accessorKey: 'isActive',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" align="center" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge tone={row.original.isActive ? 'success' : 'danger'}>
-          {row.original.isActive ? 'Active' : 'Inactive'}
-        </DataTableBadge>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'paidLeaveLeft',
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Paid Leave"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.paidLeaveLeft}x left
-      </p>
     ),
   },
   {
@@ -113,15 +91,49 @@ export const marketingListColumns: ColumnDef<MarketingListItem>[] = [
     ),
   },
   {
+    id: 'salary',
+    accessorFn: (row) => (row.hasSalary ? 1 : 0),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Base salary" align="center" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        {row.original.hasSalary ? (
+          <SoftPill tone="brand">Set</SoftPill>
+        ) : (
+          <SoftPill tone="amber">Not set yet</SoftPill>
+        )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'isActive',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" align="center" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        <ActiveStatusPill active={row.original.isActive} />
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'paidLeaveLeft',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Paid leave" align="center" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        <LeaveBalancePill left={row.original.paidLeaveLeft} />
+      </div>
+    ),
+  },
+  {
     id: 'actions',
     enableSorting: false,
     size: 148,
     meta: { sticky: 'right' },
-    header: () => (
-      <span className="block text-center text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-        Action
-      </span>
-    ),
+    header: () => <ActionColumnHeader />,
     cell: ({ row }) => <MarketingActionsCell marketing={row.original} />,
   },
 ]

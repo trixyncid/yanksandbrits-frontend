@@ -62,27 +62,27 @@ export function DatePicker({
           disabled={disabled}
           data-empty={!value}
           className={cn(
-            'h-11 min-w-0 justify-start rounded-full border-slate-200/80 bg-white text-left font-medium text-[#1B2A5A] shadow-sm',
+            'h-11 min-w-0 justify-start rounded-full border-transparent bg-canvas/70 text-left font-medium text-ink hover:bg-canvas',
             'hover:border-slate-300 hover:bg-white',
             'data-[empty=true]:font-normal data-[empty=true]:text-slate-400',
-            'focus-visible:ring-[#253CA1]/20',
-            open && 'border-slate-300 ring-2 ring-[#253CA1]/20',
+            'focus-visible:ring-brand-500/20',
+            open && 'border-slate-300 ring-2 ring-brand-500/20',
             className,
           )}
         >
-          <CalendarIcon className="size-4 text-[#253CA1]" />
+          <CalendarIcon className="size-4 text-brand-500" />
           {value ? format(value, 'PPP') : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align={align}
-        className="w-auto overflow-hidden rounded-2xl border-[#C8D4F5] p-0 shadow-lg shadow-[#253CA1]/10"
+        className="w-auto overflow-hidden rounded-2xl border-brand-200 p-0 shadow-lg shadow-brand-500/10"
       >
-        <div className="border-b border-[#E8EEFF] bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_70%)] px-4 py-3">
-          <p className="text-xs font-semibold tracking-[0.14em] text-[#253CA1]/60 uppercase">
+        <div className="border-b border-brand-100 bg-[linear-gradient(135deg,#DCE2F6_0%,#FFFFFF_70%)] px-4 py-3">
+          <p className="text-xs font-semibold tracking-[0.14em] text-brand-500/60 uppercase">
             {title}
           </p>
-          <p className="mt-1 text-sm font-semibold text-[#1B2A5A]">
+          <p className="mt-1 text-sm font-semibold text-brand-800">
             {value ? format(value, 'EEEE, MMM d') : 'Select a day'}
           </p>
         </div>

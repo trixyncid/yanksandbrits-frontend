@@ -1,21 +1,26 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { BriefcaseBusiness, Plus, UserRoundX, Users } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { DataTable, DataTableColumnHeader } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../shared/components/ui/dialog'
+  ClearListFiltersButton,
+  DataTable,
+  DataTableColumnHeader,
+  ListFilterSelect,
+  ListToolbarFilters,
+} from '../../../shared/components/data-table'
+import {
+  HeroPillButton,
+  HeroSpotlight,
+  ListErrorState,
+  ListLoadingState,
+  PageHero,
+} from '../../../shared/components/page'
 import { Input } from '../../../shared/components/ui/input'
-import { Label } from '../../../shared/components/ui/label'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
+import { cn } from '../../../shared/lib/cn'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
@@ -27,6 +32,8 @@ import {
   updateOccupation,
   type OccupationItem,
 } from '../api/lookups-api'
+import { LookupDialog, LookupField } from '../components/lookup-dialog'
+import { LookupRowActions } from '../components/lookup-row-actions'
 
 type OccupationFormValues = {
   name: string
@@ -39,12 +46,26 @@ function filterOccupation(row: OccupationItem, search: string) {
   return haystack.includes(search)
 }
 
+type OccupationFilterState = { students: string }
+
+const EMPTY_FILTERS: OccupationFilterState = { students: '' }
+
+const STUDENT_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'some', label: 'Has students' },
+  { value: 'none', label: 'No students yet' },
+]
+
 export default function OccupationListPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<OccupationItem | null>(null)
   const [values, setValues] = useState<OccupationFormValues>({ name: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [filters, setFilters] = useSessionState<OccupationFilterState>(
+    'list-filters:occupations',
+    { ...EMPTY_FILTERS },
+  )
 
   const occupationsQuery = useQuery({
     queryKey: occupationQueryKey,
@@ -67,8 +88,8 @@ export default function OccupationListPage() {
 
   async function handleDelete(item: OccupationItem) {
     requestDeleteConfirm({
-      title: 'Delete occupation?',
-      description: `This will permanently remove ${item.name}. This action cannot be undone.`,
+      title: `Delete ${item.name}?`,
+      description: `This will permanently remove the occupation ${item.name}. This action cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -134,7 +155,14 @@ export default function OccupationListPage() {
           <DataTableColumnHeader column={column} title="Occupation" />
         ),
         cell: ({ row }) => (
-          <p className="text-sm font-semibold text-slate-900">{row.original.name}</p>
+          <div className="flex min-w-[14rem] items-center gap-3 py-0.5">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas text-ink">
+              <BriefcaseBusiness className="size-4" strokeWidth={1.9} />
+            </span>
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {row.original.name}
+            </p>
+          </div>
         ),
       },
       {
@@ -143,9 +171,19 @@ export default function OccupationListPage() {
           <DataTableColumnHeader column={column} title="Students" align="center" />
         ),
         cell: ({ row }) => (
-          <p className="text-center text-xs font-semibold text-slate-700">
-            {row.original.totalStudent}
-          </p>
+          <div className="text-center">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums',
+                row.original.totalStudent > 0
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'bg-canvas text-slate-500',
+              )}
+            >
+              <Users className="size-3" />
+              {row.original.totalStudent}
+            </span>
+          </div>
         ),
       },
       {
@@ -159,125 +197,169 @@ export default function OccupationListPage() {
           </span>
         ),
         cell: ({ row }) => (
-          <div className="flex items-center justify-center gap-2">
-            <Can module="occupations" action="change">
-              <button
-                type="button"
-                aria-label={`Edit occupation ${row.original.name}`}
-                onClick={() => openEditDialog(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-              >
-                <Pencil className="size-3.5" />
-              </button>
-            </Can>
-            <Can module="occupations" action="delete">
-              <button
-                type="button"
-                aria-label={`Delete occupation ${row.original.name}`}
-                onClick={() => void handleDelete(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </Can>
-          </div>
+          <LookupRowActions
+            module="occupations"
+            noun="occupation"
+            name={row.original.name}
+            onEdit={() => openEditDialog(row.original)}
+            onDelete={() => void handleDelete(row.original)}
+          />
         ),
       },
     ],
     [],
   )
 
+  const allOccupations = useMemo(
+    () => occupationsQuery.data ?? [],
+    [occupationsQuery.data],
+  )
+  const occupations = useMemo(
+    () =>
+      allOccupations.filter((item) => {
+        if (filters.students === 'some' && item.totalStudent <= 0) return false
+        if (filters.students === 'none' && item.totalStudent > 0) return false
+        return true
+      }),
+    [allOccupations, filters.students],
+  )
+  const hasActiveFilters = Boolean(filters.students)
+  const loaded = occupationsQuery.isSuccess
+  const stat = (count: number) => (loaded ? count : '–')
+  const mostCommon = allOccupations.reduce<OccupationItem | null>(
+    (best, item) =>
+      item.totalStudent > (best?.totalStudent ?? 0) ? item : best,
+    null,
+  )
+
+  const listFilters = (
+    <ListToolbarFilters>
+      <ListFilterSelect
+        label="Students"
+        ariaLabel="Filter by students"
+        value={filters.students}
+        onChange={(students) => setFilters({ students })}
+        options={STUDENT_FILTER_OPTIONS}
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={() => setFilters({ ...EMPTY_FILTERS })}
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
+      />
+    </ListToolbarFilters>
+  )
+
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {occupationsQuery.isSuccess ? (
-          <DataTable
-            title="Occupation List"
-            description="Manage occupation records used on student profiles."
-            totalLabel="occupations"
-            columns={columns}
-            data={occupationsQuery.data}
-            searchPlaceholder="Search occupation..."
-            globalFilterFn={filterOccupation}
-            initialPageSize={10}
-            emptyMessage="No occupations found"
-            toolbarActions={
-              <Can module="occupations" action="add">
-                <Button onClick={openCreateDialog}>
-                  <Plus className="size-4" />
-                  Add New Occupation
-                </Button>
-              </Can>
-            }
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Settings · Lists"
+          title="Occupations"
+          description="What students do day to day, such as working or studying. Staff pick from this list on student records."
+          theme="mist"
+          pattern="dots"
+          stats={[
+            {
+              id: 'all',
+              label: 'Occupations',
+              value: stat(allOccupations.length),
+              icon: BriefcaseBusiness,
+              caption: mostCommon ? `Most common: ${mostCommon.name}` : undefined,
+              hint: 'Show all occupations',
+              active: !filters.students,
+              onSelect: () => setFilters({ ...EMPTY_FILTERS }),
+            },
+            {
+              id: 'students',
+              label: 'Students linked',
+              value: stat(
+                allOccupations.reduce((sum, item) => sum + item.totalStudent, 0),
+              ),
+              icon: Users,
+              caption: 'Across all occupations',
+            },
+            {
+              id: 'unused',
+              label: 'Not used yet',
+              value: stat(
+                allOccupations.filter((item) => item.totalStudent <= 0).length,
+              ),
+              icon: UserRoundX,
+              hint: 'Show occupations with no students',
+              active: filters.students === 'none',
+              onSelect: () => setFilters({ students: 'none' }),
+            },
+          ]}
+          spotlight={
+            <Can module="occupations" action="add">
+              <HeroSpotlight
+                title="Add an occupation"
+                description="Give staff another option to choose from."
+                actions={
+                  <HeroPillButton icon={Plus} onClick={openCreateDialog}>
+                    Add occupation
+                  </HeroPillButton>
+                }
+              />
+            </Can>
+          }
+        />
+
+        {occupationsQuery.isLoading ? <ListLoadingState /> : null}
+
+        {occupationsQuery.isError ? (
+          <ListErrorState
+            title="Unable to load occupations"
+            description="Something went wrong while fetching occupations. You can try again."
+            onRetry={() => void occupationsQuery.refetch()}
           />
+        ) : null}
+
+        {loaded ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              variant="soft"
+              title="All Occupations"
+              description="Each option and how many students have it."
+              totalLabel="occupations"
+              columns={columns}
+              data={occupations}
+              searchPlaceholder="Search occupations..."
+              searchVariant="pill"
+              globalFilterFn={filterOccupation}
+              initialPageSize={10}
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No occupations match this filter'
+                  : 'No occupations yet'
+              }
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          showClose
-          className="overflow-hidden p-0 sm:max-w-lg"
-        >
-          <form
-            onSubmit={handleSubmit}
-            className="flex max-h-[90vh] flex-col"
-          >
-            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
-                {editing ? (
-                  <Pencil className="size-5" />
-                ) : (
-                  <Plus className="size-5" />
-                )}
-              </div>
-              <DialogHeader className="pr-0">
-                <DialogTitle>
-                  {editing ? 'Update Occupation' : 'Add New Occupation'}
-                </DialogTitle>
-                <DialogDescription>
-                  Manage occupation options used on student records.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-6 py-5">
-              <Label htmlFor="occupation-name">Occupation Name</Label>
-              <Input
-                id="occupation-name"
-                value={values.name}
-                onChange={(event) => setValues({ name: event.target.value })}
-                placeholder="e.g. University Student"
-              />
-            </div>
-
-            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                {editing ? (
-                  <Pencil className="size-3.5" />
-                ) : (
-                  <Plus className="size-3.5" />
-                )}
-                {isSubmitting
-                  ? editing
-                    ? 'Updating...'
-                    : 'Saving...'
-                  : editing
-                    ? 'Update Data'
-                    : 'Submit Data'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <LookupDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        icon={BriefcaseBusiness}
+        eyebrow="Occupation"
+        title={editing ? `Edit ${editing.name}` : 'Add occupation'}
+        description="Shown as a choice on student records."
+        submitLabel={editing ? 'Save changes' : 'Add occupation'}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        onCancel={() => setDialogOpen(false)}
+      >
+        <LookupField label="Occupation name" htmlFor="occupation-name" required>
+          <Input
+            id="occupation-name"
+            value={values.name}
+            onChange={(event) => setValues({ name: event.target.value })}
+            placeholder="e.g. University Student"
+          />
+        </LookupField>
+      </LookupDialog>
     </AdminShell>
   )
 }

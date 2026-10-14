@@ -177,8 +177,8 @@ export function TutorProgramSalaryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showClose className="overflow-hidden p-0 sm:max-w-md">
         <form onSubmit={handleSubmit} noValidate>
-          <div className="bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="bg-gradient-to-br from-brand-50 via-white to-white px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
               <Wallet className="size-5" />
             </div>
             <DialogHeader className="pr-0">
@@ -249,14 +249,14 @@ export function TutorProgramSalaryDialog({
             </div>
           </div>
 
-          <DialogFooter className="mt-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 bg-canvas/70 px-6 py-4">
             <div className="flex w-full flex-wrap items-center justify-between gap-2">
               {!isCreate ? (
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="text-rose-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                  className="text-rose-600 ring-0 hover:bg-rose-50 hover:text-rose-700"
                   onClick={() => void handleDelete()}
                   disabled={isSubmitting || isDeleting}
                 >
@@ -269,7 +269,7 @@ export function TutorProgramSalaryDialog({
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="soft"
                   size="sm"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting || isDeleting}
@@ -293,8 +293,8 @@ export function TutorProgramSalaryDialog({
                   {isSubmitting
                     ? 'Saving...'
                     : isCreate
-                      ? 'Add override'
-                      : 'Update'}
+                      ? 'Add program rate'
+                      : 'Save rate'}
                 </Button>
               </div>
             </div>

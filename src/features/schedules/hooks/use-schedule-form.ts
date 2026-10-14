@@ -24,6 +24,8 @@ type UseScheduleFormOptions = {
   initialValues?: ScheduleFormValues
   onSuccess?: () => void
   onCancel?: () => void
+  /** Names the session in the delete confirmation, e.g. "IELTS · Budi". */
+  recordLabel?: string
 }
 
 export function useScheduleForm({
@@ -32,6 +34,7 @@ export function useScheduleForm({
   initialValues = emptyScheduleFormValues(),
   onSuccess,
   onCancel,
+  recordLabel,
 }: UseScheduleFormOptions) {
   const queryClient = useQueryClient()
   const [values, setValues] = useState<ScheduleFormValues>(initialValues)
@@ -164,9 +167,10 @@ export function useScheduleForm({
     }
 
     requestDeleteConfirm({
-      title: 'Delete class session?',
-      description:
-        'This will permanently remove the session from the timetable. This action cannot be undone.',
+      title: recordLabel
+        ? `Delete the session "${recordLabel}"?`
+        : 'Delete class session?',
+      description: `This permanently removes ${recordLabel ? `"${recordLabel}"` : 'this session'} on ${values.date || 'this day'}, ${values.startTime}–${values.endTime}, from the schedule. This can't be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -181,7 +185,9 @@ export function useScheduleForm({
             ])
             notify('success', {
               title: 'Session deleted',
-              description: 'The class session has been removed.',
+              description: recordLabel
+                ? `"${recordLabel}" has been removed from the schedule.`
+                : 'The class session has been removed.',
             })
             onSuccess?.()
           } catch (error) {

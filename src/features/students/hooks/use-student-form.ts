@@ -25,7 +25,7 @@ type UseStudentFormOptions = {
 export function useStudentForm({
   mode,
   studentId,
-  prospectiveStudentId,
+  prospectiveStudentId: initialProspectiveStudentId,
   initialValues = emptyStudentFormValues,
 }: UseStudentFormOptions) {
   const navigate = useNavigate()
@@ -33,6 +33,9 @@ export function useStudentForm({
   const isRestrictedMarketing = useIsRestrictedMarketing()
   const lockIdentityFields = mode === 'edit' && isRestrictedMarketing
   const [values, setValues] = useState<StudentFormValues>(initialValues)
+  const [prospectiveStudentId, setProspectiveStudentId] = useState(
+    initialProspectiveStudentId ?? '',
+  )
   const [errors, setErrors] = useState<StudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -44,7 +47,22 @@ export function useStudentForm({
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
+  /** Replace the form with details taken from the chosen prospective student. */
+  function selectProspect(id: string, nextValues: StudentFormValues) {
+    setProspectiveStudentId(id)
+    setValues(nextValues)
+    setErrors({})
+  }
+
   function validateForm(nextValues: StudentFormValues) {
+    // New students always come from a prospective student who has paid.
+    if (mode === 'create' && !prospectiveStudentId) {
+      setErrors({
+        fullName: 'Choose a prospective student who has made a payment.',
+      })
+      return false
+    }
+
     const result = studentFormSchema.safeParse(nextValues)
 
     if (result.success) {
@@ -83,16 +101,12 @@ export function useStudentForm({
       if (mode === 'create') {
         const created = await createStudent(values, { prospectiveStudentId })
         await queryClient.invalidateQueries({ queryKey: studentQueryKeys.all })
-        if (prospectiveStudentId) {
-          await queryClient.invalidateQueries({
-            queryKey: prospectiveStudentQueryKeys.all,
-          })
-        }
+        await queryClient.invalidateQueries({
+          queryKey: prospectiveStudentQueryKeys.all,
+        })
         notify('success', {
-          title: prospectiveStudentId ? 'Student enrolled' : 'Student created',
-          description: prospectiveStudentId
-            ? `${created.pin} | ${created.fullName} has been enrolled after payment progress.`
-            : `${created.pin} | ${created.fullName} has been added.`,
+          title: 'Student enrolled',
+          description: `${created.pin} | ${created.fullName} has been enrolled.`,
         })
         void navigate({
           to: '/students/$studentId',
@@ -136,7 +150,7 @@ export function useStudentForm({
       return
     }
 
-    if (prospectiveStudentId) {
+    if (initialProspectiveStudentId) {
       void navigate({ to: '/prospective-students' })
       return
     }
@@ -148,6 +162,8 @@ export function useStudentForm({
     values,
     errors,
     isSubmitting,
+    prospectiveStudentId,
+    selectProspect,
     updateField,
     submit,
     cancel,

@@ -171,6 +171,35 @@ function filterListItems(
   })
 }
 
+export type EnrollableProspectOption = {
+  id: string
+  fullName: string
+  srNumber: string
+  phone: string
+  counsellorName: string
+  branchName: string
+}
+
+/** Prospects with a payment plan (pending is enough) who are not enrolled yet. */
+export async function fetchEnrollableProspectOptions(): Promise<
+  EnrollableProspectOption[]
+> {
+  const { items } = await fetchAllPages<ProspectiveStudentListDto>({
+    client: httpClient,
+    path: adminPath('/prospective-students'),
+    params: { can_enroll: true, is_student: false },
+  })
+
+  return items.map((item) => ({
+    id: String(item.id),
+    fullName: item.full_name,
+    srNumber: item.sr_number ?? '',
+    phone: item.phone ?? '',
+    counsellorName: item.marketing_name ?? '',
+    branchName: item.branch_name ?? '',
+  }))
+}
+
 export async function fetchProspectiveStudents(
   filters: ProspectiveStudentListFilters = {},
 ): Promise<ProspectiveStudentListResponse> {

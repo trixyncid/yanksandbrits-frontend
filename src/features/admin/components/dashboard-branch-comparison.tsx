@@ -1,8 +1,11 @@
+import { Building2 } from 'lucide-react'
+
 import {
   formatCurrencyAmount,
   formatCurrencyCompact,
 } from '../../../shared/lib/currency'
 import type { DashboardMetrics } from '../types/dashboard'
+import { DashboardMeter } from './dashboard-kit'
 import {
   DashboardCardHeader,
   DashboardEmptyState,
@@ -24,64 +27,96 @@ export function DashboardBranchComparison({
   return (
     <DashboardPanel>
       <DashboardCardHeader
-        title="Branch comparison"
-        description="Side-by-side performance across all branches for the selected period."
+        title="Branches side by side"
+        description="How each branch did in the selected period."
+        icon={<Building2 className="size-4" />}
       />
 
       {items.length === 0 ? (
         <DashboardEmptyState message="No branches to compare." />
       ) : (
-        <div className="space-y-2">
+        <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const width = Math.max(
               (item.revenue / maxRevenue) * 100,
-              item.revenue > 0 ? 8 : 0,
+              item.revenue > 0 ? 6 : 0,
             )
+            const lead =
+              items.length > 1 && item.revenue > 0 && item.revenue === maxRevenue
 
             return (
-              <div key={item.branchId} className="space-y-2">
-                <div className="flex flex-wrap items-end justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-900">
+              <li
+                key={item.branchId}
+                className={
+                  lead
+                    ? 'rounded-3xl bg-brand-500 p-4 text-white'
+                    : 'rounded-3xl bg-canvas/70 p-4'
+                }
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className={lead ? 'font-bold' : 'font-bold text-ink'}>
                     {item.branchName}
                   </p>
-                  <p
-                    className="text-sm font-bold text-slate-900 tabular-nums"
-                    title={formatCurrencyAmount(item.revenue)}
-                  >
-                    <span className="sm:hidden">
-                      {formatCurrencyCompact(item.revenue)}
+                  {lead ? (
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold">
+                      Top revenue
                     </span>
-                    <span className="hidden sm:inline">
-                      {formatCurrencyAmount(item.revenue)}
-                    </span>
-                  </p>
+                  ) : null}
                 </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-[#1B2A5A]"
-                    style={{ width: `${width}%` }}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 tabular-nums">
-                    {item.newEnrollments.toLocaleString('en-US')} enrolled
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 tabular-nums">
-                    {item.activeStudents.toLocaleString('en-US')} active
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 tabular-nums">
-                    {item.leads.toLocaleString('en-US')} leads
-                  </span>
-                  <span className="rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[#1B2A5A] tabular-nums">
-                    {item.conversionRate == null
-                      ? '— conversion'
-                      : `${item.conversionRate.toFixed(1)}% conversion`}
-                  </span>
-                </div>
-              </div>
+                <p
+                  className={
+                    lead
+                      ? 'mt-2 text-2xl font-bold tracking-tight tabular-nums'
+                      : 'mt-2 text-2xl font-bold tracking-tight text-ink tabular-nums'
+                  }
+                  title={formatCurrencyAmount(item.revenue)}
+                >
+                  {formatCurrencyCompact(item.revenue)}
+                </p>
+                <DashboardMeter
+                  className="mt-2"
+                  value={width}
+                  trackClassName={lead ? 'bg-white/20' : 'bg-white'}
+                  barClassName={lead ? 'bg-white' : 'bg-brand-500'}
+                />
+                <dl
+                  className={
+                    lead
+                      ? 'mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-white/80'
+                      : 'mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-500'
+                  }
+                >
+                  <div className="flex justify-between gap-2">
+                    <dt>Enrolled</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {item.newEnrollments.toLocaleString('en-US')}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt>Active</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {item.activeStudents.toLocaleString('en-US')}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt>Leads</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {item.leads.toLocaleString('en-US')}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt>Conversion</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {item.conversionRate == null
+                        ? '—'
+                        : `${item.conversionRate.toFixed(1)}%`}
+                    </dd>
+                  </div>
+                </dl>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
     </DashboardPanel>
   )

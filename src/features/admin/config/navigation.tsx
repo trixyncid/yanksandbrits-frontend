@@ -109,7 +109,7 @@ export const adminNavigation: NavigationItem[] = [
     children: [
       {
         id: 'prospective-student',
-        label: 'Prospective Student',
+        label: 'Student Responses',
         icon: Users,
         to: '/prospective-students',
       },

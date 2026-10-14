@@ -12,6 +12,7 @@ export type StaffUserOption = {
   branchId: string | null
   branchName: string | null
   staffType?: string | null
+  employmentType?: EmploymentTypeCode | null
 }
 
 export type StaffTypeCode = 'English' | 'Mandarin' | 'IT' | 'Accounting'
@@ -103,7 +104,7 @@ export const EMPLOYMENT_TYPE_OPTIONS = [
   {
     value: 'FL',
     label: 'Freelance',
-    description: 'Paid per class, with no fixed weekly days.',
+    description: 'Paid per session only. No schedule, base salary or leave.',
   },
 ] as const
 
@@ -316,7 +317,11 @@ function toWritePayload(values: UserFormValues, mode: 'create' | 'edit') {
         ? Number(values.workingDaysPerWeek)
         : null,
     branch: values.branchId ? Number(values.branchId) : null,
-    paid_leave: values.paidLeave ? Number(values.paidLeave) : 0,
+    // Freelancers have no paid leave.
+    paid_leave:
+      values.employmentType !== 'FL' && values.paidLeave
+        ? Number(values.paidLeave)
+        : 0,
     resign_date: emptyToNull(values.resignDate),
     groups: values.groupIds.map(Number),
   }
@@ -422,6 +427,7 @@ export async function fetchStaffUserOptions(filters: {
     branchId: user.branchId,
     branchName: user.branchName,
     staffType: user.staffType,
+    employmentType: user.employmentType,
   }))
 }
 

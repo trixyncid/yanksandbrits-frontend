@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { Trash2, TriangleAlert } from 'lucide-react'
 
 import { Button } from './ui/button'
 import {
@@ -21,31 +21,40 @@ export function DeleteConfirmDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent showClose={false} className="overflow-hidden p-0">
-        <div className="bg-[linear-gradient(135deg,#FFF5F5_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
-            <Trash2 className="size-5" />
+      <DialogContent showClose={false} className="max-w-sm overflow-hidden p-0 text-center">
+        <div className="px-6 pt-8 pb-5">
+          <div className="relative mx-auto mb-5 flex size-16 items-center justify-center">
+            <span
+              aria-hidden
+              className="absolute inset-0 animate-ping rounded-full bg-rose-100 opacity-60 [animation-duration:2s]"
+            />
+            <span className="relative inline-flex size-16 items-center justify-center rounded-full bg-rose-50 text-rose-600 ring-8 ring-rose-50/60">
+              <Trash2 className="size-6" strokeWidth={1.8} />
+            </span>
           </div>
-          <DialogHeader className="pr-0">
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
+          <DialogHeader className="items-center pr-0">
+            <DialogTitle className="text-lg font-bold tracking-tight">
+              {title}
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed text-slate-500">
+              {description}
+            </DialogDescription>
           </DialogHeader>
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-[11px] font-semibold text-slate-500">
+            <TriangleAlert className="size-3" />
+            This can't be undone
+          </p>
         </div>
 
-        <DialogFooter className="mt-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOpen(false)}
-          >
-            Cancel
+        <DialogFooter className="mt-0 grid grid-cols-2 gap-2 px-6 pb-6 sm:flex-none">
+          <Button variant="soft" onClick={() => setOpen(false)} autoFocus>
+            Keep it
           </Button>
           <Button
-            size="sm"
-            className="border-transparent bg-rose-600 bg-none text-white shadow-lg shadow-rose-600/20 hover:bg-rose-500 hover:brightness-100"
+            className="bg-rose-600 text-white shadow-lg shadow-rose-600/25 hover:bg-rose-500"
             onClick={confirm}
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 className="size-4" />
             {confirmLabel}
           </Button>
         </DialogFooter>

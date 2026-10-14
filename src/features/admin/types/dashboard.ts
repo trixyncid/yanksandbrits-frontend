@@ -151,3 +151,11 @@ export function formatDateKey(value: Date) {
 export function isAllBranches(branchId: string) {
   return branchId === ALL_BRANCHES_ID
 }
+
+/** Ids of the sections the hero stat arrows scroll to. */
+export const DASHBOARD_ANCHORS = {
+  money: 'dashboard-money',
+  pipeline: 'dashboard-pipeline',
+  capacity: 'dashboard-capacity',
+  acquisition: 'dashboard-acquisition',
+} as const

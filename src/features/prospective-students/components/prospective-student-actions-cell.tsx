@@ -28,15 +28,15 @@ export function ProspectiveStudentActionsCell({
         <Can module="studentPayments" action="add">
           <button
             type="button"
-            title="Create student payment"
-            aria-label={`Create student payment for ${student.fullName}`}
+            title="Record a payment"
+            aria-label={`Record a payment for ${student.fullName}`}
             onClick={() =>
               void navigate({
                 to: '/student-payments/new',
                 search: { prospectiveStudentId: student.id },
               })
             }
-            className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+            className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
           >
             <WalletCards className="size-3.5" />
           </button>
@@ -54,7 +54,7 @@ export function ProspectiveStudentActionsCell({
                 search: { prospectiveStudentId: student.id },
               })
             }
-            className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-[#253CA1] shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+            className="inline-flex size-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-500 hover:text-white"
           >
             <UserPlus className="size-3.5" />
           </button>
@@ -63,14 +63,15 @@ export function ProspectiveStudentActionsCell({
       <Can module="prospectiveStudents" action="change">
         <button
           type="button"
-          aria-label={`Edit prospective student ${student.fullName}`}
+          aria-label={`Edit ${student.fullName}`}
+          title="Edit lead"
           onClick={() =>
             void navigate({
               to: '/prospective-students/$prospectiveStudentId/edit',
               params: { prospectiveStudentId: student.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -78,11 +79,13 @@ export function ProspectiveStudentActionsCell({
       <Can module="prospectiveStudents" action="delete">
         <button
           type="button"
-          aria-label={`Delete prospective student ${student.fullName}`}
+          aria-label={`Delete ${student.fullName}`}
+          title="Delete lead"
           onClick={() =>
             requestDeleteConfirm({
-              title: 'Delete prospective student?',
-              description: `This will permanently remove ${student.fullName}. This action cannot be undone.`,
+              title: `Delete ${student.fullName}?`,
+              description: `This permanently removes the lead for ${student.fullName}, including their contact and consult details. This cannot be undone.`,
+              confirmLabel: 'Delete lead',
               onConfirm: () => {
                 void deleteProspectiveStudent(student.id)
                   .then(async () => {
@@ -90,20 +93,20 @@ export function ProspectiveStudentActionsCell({
                       queryKey: prospectiveStudentQueryKeys.all,
                     })
                     notify('success', {
-                      title: 'Prospective student deleted',
+                      title: 'Lead deleted',
                       description: `${student.fullName} has been removed.`,
                     })
                   })
                   .catch((error) => {
                     notify('error', {
-                      title: 'Unable to delete prospective student',
+                      title: 'Unable to delete lead',
                       description: getApiErrorMessage(error),
                     })
                   })
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
         >
           <Trash2 className="size-3.5" />
         </button>

@@ -6,9 +6,11 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type Row,
   type RowSelectionState,
   type SortingState,
 } from '@tanstack/react-table'
+import { Inbox } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Card } from '../ui/card'
@@ -43,18 +45,20 @@ type DataTableProps<TData> = {
   emptyMessage?: string
   /** Enables vertical scrolling with sticky headers. */
   maxHeight?: number | string
-  enableRowSelection?: boolean
+  /** Pass a function to make only some rows selectable. */
+  enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
   getRowId?: (originalRow: TData, index: number) => string
   selectionToolbar?: (ctx: DataTableSelectionContext<TData>) => ReactNode
   className?: string
-  variant?: 'default' | 'glass'
+  /** `soft`: borderless white card on the grey canvas, for the refreshed pages. */
+  variant?: 'default' | 'glass' | 'soft'
   /** `pill` matches Steadi-style capsule search inputs. */
   searchVariant?: 'default' | 'pill'
 }
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
 const CHECKBOX_CLASS =
-  'size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40'
+  'size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40'
 
 const coreRowModel = getCoreRowModel()
 const sortedRowModel = getSortedRowModel()
@@ -85,11 +89,13 @@ function SelectionCheckbox({
   indeterminate,
   onChange,
   ariaLabel,
+  disabled,
 }: {
   checked: boolean
   indeterminate?: boolean
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   ariaLabel: string
+  disabled?: boolean
 }) {
   return (
     <input
@@ -104,6 +110,7 @@ function SelectionCheckbox({
       onChange={onChange}
       onClick={(event) => event.stopPropagation()}
       aria-label={ariaLabel}
+      disabled={disabled}
     />
   )
 }
@@ -180,6 +187,7 @@ export function DataTable<TData>({
           indeterminate={row.getIsSomeSelected()}
           onChange={row.getToggleSelectedHandler()}
           ariaLabel="Select row"
+          disabled={!row.getCanSelect()}
         />
       ),
     }
@@ -211,6 +219,8 @@ export function DataTable<TData>({
     getPaginationRowModel: paginationRowModel,
   })
 
+  // Every table uses the soft look; `glass` and `default` are kept as aliases.
+  const isSoft = true
   const selectedRows = table
     .getSelectedRowModel()
     .rows.map((row) => row.original)
@@ -224,8 +234,7 @@ export function DataTable<TData>({
     <Card
       className={cn(
         'overflow-hidden',
-        variant === 'glass' &&
-          'border-white/70 bg-white/70 shadow-[0_24px_48px_-28px_rgba(66,116,185,0.35)] backdrop-blur-xl',
+        isSoft && 'rounded-[1.75rem] border-0 shadow-[0_1px_2px_rgba(20,27,58,0.04)]',
         className,
       )}
     >
@@ -258,7 +267,13 @@ export function DataTable<TData>({
         <table className="min-w-full border-collapse">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-slate-200">
+              <tr
+                key={headerGroup.id}
+                className={cn(
+                  'border-b',
+                  isSoft ? 'border-slate-100' : 'border-slate-200',
+                )}
+              >
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
                     | DataTableColumnMeta
@@ -268,7 +283,8 @@ export function DataTable<TData>({
                     <th
                       key={header.id}
                       className={cn(
-                        'bg-[#F8FAFC] px-4 py-3 text-left sm:px-6',
+                        'px-4 py-3 text-left sm:px-6',
+                        isSoft ? 'bg-white' : 'bg-[#F8FAFC]',
                         getStickyClassName(meta?.sticky, 'header'),
                       )}
                       style={{
@@ -296,8 +312,9 @@ export function DataTable<TData>({
                 <tr
                   key={row.id}
                   className={cn(
-                    'group border-b border-slate-100 transition-colors hover:bg-[#F5F7FF]',
-                    row.getIsSelected() && 'bg-[#F5F7FF]',
+                    'group border-b border-slate-100 transition-colors',
+                    isSoft ? 'hover:bg-canvas/60' : 'hover:bg-brand-50',
+                    row.getIsSelected() && 'bg-brand-50',
                   )}
                   data-state={row.getIsSelected() ? 'selected' : undefined}
                 >
@@ -310,8 +327,11 @@ export function DataTable<TData>({
                       <td
                         key={cell.id}
                         className={cn(
-                          'bg-white px-4 py-4 align-middle group-hover:bg-[#F5F7FF] sm:px-6',
-                          row.getIsSelected() && 'bg-[#F5F7FF]',
+                          'bg-white px-4 py-4 align-middle sm:px-6',
+                          isSoft
+                            ? 'py-3.5 group-hover:bg-[#F7F8F9]'
+                            : 'group-hover:bg-brand-50',
+                          row.getIsSelected() && 'bg-brand-50',
                           getStickyClassName(meta?.sticky, 'cell'),
                         )}
                       >
@@ -328,9 +348,17 @@ export function DataTable<TData>({
               <tr>
                 <td
                   colSpan={tableColumns.length}
-                  className="px-6 py-16 text-center text-sm text-slate-500"
+                  className="px-6 py-16 text-center"
                 >
-                  {emptyMessage}
+                  <div className="mx-auto flex max-w-xs flex-col items-center gap-3">
+                    <span className="inline-flex size-14 items-center justify-center rounded-full bg-canvas text-brand-gray">
+                      <Inbox className="size-6" strokeWidth={1.6} />
+                    </span>
+                    <p className="text-sm font-semibold text-ink">{emptyMessage}</p>
+                    <p className="text-xs text-slate-500">
+                      Try a different search or clear the filters.
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -353,13 +381,13 @@ export function DataTableBadge({
   return (
     <span
       className={cn(
-        'inline-flex w-fit max-w-full whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold',
-        tone === 'info' && 'bg-[#E8EEFF] text-[#253CA1]',
-        tone === 'primary' && 'bg-[#FFE8F0] text-[#9D174D]',
+        'inline-flex w-fit max-w-full whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold',
+        tone === 'info' && 'bg-brand-50 text-brand-600',
+        tone === 'primary' && 'bg-brand-100 text-brand-700',
         tone === 'success' && 'bg-emerald-50 text-emerald-700',
         tone === 'danger' && 'bg-rose-50 text-rose-700',
         tone === 'warning' && 'bg-amber-50 text-amber-700',
-        tone === 'neutral' && 'bg-slate-100 text-slate-600',
+        tone === 'neutral' && 'bg-brand-gray-soft/70 text-slate-600',
       )}
     >
       {children}

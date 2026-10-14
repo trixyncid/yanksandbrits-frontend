@@ -52,7 +52,6 @@ export type MarketingLeadSource = {
   consults: number
   enrollments: number
   conversionRate: number
-  countsTowardPay: boolean
 }
 
 export type MarketingStaleProspect = {
@@ -99,3 +98,10 @@ export type MarketingPerformanceMetrics = {
     endDate: string
   }
 }
+
+/** Ids of the cards the hero arrows scroll to. */
+export const MARKETING_ANCHORS = {
+  funnel: 'marketing-funnel',
+  goals: 'marketing-goals',
+  pay: 'marketing-pay',
+} as const

@@ -1,22 +1,27 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Landmark, MapPin, Phone, Plus, UserRoundX, Users } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { DataTable, DataTableColumnHeader } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../shared/components/ui/dialog'
+  ClearListFiltersButton,
+  DataTable,
+  DataTableColumnHeader,
+  ListFilterSelect,
+  ListToolbarFilters,
+} from '../../../shared/components/data-table'
+import {
+  HeroPillButton,
+  HeroSpotlight,
+  ListErrorState,
+  ListLoadingState,
+  PageHero,
+} from '../../../shared/components/page'
 import { Input } from '../../../shared/components/ui/input'
-import { Label } from '../../../shared/components/ui/label'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
+import { cn } from '../../../shared/lib/cn'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
@@ -28,6 +33,8 @@ import {
   updateInstitution,
   type InstitutionItem,
 } from '../api/lookups-api'
+import { LookupDialog, LookupField } from '../components/lookup-dialog'
+import { LookupRowActions } from '../components/lookup-row-actions'
 
 type InstitutionFormValues = {
   name: string
@@ -44,6 +51,26 @@ function filterInstitution(row: InstitutionItem, search: string) {
   return haystack.includes(search)
 }
 
+type InstitutionFilterState = { students: string }
+
+const EMPTY_FILTERS: InstitutionFilterState = { students: '' }
+
+const STUDENT_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'some', label: 'Has students' },
+  { value: 'none', label: 'No students yet' },
+]
+
+function monogram(name: string) {
+  const letters = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+  return (letters || '?').toUpperCase()
+}
+
 export default function InstitutionListPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -54,6 +81,10 @@ export default function InstitutionListPage() {
     phone: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [filters, setFilters] = useSessionState<InstitutionFilterState>(
+    'list-filters:institutions',
+    { ...EMPTY_FILTERS },
+  )
 
   const institutionsQuery = useQuery({
     queryKey: institutionQueryKey,
@@ -78,8 +109,8 @@ export default function InstitutionListPage() {
 
   async function handleDelete(item: InstitutionItem) {
     requestDeleteConfirm({
-      title: 'Delete institution?',
-      description: `This will permanently remove ${item.name}. This action cannot be undone.`,
+      title: `Delete ${item.name}?`,
+      description: `This will permanently remove the institution ${item.name}. This action cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -146,9 +177,19 @@ export default function InstitutionListPage() {
           <DataTableColumnHeader column={column} title="Institution" />
         ),
         cell: ({ row }) => (
-          <div>
-            <p className="text-sm font-semibold text-slate-900">{row.original.name}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{row.original.phone || '-'}</p>
+          <div className="flex min-w-[15rem] items-center gap-3 py-0.5">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-xs font-bold text-brand-700">
+              {monogram(row.original.name)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {row.original.name}
+              </p>
+              <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
+                <Phone className="size-3 shrink-0 text-slate-400" />
+                {row.original.phone || 'No phone'}
+              </p>
+            </div>
           </div>
         ),
       },
@@ -157,11 +198,18 @@ export default function InstitutionListPage() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Address" />
         ),
-        cell: ({ row }) => (
-          <p className="max-w-[420px] truncate text-xs font-medium text-slate-600">
-            {row.original.address || '-'}
-          </p>
-        ),
+        cell: ({ row }) =>
+          row.original.address ? (
+            <p
+              className="flex max-w-[420px] items-center gap-1.5 text-xs font-medium text-slate-600"
+              title={row.original.address}
+            >
+              <MapPin className="size-3 shrink-0 text-slate-400" />
+              <span className="truncate">{row.original.address}</span>
+            </p>
+          ) : (
+            <span className="text-xs text-slate-400">-</span>
+          ),
       },
       {
         accessorKey: 'totalStudent',
@@ -169,9 +217,19 @@ export default function InstitutionListPage() {
           <DataTableColumnHeader column={column} title="Students" align="center" />
         ),
         cell: ({ row }) => (
-          <p className="text-center text-xs font-semibold text-slate-700">
-            {row.original.totalStudent}
-          </p>
+          <div className="text-center">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums',
+                row.original.totalStudent > 0
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'bg-canvas text-slate-500',
+              )}
+            >
+              <Users className="size-3" />
+              {row.original.totalStudent}
+            </span>
+          </div>
         ),
       },
       {
@@ -185,153 +243,199 @@ export default function InstitutionListPage() {
           </span>
         ),
         cell: ({ row }) => (
-          <div className="flex items-center justify-center gap-2">
-            <Can module="institutions" action="change">
-              <button
-                type="button"
-                aria-label={`Edit institution ${row.original.name}`}
-                onClick={() => openEditDialog(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-              >
-                <Pencil className="size-3.5" />
-              </button>
-            </Can>
-            <Can module="institutions" action="delete">
-              <button
-                type="button"
-                aria-label={`Delete institution ${row.original.name}`}
-                onClick={() => void handleDelete(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </Can>
-          </div>
+          <LookupRowActions
+            module="institutions"
+            noun="institution"
+            name={row.original.name}
+            onEdit={() => openEditDialog(row.original)}
+            onDelete={() => void handleDelete(row.original)}
+          />
         ),
       },
     ],
     [],
   )
 
+  const allInstitutions = useMemo(
+    () => institutionsQuery.data ?? [],
+    [institutionsQuery.data],
+  )
+  const institutions = useMemo(
+    () =>
+      allInstitutions.filter((item) => {
+        if (filters.students === 'some' && item.totalStudent <= 0) return false
+        if (filters.students === 'none' && item.totalStudent > 0) return false
+        return true
+      }),
+    [allInstitutions, filters.students],
+  )
+  const hasActiveFilters = Boolean(filters.students)
+  const loaded = institutionsQuery.isSuccess
+  const stat = (count: number) => (loaded ? count : '–')
+
+  const listFilters = (
+    <ListToolbarFilters>
+      <ListFilterSelect
+        label="Students"
+        ariaLabel="Filter by students"
+        value={filters.students}
+        onChange={(students) => setFilters({ students })}
+        options={STUDENT_FILTER_OPTIONS}
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={() => setFilters({ ...EMPTY_FILTERS })}
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
+      />
+    </ListToolbarFilters>
+  )
+
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {institutionsQuery.isSuccess ? (
-          <DataTable
-            title="Institution List"
-            description="Manage institutions and related student counts."
-            totalLabel="institutions"
-            columns={columns}
-            data={institutionsQuery.data}
-            searchPlaceholder="Search by name, phone, address..."
-            globalFilterFn={filterInstitution}
-            initialPageSize={10}
-            emptyMessage="No institutions found"
-            toolbarActions={
-              <Can module="institutions" action="add">
-                <Button onClick={openCreateDialog}>
-                  <Plus className="size-4" />
-                  Add New Institution
-                </Button>
-              </Can>
-            }
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Settings · Lists"
+          title="Institutions"
+          description="Schools and universities students come from. Staff pick from this list on student records."
+          theme="mist"
+          pattern="dots"
+          stats={[
+            {
+              id: 'all',
+              label: 'Institutions',
+              value: stat(allInstitutions.length),
+              icon: Landmark,
+              hint: 'Show all institutions',
+              active: !filters.students,
+              onSelect: () => setFilters({ ...EMPTY_FILTERS }),
+            },
+            {
+              id: 'students',
+              label: 'Students linked',
+              value: stat(
+                allInstitutions.reduce(
+                  (sum, item) => sum + item.totalStudent,
+                  0,
+                ),
+              ),
+              icon: Users,
+              caption: 'Across all institutions',
+            },
+            {
+              id: 'unused',
+              label: 'Not used yet',
+              value: stat(
+                allInstitutions.filter((item) => item.totalStudent <= 0).length,
+              ),
+              icon: UserRoundX,
+              hint: 'Show institutions with no students',
+              active: filters.students === 'none',
+              onSelect: () => setFilters({ students: 'none' }),
+            },
+          ]}
+          spotlight={
+            <Can module="institutions" action="add">
+              <HeroSpotlight
+                title="Add an institution"
+                description="Missing from the list? Add it so staff can pick it."
+                actions={
+                  <HeroPillButton icon={Plus} onClick={openCreateDialog}>
+                    Add institution
+                  </HeroPillButton>
+                }
+              />
+            </Can>
+          }
+        />
+
+        {institutionsQuery.isLoading ? <ListLoadingState /> : null}
+
+        {institutionsQuery.isError ? (
+          <ListErrorState
+            title="Unable to load institutions"
+            description="Something went wrong while fetching institutions. You can try again."
+            onRetry={() => void institutionsQuery.refetch()}
           />
+        ) : null}
+
+        {loaded ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              variant="soft"
+              title="All Institutions"
+              description="Contact details and how many students come from each."
+              totalLabel="institutions"
+              columns={columns}
+              data={institutions}
+              searchPlaceholder="Search by name, phone, or address..."
+              searchVariant="pill"
+              globalFilterFn={filterInstitution}
+              initialPageSize={10}
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No institutions match this filter'
+                  : 'No institutions yet'
+              }
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          showClose
-          className="max-h-[90vh] overflow-hidden p-0 sm:max-w-2xl"
+      <LookupDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        icon={Landmark}
+        eyebrow="Institution"
+        title={editing ? `Edit ${editing.name}` : 'Add institution'}
+        description="Shown as a choice on student records."
+        submitLabel={editing ? 'Save changes' : 'Add institution'}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        onCancel={() => setDialogOpen(false)}
+        wide
+      >
+        <LookupField label="Institution name" htmlFor="institution-name" required>
+          <Input
+            id="institution-name"
+            value={values.name}
+            onChange={(event) =>
+              setValues((v) => ({ ...v, name: event.target.value }))
+            }
+            placeholder="e.g. Universitas Indonesia"
+          />
+        </LookupField>
+
+        <LookupField
+          label="Phone"
+          htmlFor="institution-phone"
+          hint="Optional."
         >
-          <form
-            onSubmit={handleSubmit}
-            className="flex max-h-[90vh] flex-col"
-          >
-            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
-                {editing ? (
-                  <Pencil className="size-5" />
-                ) : (
-                  <Plus className="size-5" />
-                )}
-              </div>
-              <DialogHeader className="pr-0">
-                <DialogTitle>
-                  {editing ? 'Update Institution' : 'Add New Institution'}
-                </DialogTitle>
-                <DialogDescription>
-                  Manage institution details used on student records.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
+          <Input
+            id="institution-phone"
+            value={values.phone}
+            onChange={(event) =>
+              setValues((v) => ({ ...v, phone: event.target.value }))
+            }
+            placeholder="e.g. +6221..."
+          />
+        </LookupField>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
-              <div className="space-y-2">
-                <Label htmlFor="institution-name">Institution Name</Label>
-                <Input
-                  id="institution-name"
-                  value={values.name}
-                  onChange={(event) =>
-                    setValues((v) => ({ ...v, name: event.target.value }))
-                  }
-                  placeholder="e.g. Universitas Indonesia"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="institution-phone">Phone</Label>
-                <Input
-                  id="institution-phone"
-                  value={values.phone}
-                  onChange={(event) =>
-                    setValues((v) => ({ ...v, phone: event.target.value }))
-                  }
-                  placeholder="e.g. +6221..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="institution-address">Address</Label>
-                <Textarea
-                  id="institution-address"
-                  value={values.address}
-                  onChange={(event) =>
-                    setValues((v) => ({ ...v, address: event.target.value }))
-                  }
-                  placeholder="Street, city, postal code"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                {editing ? (
-                  <Pencil className="size-3.5" />
-                ) : (
-                  <Plus className="size-3.5" />
-                )}
-                {isSubmitting
-                  ? editing
-                    ? 'Updating...'
-                    : 'Saving...'
-                  : editing
-                    ? 'Update Data'
-                    : 'Submit Data'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        <LookupField
+          label="Address"
+          htmlFor="institution-address"
+          hint="Optional."
+        >
+          <Textarea
+            id="institution-address"
+            value={values.address}
+            onChange={(event) =>
+              setValues((v) => ({ ...v, address: event.target.value }))
+            }
+            placeholder="Street, city, postal code"
+          />
+        </LookupField>
+      </LookupDialog>
     </AdminShell>
   )
 }

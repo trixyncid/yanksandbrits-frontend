@@ -1,11 +1,17 @@
-import { CircleDollarSign, Layers, UserRound } from 'lucide-react'
+import {
+  CircleDollarSign,
+  Layers,
+  Lock,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
 import {
   ChoiceTile,
   FormSectionCard,
 } from '../../../shared/components/feature-page'
-import { Button } from '../../../shared/components/ui/button'
+import { FormSaveBar } from '../../../shared/components/page'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import { Input } from '../../../shared/components/ui/input'
 import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
@@ -13,15 +19,18 @@ import {
   formatCurrencyAmount,
   parseCurrencyValue,
 } from '../../../shared/lib/currency'
-import { Can } from '../../auth/components/can'
 import {
   useCanApproveInstallmentPlan,
+  useCanEditApprovedPayment,
   useLocksPaymentStatus,
+  useModulePermissions,
 } from '../../auth/hooks/use-permissions'
 import { useProspectiveStudentsQuery } from '../../prospective-students/hooks/use-prospective-students-query'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import { useLinkedPredictionTestQuery } from '../hooks/use-linked-prediction-test-query'
 import { planAmountDue } from '../lib/payment-display'
+import { cn } from '../../../shared/lib/cn'
+import { DuskPanel } from './payment-ui'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentFormValues,
@@ -120,6 +129,11 @@ export function StudentPaymentForm({
   )
   const lockTransactionStatus = useLocksPaymentStatus()
   const canApproveInstallmentPlan = useCanApproveInstallmentPlan()
+  const canEditApprovedPayment = useCanEditApprovedPayment()
+  // Fee fields lock for counsellors once any installment is approved.
+  const feeLocked =
+    !canEditApprovedPayment &&
+    (payment?.terms ?? []).some((term) => term.status === 'approved')
   const savedTermCount = payment?.terms.length ?? 0
   const twoPaymentPlan = values.installmentPlan === 'two'
   const planAlreadyApproved = Boolean(payment?.installmentPlanApproved)
@@ -129,11 +143,8 @@ export function StudentPaymentForm({
     canApproveInstallmentPlan &&
     (mode === 'create' || savedTermCount < 2)
   const submitForApproval = needsPlanApproval && !canApproveInstallmentPlan
-  const submitLabel = isSubmitting
-    ? mode === 'create'
-      ? 'Saving...'
-      : 'Saving changes...'
-    : submitForApproval
+  const { canDelete } = useModulePermissions('studentPayments')
+  const submitLabel = submitForApproval
       ? 'Submit for approval'
       : approverWillApproveOnSave
         ? 'Save and approve'
@@ -223,234 +234,317 @@ export function StudentPaymentForm({
         ? `${selectedStudent.pin} · ${selectedStudent.fullName}`
         : ''
 
+  const ownerIsProspect = ownerMode === 'prospect' || lockProspectiveStudent
+
   return (
     <form className="space-y-3" onSubmit={handleSubmit} noValidate>
-      {mode === 'create' ? (
-        <FormSectionCard
-          icon={UserRound}
-          title="Who is this for?"
-          description="Pick one enrolled student or one Consult / Pre-Test prospect."
-        >
-          {showOwnerSwitcher ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <ChoiceTile
-                name="payment-owner"
-                title="Enrolled student"
-                description="Already has a student record."
-                selected={ownerMode === 'student'}
-                onSelect={() => selectOwnerMode('student')}
-              />
-              <ChoiceTile
-                name="payment-owner"
-                title="Prospective student"
-                description="Consult or Pre-Test, not enrolled yet."
-                selected={ownerMode === 'prospect'}
-                onSelect={() => selectOwnerMode('prospect')}
-              />
-            </div>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-3">
+          {mode === 'create' ? (
+            <FormSectionCard
+              icon={UserRound}
+              title="Who is this for?"
+              description="Pick one enrolled student or one Consult / Pre-Test prospect."
+            >
+              {showOwnerSwitcher ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <ChoiceTile
+                    name="payment-owner"
+                    title="Enrolled student"
+                    description="Already has a student record."
+                    selected={ownerMode === 'student'}
+                    onSelect={() => selectOwnerMode('student')}
+                  />
+                  <ChoiceTile
+                    name="payment-owner"
+                    title="Prospective student"
+                    description="Consult or Pre-Test, not enrolled yet."
+                    selected={ownerMode === 'prospect'}
+                    onSelect={() => selectOwnerMode('prospect')}
+                  />
+                </div>
+              ) : null}
+
+              {ownerMode === 'student' || lockStudent ? (
+                <Field
+                  label="Student"
+                  htmlFor="studentId"
+                  error={errors.studentId ?? errors.prospectiveStudentId}
+                  required
+                  hint={
+                    lockStudent
+                      ? 'Filled in from the student profile.'
+                      : 'Search by PIN or name.'
+                  }
+                >
+                  <SearchableSelect
+                    id="studentId"
+                    value={values.studentId}
+                    options={studentOptions}
+                    onChange={(nextStudentId) => {
+                      onChange('studentId', nextStudentId)
+                      if (nextStudentId) onChange('prospectiveStudentId', '')
+                    }}
+                    placeholder="Select student..."
+                    searchPlaceholder="Search students..."
+                    emptyMessage="No students found"
+                    disabled={studentsQuery.isLoading || lockStudent}
+                    clearable={!lockStudent}
+                  />
+                </Field>
+              ) : (
+                <Field
+                  label="Prospective student"
+                  htmlFor="prospectiveStudentId"
+                  error={errors.prospectiveStudentId ?? errors.studentId}
+                  required
+                  hint={
+                    lockProspectiveStudent
+                      ? 'Filled in from the prospective student list.'
+                      : 'Consult and Pre-Test leads only.'
+                  }
+                >
+                  <SearchableSelect
+                    id="prospectiveStudentId"
+                    value={values.prospectiveStudentId}
+                    options={prospectOptions}
+                    onChange={(nextProspectId) => {
+                      onChange('prospectiveStudentId', nextProspectId)
+                      if (nextProspectId) onChange('studentId', '')
+                    }}
+                    placeholder="Select prospective student..."
+                    searchPlaceholder="Search prospects..."
+                    emptyMessage="No Consult or Pre-Test prospects found"
+                    disabled={
+                      prospectsQuery.isLoading || lockProspectiveStudent
+                    }
+                    clearable={!lockProspectiveStudent}
+                  />
+                </Field>
+              )}
+
+              {ownerLabel ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <span className="inline-flex size-8 items-center justify-center rounded-full bg-ink text-white">
+                    <UserRound className="size-3.5" />
+                  </span>
+                  <span className="text-sm font-semibold text-ink">
+                    {ownerLabel}
+                  </span>
+                  <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-brand-700">
+                    {ownerIsProspect
+                      ? 'Prospective student'
+                      : 'Enrolled student'}
+                  </span>
+                </div>
+              ) : null}
+            </FormSectionCard>
           ) : null}
 
-          {ownerMode === 'student' || lockStudent ? (
-            <Field
-              label="Student"
-              htmlFor="studentId"
-              error={errors.studentId ?? errors.prospectiveStudentId}
-              required
-              hint={
-                lockStudent
-                  ? 'Filled in from the student profile.'
-                  : 'Search by PIN or name.'
-              }
-            >
-              <SearchableSelect
-                id="studentId"
-                value={values.studentId}
-                options={studentOptions}
-                onChange={(nextStudentId) => {
-                  onChange('studentId', nextStudentId)
-                  if (nextStudentId) onChange('prospectiveStudentId', '')
-                }}
-                placeholder="Select student..."
-                searchPlaceholder="Search students..."
-                emptyMessage="No students found"
-                disabled={studentsQuery.isLoading || lockStudent}
-                clearable={!lockStudent}
-              />
-            </Field>
-          ) : (
-            <Field
-              label="Prospective student"
-              htmlFor="prospectiveStudentId"
-              error={errors.prospectiveStudentId ?? errors.studentId}
-              required
-              hint={
-                lockProspectiveStudent
-                  ? 'Filled in from the prospective student list.'
-                  : 'Consult and Pre-Test leads only.'
-              }
-            >
-              <SearchableSelect
-                id="prospectiveStudentId"
-                value={values.prospectiveStudentId}
-                options={prospectOptions}
-                onChange={(nextProspectId) => {
-                  onChange('prospectiveStudentId', nextProspectId)
-                  if (nextProspectId) onChange('studentId', '')
-                }}
-                placeholder="Select prospective student..."
-                searchPlaceholder="Search prospects..."
-                emptyMessage="No Consult or Pre-Test prospects found"
-                disabled={prospectsQuery.isLoading || lockProspectiveStudent}
-                clearable={!lockProspectiveStudent}
-              />
-            </Field>
-          )}
-
-          {ownerLabel ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#C8D4F5]/90 bg-[#F5F8FF] px-3 py-2.5">
-              <span className="text-sm font-semibold text-slate-900">
-                {ownerLabel}
-              </span>
-              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#253CA1] ring-1 ring-[#C8D4F5]">
-                {ownerMode === 'prospect' || lockProspectiveStudent
-                  ? 'Prospective student'
-                  : 'Enrolled student'}
-              </span>
-            </div>
-          ) : null}
-        </FormSectionCard>
-      ) : null}
-
-      <FormSectionCard
-        icon={CircleDollarSign}
-        title="Fee"
-        description="Discount and a one-time pretest credit come off the course fee."
-        delayClassName="delay-75"
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Title" htmlFor="title" error={errors.title} required>
-            <Input
-              id="title"
-              value={values.title}
-              onChange={(event) => onChange('title', event.target.value)}
-              placeholder="Course Fee - SAT Intensive"
-            />
-          </Field>
-
-          <Field
-            label="Course fee"
-            htmlFor="fullAmount"
-            error={errors.fullAmount}
-            required
-            hint="Price before discount and pretest credit."
+          <FormSectionCard
+            icon={CircleDollarSign}
+            title="Fee"
+            description="Discount and a one-time pretest credit come off the course fee."
+            delayClassName="delay-75"
           >
-            <CurrencyInput
-              id="fullAmount"
-              value={values.fullAmount}
-              onValueChange={(digits) => onChange('fullAmount', digits)}
-              placeholder="0"
+            {feeLocked ? (
+              <div className="flex items-start gap-2.5 rounded-2xl bg-amber-50 px-3.5 py-3 text-amber-900">
+                <Lock className="mt-0.5 size-4 shrink-0" />
+                <p className="text-sm">
+                  A payment on this plan has been approved, so the fee can no
+                  longer be changed. Contact Finance if something needs
+                  fixing.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Title" htmlFor="title" error={errors.title} required>
+                <Input
+                  id="title"
+                  value={values.title}
+                  onChange={(event) => onChange('title', event.target.value)}
+                  placeholder="Course Fee - SAT Intensive"
+                  disabled={feeLocked}
+                />
+              </Field>
+
+              <Field
+                label="Course fee"
+                htmlFor="fullAmount"
+                error={errors.fullAmount}
+                required
+                hint="Price before discount and pretest credit."
+              >
+                <CurrencyInput
+                  id="fullAmount"
+                  value={values.fullAmount}
+                  onValueChange={(digits) => onChange('fullAmount', digits)}
+                  placeholder="0"
+                  disabled={feeLocked}
+                />
+              </Field>
+            </div>
+
+            <PlanBalanceCard
+              courseFee={plannedAmount}
+              discountAmount={values.discountAmount}
+              discountError={errors.discountAmount}
+              pretestCredit={appliedPretest}
+              amountDue={due}
+              isLoading={linkedPredictionQuery.isFetching}
+              hasOwner={hasOwner}
+              claimedElsewhere={predictionClaimedElsewhere}
+              foldedIntoCommission={predictionFoldedIntoCommission}
+              awaitingFinance={
+                !predictionClaimedElsewhere &&
+                linkedTests.some(
+                  (test) => test.status === '1_PD' || test.status === 'pending',
+                )
+              }
+              commissionBase={commissionBase}
+              onDiscountChange={(digits) => onChange('discountAmount', digits)}
+              discountLocked={feeLocked}
             />
-          </Field>
+          </FormSectionCard>
+
+          <FormSectionCard
+            icon={Layers}
+            title="Installments"
+            description="Pay in full, or split the balance into 2 payments. A 2-payment plan needs a manager's approval before the payments are entered."
+            delayClassName="delay-100"
+          >
+            <StudentPaymentTermsFields
+              terms={values.terms}
+              errors={errors}
+              lockStatus={lockTransactionStatus}
+              savedTerms={payment?.terms}
+              plannedAmount={String(due)}
+              zeroIsCapped={plannedAmount > 0}
+              paymentId={payment?.id}
+              defaultBranchId={defaultBranchId}
+              installmentPlan={values.installmentPlan}
+              onInstallmentPlanChange={(plan) =>
+                onChange('installmentPlan', plan)
+              }
+              installmentPlanApproved={Boolean(
+                payment?.installmentPlanApproved,
+              )}
+              installmentPlanApprovedBy={
+                payment?.installmentPlanApprovedBy ?? ''
+              }
+              canApproveInstallmentPlan={canApproveInstallmentPlan}
+              canEditApprovedPayment={canEditApprovedPayment}
+              isApprovingInstallmentPlan={isApprovingInstallmentPlan}
+              savedTermCount={payment?.terms.length ?? 0}
+              onApproveInstallmentPlan={onApproveInstallmentPlan}
+              onAdd={onAddTerm}
+              onReplace={onReplaceTerms}
+              onRemove={onRemoveTerm}
+              onChange={onTermChange}
+              onProofUploaded={onProofUploaded}
+            />
+          </FormSectionCard>
         </div>
 
-        <PlanBalanceCard
-          courseFee={plannedAmount}
-          discountAmount={values.discountAmount}
-          discountError={errors.discountAmount}
-          pretestCredit={appliedPretest}
-          amountDue={due}
-          isLoading={linkedPredictionQuery.isFetching}
-          hasOwner={hasOwner}
-          claimedElsewhere={predictionClaimedElsewhere}
-          foldedIntoCommission={predictionFoldedIntoCommission}
-          awaitingFinance={
-            !predictionClaimedElsewhere &&
-            linkedTests.some(
-              (test) => test.status === '1_PD' || test.status === 'pending',
-            )
-          }
-          commissionBase={commissionBase}
-          onDiscountChange={(digits) => onChange('discountAmount', digits)}
-        />
-      </FormSectionCard>
-
-      <FormSectionCard
-        icon={Layers}
-        title="Installments"
-        description="Pay in full, or split the balance into 2 payments. A 2-payment plan needs approval before those installments can be approved."
-        delayClassName="delay-100"
-      >
-        {plannedAmount > 0 || values.terms.length > 0 ? (
-          <PaymentCollectionSummary
-            plannedAmount={String(due)}
-            courseFee={plannedAmount}
-            terms={values.terms}
-          />
-        ) : null}
-
-        <StudentPaymentTermsFields
-          terms={values.terms}
-          errors={errors}
-          lockStatus={lockTransactionStatus}
-          savedTerms={payment?.terms}
-          plannedAmount={String(due)}
-          zeroIsCapped={plannedAmount > 0}
-          paymentId={payment?.id}
-          defaultBranchId={defaultBranchId}
-          installmentPlan={values.installmentPlan}
-          onInstallmentPlanChange={(plan) => onChange('installmentPlan', plan)}
-          installmentPlanApproved={Boolean(payment?.installmentPlanApproved)}
-          installmentPlanApprovedBy={payment?.installmentPlanApprovedBy ?? ''}
-          canApproveInstallmentPlan={canApproveInstallmentPlan}
-          isApprovingInstallmentPlan={isApprovingInstallmentPlan}
-          savedTermCount={payment?.terms.length ?? 0}
-          onApproveInstallmentPlan={onApproveInstallmentPlan}
-          onAdd={onAddTerm}
-          onReplace={onReplaceTerms}
-          onRemove={onRemoveTerm}
-          onChange={onTermChange}
-          onProofUploaded={onProofUploaded}
-        />
-      </FormSectionCard>
-
-      <div className="sticky bottom-2 z-10 animate-in fade-in slide-in-from-bottom-2 delay-150">
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:px-4">
-          <div>
-            {mode === 'edit' && onDelete ? (
-              <Can module="studentPayments" action="delete">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  onClick={onDelete}
-                  disabled={isSubmitting}
-                >
-                  Delete
-                </Button>
-              </Can>
+        <aside
+          className={cn(
+            'space-y-3 lg:sticky lg:top-4',
+            mode === 'edit' && 'order-first lg:order-none',
+          )}
+        >
+          <DuskPanel className="animate-in fade-in slide-in-from-bottom-2">
+            <p className="text-[11px] font-bold tracking-[0.14em] text-white/70 uppercase">
+              Amount due
+            </p>
+            <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums">
+              {formatCurrencyAmount(due)}
+            </p>
+            <dl className="mt-4 space-y-1.5 text-xs">
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/70">Course fee</dt>
+                <dd className="font-semibold tabular-nums">
+                  {formatCurrencyAmount(plannedAmount)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/70">Discount</dt>
+                <dd className="font-semibold tabular-nums">
+                  − {formatCurrencyAmount(Math.min(discountAmount, plannedAmount))}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/70">Pretest credit</dt>
+                <dd className="font-semibold tabular-nums">
+                  − {formatCurrencyAmount(appliedPretest)}
+                </dd>
+              </div>
+            </dl>
+            {plannedAmount > 0 || values.terms.length > 0 ? (
+              <div className="mt-5 border-t border-white/15 pt-4">
+                <PaymentCollectionSummary
+                  plannedAmount={String(due)}
+                  courseFee={plannedAmount}
+                  terms={values.terms}
+                />
+              </div>
             ) : (
-              <p className="hidden text-xs text-slate-400 sm:block">
-                {hasOwner
-                  ? 'Fee and installments save together.'
-                  : 'Select a student to continue.'}
+              <p className="mt-5 border-t border-white/15 pt-4 text-xs text-white/70">
+                Enter a course fee to see how much is collected and still owed.
               </p>
             )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {submitLabel}
-            </Button>
-          </div>
-        </div>
+          </DuskPanel>
+
+          {twoPaymentPlan || feeLocked || lockTransactionStatus ? (
+            <section className="animate-in fade-in slide-in-from-bottom-2 space-y-2 rounded-[1.75rem] bg-white p-5 delay-75">
+              <p className="flex items-center gap-2 text-sm font-bold text-ink">
+                <span className="inline-flex size-8 items-center justify-center rounded-full bg-canvas">
+                  <ShieldCheck className="size-4" />
+                </span>
+                Approvals
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                {twoPaymentPlan ? (
+                  <li>
+                    {planAlreadyApproved
+                      ? 'The 2-payment plan is approved.'
+                      : canApproveInstallmentPlan
+                        ? 'You can approve this 2-payment plan.'
+                        : 'This 2-payment plan needs a manager to approve it.'}
+                  </li>
+                ) : null}
+                {lockTransactionStatus ? (
+                  <li>Finance marks installments as approved or void.</li>
+                ) : null}
+                {feeLocked ? (
+                  <li>
+                    Approved payments are read-only. Contact Finance to change
+                    them.
+                  </li>
+                ) : null}
+              </ul>
+            </section>
+          ) : null}
+        </aside>
       </div>
+
+      <FormSaveBar
+        mode={mode}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onDelete={
+          mode === 'edit' && onDelete && !feeLocked && canDelete
+            ? onDelete
+            : undefined
+        }
+        deleteLabel="Delete payment plan"
+        submitLabel={submitLabel}
+        hint={
+          hasOwner
+            ? 'Fee and installments save together.'
+            : 'Select a student to continue.'
+        }
+      />
     </form>
   )
 }
@@ -468,6 +562,7 @@ function PlanBalanceCard({
   awaitingFinance,
   commissionBase,
   onDiscountChange,
+  discountLocked = false,
 }: {
   courseFee: number
   discountAmount: string
@@ -481,6 +576,7 @@ function PlanBalanceCard({
   awaitingFinance: boolean
   commissionBase: number
   onDiscountChange: (digits: string) => void
+  discountLocked?: boolean
 }) {
   const pretestNote = !hasOwner
     ? 'Choose a student to check for a pretest payment.'
@@ -497,8 +593,8 @@ function PlanBalanceCard({
           : 'No pretest payment for this person.'
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#D7E4F6] bg-[linear-gradient(180deg,#F5F8FF_0%,#FFFFFF_70%)]">
-      <div className="space-y-3 px-4 py-4">
+    <div className="overflow-hidden rounded-3xl bg-canvas">
+      <div className="space-y-3 px-4 py-4 sm:px-5">
         <BalanceRow
           label="Course fee"
           value={formatCurrencyAmount(courseFee)}
@@ -506,13 +602,16 @@ function PlanBalanceCard({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-600">Discount</p>
-            <p className="text-xs text-slate-400">Optional. Cannot exceed the course fee.</p>
+            <p className="text-xs text-slate-500">
+              Optional. Cannot exceed the course fee.
+            </p>
           </div>
           <div className="w-full sm:w-52">
             <CurrencyInput
               id="discountAmount"
               value={discountAmount}
               onValueChange={onDiscountChange}
+              disabled={discountLocked}
               placeholder="0"
               aria-invalid={Boolean(discountError)}
             />
@@ -532,9 +631,10 @@ function PlanBalanceCard({
           emphasize={pretestCredit > 0}
         />
       </div>
-      <div className="border-t border-[#D7E4F6] bg-white px-4 py-4">
+      <div className="m-1.5 rounded-[1.25rem] bg-ink px-4 py-3.5 text-white">
         <BalanceRow
           label="Amount due"
+          hint="What the student pays across their installments."
           value={formatCurrencyAmount(amountDue)}
           strong
         />
@@ -561,21 +661,33 @@ function BalanceRow({
       <div className="min-w-0">
         <p
           className={
-            emphasize || strong
-              ? 'text-sm font-semibold text-[#1B2A5A]'
-              : 'text-sm text-slate-600'
+            strong
+              ? 'text-sm font-semibold text-white'
+              : emphasize
+                ? 'text-sm font-semibold text-brand-800'
+                : 'text-sm text-slate-600'
           }
         >
           {label}
         </p>
-        {hint ? <p className="mt-0.5 text-xs text-slate-400">{hint}</p> : null}
+        {hint ? (
+          <p
+            className={
+              strong
+                ? 'mt-0.5 text-xs text-white/65'
+                : 'mt-0.5 text-xs text-slate-500'
+            }
+          >
+            {hint}
+          </p>
+        ) : null}
       </div>
       <p
         className={
           strong
-            ? 'shrink-0 text-base font-bold tabular-nums text-slate-900'
+            ? 'shrink-0 text-lg font-bold tabular-nums text-white'
             : emphasize
-              ? 'shrink-0 text-sm font-bold tabular-nums text-[#1B2A5A]'
+              ? 'shrink-0 text-sm font-bold tabular-nums text-brand-800'
               : 'shrink-0 text-sm font-semibold tabular-nums text-slate-800'
         }
       >

@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
+import { RowActionButton } from '../../users/components/people-ui'
 import { deleteStaff } from '../api/staff-api'
 import { staffQueryKeys } from '../api/staff-query-keys'
 import type { StaffListItem } from '../types/staff'
@@ -16,9 +17,13 @@ export function StaffActionsCell({ staff }: { staff: StaffListItem }) {
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`View user ${staff.fullName}`}
+      <RowActionButton
+        label={
+          staff.isStudent
+            ? `Open student profile for ${staff.fullName}`
+            : `View ${staff.fullName}`
+        }
+        icon={Eye}
         onClick={() => {
           if (staff.isStudent && staff.studentId) {
             void navigate({
@@ -33,19 +38,17 @@ export function StaffActionsCell({ staff }: { staff: StaffListItem }) {
             params: { userId: staff.id },
           })
         }}
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-      >
-        <Eye className="size-3.5" />
-      </button>
+      />
       {!staff.isStudent ? (
         <Can module="users" action="delete">
-          <button
-            type="button"
-            aria-label={`Delete user ${staff.fullName}`}
+          <RowActionButton
+            label={`Delete ${staff.fullName}`}
+            icon={Trash2}
+            tone="delete"
             onClick={() =>
               requestDeleteConfirm({
-                title: 'Delete user?',
-                description: `This will permanently remove ${staff.fullName}. This action cannot be undone.`,
+                title: `Delete ${staff.fullName}?`,
+                description: `This permanently removes the login account for ${staff.fullName}${staff.pin ? ` (${staff.pin})` : ''}. They will no longer be able to sign in. This cannot be undone.`,
                 onConfirm: () => {
                   void (async () => {
                     try {
@@ -67,10 +70,7 @@ export function StaffActionsCell({ staff }: { staff: StaffListItem }) {
                 },
               })
             }
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          />
         </Can>
       ) : null}
     </div>

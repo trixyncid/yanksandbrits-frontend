@@ -127,6 +127,23 @@ export function useCanAssignGeneralEnglishTutor() {
   )
 }
 
+/**
+ * Education counsellor, branch manager, and system admin assign the program
+ * to students. The academic leader assigns tutors but not this step.
+ */
+export function useCanAssignAllocatedPrograms() {
+  const user = useAuthStore((state) => state.user)
+  const isEducationCounsellor = useIsRestrictedMarketing()
+  if (!user) return false
+  if (user.is_superuser) return true
+  return (
+    isEducationCounsellor ||
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') ||
+    hasAuthRole(user, 'systemadmin')
+  )
+}
+
 /** Branch manager and system admin approve a tutor allocation before academic leaders can see it. */
 export function useCanApproveTutorAllocation() {
   const user = useAuthStore((state) => state.user)
@@ -150,6 +167,14 @@ export function useCanApproveInstallmentPlan() {
     hasAuthRole(user, 'manager') ||
     hasAuthRole(user, 'systemadmin')
   )
+}
+
+/**
+ * Finance, branch manager, and system admin edit an approved payment.
+ * Everyone else, including education counsellors, can only view it.
+ */
+export function useCanEditApprovedPayment() {
+  return useCanApproveInstallmentPlan()
 }
 
 /** Pending-queue sidebar badges — finance / systemadmin (and superuser). */

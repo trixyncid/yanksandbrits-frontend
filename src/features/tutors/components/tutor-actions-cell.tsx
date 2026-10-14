@@ -8,6 +8,7 @@ import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
 import { fetchTutorWorkingSchedule } from '../../users/api/compensation-api'
+import { RowActionButton } from '../../users/components/people-ui'
 import { TutorWorkingScheduleDialog } from '../../users/components/tutor-working-schedule-dialog'
 import { deleteTutor } from '../api/tutors-api'
 import { tutorQueryKeys } from '../api/tutor-query-keys'
@@ -26,27 +27,27 @@ export function TutorActionsCell({ tutor }: { tutor: TutorListItem }) {
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`View tutor ${tutor.fullName}`}
+      <RowActionButton
+        label={`View ${tutor.fullName}`}
+        icon={Eye}
         onClick={() =>
           void navigate({
             to: '/tutors/$tutorId',
             params: { tutorId: tutor.id },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-      >
-        <Eye className="size-3.5" />
-      </button>
+      />
       <Can module="users" action="change">
-        <button
-          type="button"
-          aria-label={
-            tutor.hasWorkingSchedule
-              ? `Edit schedule for ${tutor.fullName}`
-              : `Record schedule for ${tutor.fullName}`
+        <RowActionButton
+          label={
+            tutor.employmentType === 'FL'
+              ? `Set per-session rate for ${tutor.fullName}`
+              : tutor.hasWorkingSchedule
+                ? `Edit working hours for ${tutor.fullName}`
+                : `Set working hours for ${tutor.fullName}`
           }
+          icon={CalendarClock}
+          tone="accent"
           onClick={() => {
             void queryClient
               .ensureQueryData({
@@ -55,44 +56,39 @@ export function TutorActionsCell({ tutor }: { tutor: TutorListItem }) {
               })
               .then(() => setDialogOpen(true))
           }}
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-        >
-          <CalendarClock className="size-3.5" />
-        </button>
+        />
       </Can>
       <Can module="users" action="delete">
-        <button
-        type="button"
-        aria-label={`Delete tutor ${tutor.fullName}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete tutor?',
-            description: `This will permanently remove ${tutor.fullName}. This action cannot be undone.`,
-            onConfirm: () => {
-              void (async () => {
-                try {
-                  await deleteTutor(tutor.id)
-                  await queryClient.invalidateQueries({
-                    queryKey: tutorQueryKeys.all,
-                  })
-                  notify('success', {
-                    title: 'Tutor deleted',
-                    description: `${tutor.fullName} has been removed.`,
-                  })
-                } catch (error) {
-                  notify('error', {
-                    title: 'Unable to delete tutor',
-                    description: getApiErrorMessage(error),
-                  })
-                }
-              })()
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
-        </button>
+        <RowActionButton
+          label={`Delete ${tutor.fullName}`}
+          icon={Trash2}
+          tone="delete"
+          onClick={() =>
+            requestDeleteConfirm({
+              title: `Delete ${tutor.fullName}?`,
+              description: `This permanently removes tutor ${tutor.fullName} (${tutor.pin}) and their sign-in. This cannot be undone.`,
+              onConfirm: () => {
+                void (async () => {
+                  try {
+                    await deleteTutor(tutor.id)
+                    await queryClient.invalidateQueries({
+                      queryKey: tutorQueryKeys.all,
+                    })
+                    notify('success', {
+                      title: 'Tutor deleted',
+                      description: `${tutor.fullName} has been removed.`,
+                    })
+                  } catch (error) {
+                    notify('error', {
+                      title: 'Unable to delete tutor',
+                      description: getApiErrorMessage(error),
+                    })
+                  }
+                })()
+              },
+            })
+          }
+        />
       </Can>
 
       <TutorWorkingScheduleDialog
@@ -102,6 +98,7 @@ export function TutorActionsCell({ tutor }: { tutor: TutorListItem }) {
         tutorName={tutor.fullName}
         schedule={scheduleQuery.data ?? null}
         mode="full"
+        freelance={tutor.employmentType === 'FL'}
       />
     </div>
   )

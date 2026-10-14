@@ -1,6 +1,11 @@
+import { Building2, Clock3, DoorOpen, Eye, Power } from 'lucide-react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { Button } from '../../../shared/components/ui/button'
+import {
+  ChoiceTile,
+  FormSectionCard,
+} from '../../../shared/components/feature-page'
+import { FormSaveBar } from '../../../shared/components/page'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
@@ -11,6 +16,9 @@ import type {
   ClassroomFormValues,
   ClassroomListItem,
 } from '../types/classroom'
+
+/** Above this many branches, a dropdown is easier to scan than tiles. */
+const MAX_BRANCH_TILES = 6
 
 function FieldError({ message }: { message?: string }) {
   if (!message) {
@@ -26,16 +34,21 @@ function Field({
   error,
   children,
   hint,
+  required,
 }: {
   label: string
   htmlFor: string
   error?: string
   children: ReactNode
   hint?: string
+  required?: boolean
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
       <FieldError message={error} />
@@ -88,136 +101,193 @@ export function ClassroomForm({
     await onSubmit()
   }
 
+  const branchName =
+    branchOptions.find((branch) => branch.id === values.branchId)?.name ?? ''
+  const useBranchTiles =
+    !branchesLoading && branchOptions.length <= MAX_BRANCH_TILES
+
   return (
-    <form className="space-y-8" onSubmit={handleSubmit} noValidate>
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">
-            Classroom Details
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Set the room code, name, branch, and availability.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Code" htmlFor="code" error={errors.code}>
-            <Input
-              id="code"
-              value={values.code}
-              onChange={(event) => onChange('code', event.target.value)}
-              placeholder="RM-101"
-            />
-          </Field>
-
-          <Field label="Class Name" htmlFor="className" error={errors.className}>
-            <Input
-              id="className"
-              value={values.className}
-              onChange={(event) => onChange('className', event.target.value)}
-              placeholder="Blue Room"
-            />
-          </Field>
-        </div>
-
-        <StatusToggle
-          id="classroom-is-active"
-          value={values.isActive}
-          onChange={(next) => onChange('isActive', next)}
-          description={
-            values.isActive
-              ? 'Classroom is available for scheduling.'
-              : 'Classroom is hidden from scheduling.'
-          }
-          error={errors.isActive}
-        />
-
-        <Field
-          label="Branch"
-          htmlFor="branchId"
-          error={errors.branchId}
-          hint="Select the branch where this classroom is located."
-        >
-          <Select
-            id="branchId"
-            containerClassName="w-full sm:w-full"
-            value={values.branchId}
-            disabled={branchesLoading}
-            onChange={(event) => onChange('branchId', event.target.value)}
+    <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-3">
+          <FormSectionCard
+            icon={DoorOpen}
+            title="Room"
+            description="How staff will recognise this room on the schedule."
           >
-            <option value="">Select a branch</option>
-            {branchOptions.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </section>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+              <Field
+                label="Code"
+                htmlFor="code"
+                error={errors.code}
+                required
+                hint="Short label, e.g. the room number."
+              >
+                <Input
+                  id="code"
+                  value={values.code}
+                  onChange={(event) => onChange('code', event.target.value)}
+                  placeholder="RM-101"
+                  className="font-mono"
+                />
+              </Field>
+              <Field
+                label="Name"
+                htmlFor="className"
+                error={errors.className}
+                required
+              >
+                <Input
+                  id="className"
+                  value={values.className}
+                  onChange={(event) =>
+                    onChange('className', event.target.value)
+                  }
+                  placeholder="Blue Room"
+                />
+              </Field>
+            </div>
+          </FormSectionCard>
 
-      {mode === 'edit' && meta ? (
-        <>
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-          <section className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-            <h3 className="text-sm font-bold text-slate-900">Record Info</h3>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-slate-400">Date created</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDateTime(meta.createdAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Date updated</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDateTime(meta.updatedAt)}
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs text-slate-400">Created by</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {meta.createdBy || '-'}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
-        <div>
-          {mode === 'edit' && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              onClick={onDelete}
-              disabled={isSubmitting}
+          <FormSectionCard
+            icon={Building2}
+            title="Location"
+            description="The branch this room belongs to. Only that branch's classes can use it."
+            delayClassName="delay-75"
+          >
+            <Field
+              label="Branch"
+              htmlFor="branchId"
+              error={errors.branchId}
+              required
             >
-              Delete Data
-            </Button>
+              {useBranchTiles ? (
+                <div
+                  id="branchId"
+                  className="grid gap-2 sm:grid-cols-2"
+                  role="radiogroup"
+                  aria-label="Branch"
+                >
+                  {branchOptions.map((branch) => (
+                    <ChoiceTile
+                      key={branch.id}
+                      name="classroom-branch"
+                      title={branch.name}
+                      selected={values.branchId === branch.id}
+                      onSelect={() => onChange('branchId', branch.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Select
+                  id="branchId"
+                  containerClassName="w-full sm:w-full"
+                  value={values.branchId}
+                  disabled={branchesLoading}
+                  onChange={(event) => onChange('branchId', event.target.value)}
+                >
+                  <option value="">
+                    {branchesLoading ? 'Loading branches...' : 'Select a branch'}
+                  </option>
+                  {branchOptions.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          </FormSectionCard>
+        </div>
+
+        <div className="space-y-3 lg:sticky lg:top-4">
+          <FormSectionCard
+            icon={Eye}
+            title="Preview"
+            description="How this room appears on schedules. Updates as you type."
+            delayClassName="delay-75"
+          >
+            <div className="flex items-center gap-3 rounded-2xl bg-canvas px-3.5 py-3">
+              <div
+                className={
+                  values.isActive
+                    ? 'inline-flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-white'
+                    : 'inline-flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-400'
+                }
+              >
+                <DoorOpen className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-ink">
+                  {values.className.trim() || 'Room name'}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  <span className="font-mono">
+                    {values.code.trim() || 'CODE'}
+                  </span>
+                  {' · '}
+                  {branchName || 'No branch yet'}
+                </p>
+              </div>
+            </div>
+          </FormSectionCard>
+
+          <FormSectionCard
+            icon={Power}
+            title="Availability"
+            description="Inactive rooms stay on past sessions but can't be booked."
+            delayClassName="delay-100"
+          >
+            <StatusToggle
+              id="classroom-is-active"
+              label=""
+              value={values.isActive}
+              onChange={(next) => onChange('isActive', next)}
+              error={errors.isActive}
+            />
+          </FormSectionCard>
+
+          {mode === 'edit' && meta ? (
+            <FormSectionCard
+              icon={Clock3}
+              title="Record Info"
+              description="System details for this room."
+              delayClassName="delay-100"
+            >
+              <dl className="grid gap-2">
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Date created</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {formatDateTime(meta.createdAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Date updated</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {formatDateTime(meta.updatedAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Created by</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {meta.createdBy || '-'}
+                  </dd>
+                </div>
+              </dl>
+            </FormSectionCard>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? mode === 'create'
-                ? 'Saving...'
-                : 'Updating...'
-              : mode === 'create'
-                ? 'Submit Data'
-                : 'Update Data'}
-          </Button>
-        </div>
       </div>
+
+      <FormSaveBar
+        mode={mode}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onDelete={onDelete}
+        deleteLabel="Delete classroom"
+        submitLabel={mode === 'create' ? 'Create classroom' : undefined}
+        hint="Check the summary before saving."
+      />
     </form>
   )
 }

@@ -100,12 +100,12 @@ export function SearchableSelect({
                 : undefined
           }
           className={cn(
-            'flex h-12 w-full items-center gap-2 rounded-full border border-slate-200/80 bg-white px-4 text-left text-sm font-medium text-slate-800 shadow-sm transition-colors',
-            'hover:border-slate-300',
-            'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+            'flex h-12 w-full items-center gap-2 rounded-full border border-transparent bg-canvas/70 px-4 text-left text-sm font-medium text-slate-800  transition-colors',
+            'hover:bg-canvas',
+            'focus:border-brand-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10',
             'disabled:cursor-not-allowed disabled:opacity-60',
             'data-[empty=true]:font-normal data-[empty=true]:text-slate-400',
-            open && 'border-slate-300 ring-2 ring-[#253CA1]/20',
+            open && 'border-slate-300 ring-2 ring-brand-500/20',
             className,
           )}
         >
@@ -194,7 +194,7 @@ export function SearchableSelect({
                     className={cn(
                       'flex w-full items-start gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors',
                       isSelected
-                        ? 'bg-[#E8EEFF] font-semibold text-[#253CA1]'
+                        ? 'bg-brand-100 font-semibold text-brand-500'
                         : 'text-slate-700 hover:bg-slate-50',
                     )}
                     onClick={() => selectOption(option.value)}
@@ -203,7 +203,7 @@ export function SearchableSelect({
                       {option.label}
                     </span>
                     {isSelected ? (
-                      <Check className="mt-0.5 size-4 shrink-0 text-[#253CA1]" />
+                      <Check className="mt-0.5 size-4 shrink-0 text-brand-500" />
                     ) : null}
                   </button>
                 </li>

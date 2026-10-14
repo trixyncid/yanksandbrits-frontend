@@ -38,7 +38,7 @@ export function DataTablePagination<TData>({
   const visiblePages = getVisiblePages(currentPage, Math.max(pageCount, 1))
 
   return (
-    <div className="flex flex-col gap-4 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p className="text-sm text-slate-500">
         Page{' '}
         <span className="font-semibold text-slate-800">{currentPage}</span> of{' '}
@@ -107,10 +107,10 @@ export function DataTablePagination<TData>({
                   type="button"
                   onClick={() => table.setPageIndex(page - 1)}
                   className={cn(
-                    'inline-flex size-9 items-center justify-center rounded-lg text-sm font-semibold transition',
+                    'inline-flex size-9 items-center justify-center rounded-full text-sm font-semibold transition',
                     page === currentPage
-                      ? 'bg-[#253CA1] text-white'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:border-[#C8D4F5] hover:bg-[#F5F7FF]',
+                      ? 'bg-brand-500 text-white shadow-sm shadow-brand-500/30'
+                      : 'bg-canvas text-slate-600 hover:bg-brand-50 hover:text-brand-600',
                   )}
                 >
                   {page}

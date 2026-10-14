@@ -1,11 +1,12 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { Smartphone } from 'lucide-react'
 
-import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import { cn } from '../../../shared/lib/cn'
+import { getStudentInitials } from '../lib/student-display'
 import type { StudentListItem } from '../types/student'
 import { StudentActionsCell } from './student-actions-cell'
+import { StudentStatusPill } from './student-status-pill'
 
 function formatEnrollmentDate(value: string) {
   if (!value) {
@@ -19,50 +20,52 @@ function formatEnrollmentDate(value: string) {
   }).format(new Date(value))
 }
 
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) {
-    return '?'
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase()
-  }
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-}
-
 export const studentListColumns: ColumnDef<StudentListItem>[] = [
   {
     id: 'studentDetail',
-    accessorFn: (row) => `${row.fullName} ${row.pin} ${row.email} ${row.mobilePhone}`,
+    accessorFn: (row) =>
+      `${row.fullName} ${row.pin} ${row.email} ${row.mobilePhone}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Student's Detail" />
+      <DataTableColumnHeader column={column} title="Student" />
     ),
     cell: ({ row }) => (
-      <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
-        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
-          {getInitials(row.original.fullName)}
+      <div className="flex min-w-[15rem] items-center gap-2.5 py-0.5">
+        <div
+          className={cn(
+            'relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold tracking-wide',
+            row.original.status === 'active'
+              ? 'bg-brand-500 text-white'
+              : 'bg-canvas text-slate-500',
+          )}
+        >
+          {getStudentInitials(row.original.fullName)}
+          {row.original.hasAccount ? (
+            <span
+              title="Has a student app account"
+              className="absolute -right-0.5 -bottom-0.5 inline-flex size-4 items-center justify-center rounded-full bg-white text-brand-600 ring-2 ring-white"
+            >
+              <Smartphone className="size-2.5" />
+            </span>
+          ) : null}
         </div>
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-ink">
               {row.original.fullName}
             </p>
             {row.original.pin ? (
-              <span className="rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[11px] font-semibold text-[#253CA1]">
+              <span className="rounded-full bg-canvas px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
                 {row.original.pin}
               </span>
             ) : null}
-            <DataTableBadge
-              tone={row.original.gender === 'M' ? 'info' : 'primary'}
-            >
-              {row.original.gender === 'M' ? 'Male' : 'Female'}
-            </DataTableBadge>
           </div>
           <p className="mt-0.5 truncate text-xs text-slate-500">
-            {row.original.email || '—'}
+            {row.original.gender === 'M' ? 'Male' : 'Female'}
+            {' · '}
+            {row.original.email || 'No email'}
           </p>
-          <p className="truncate text-xs text-slate-500">
-            {row.original.mobilePhone || '—'}
+          <p className="truncate text-xs text-slate-400">
+            {row.original.mobilePhone || 'No phone'}
           </p>
         </div>
       </div>
@@ -75,11 +78,7 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-center">
-        <DataTableBadge
-          tone={row.original.status === 'active' ? 'success' : 'danger'}
-        >
-          {row.original.status === 'active' ? 'Active' : 'Inactive'}
-        </DataTableBadge>
+        <StudentStatusPill status={row.original.status} />
       </div>
     ),
   },
@@ -101,11 +100,7 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
   {
     accessorKey: 'enrollmentDate',
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Enrollment Date"
-        align="center"
-      />
+      <DataTableColumnHeader column={column} title="Enrolled" align="center" />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
@@ -119,9 +114,15 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
       <DataTableColumnHeader column={column} title="Branch" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.branch || '—'}
-      </p>
+      <div className="text-center">
+        {row.original.branch ? (
+          <span className="inline-flex rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
+            {row.original.branch}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
     ),
   },
   {

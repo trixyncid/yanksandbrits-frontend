@@ -3,6 +3,7 @@ import { CalendarClock } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
+import { cn } from '../../../shared/lib/cn'
 import {
   fetchTutorWorkingSchedule,
 } from '../api/compensation-api'
@@ -55,105 +56,136 @@ export function StaffScheduleTab({ user }: StaffScheduleTabProps) {
   if (!user.isTutor) {
     return (
       <EmptyScheduleState
-        title="No working schedule"
-        description="Working schedules are available for tutor accounts. This profile is not marked as a tutor."
+        title="No working hours for this account"
+        description="Working hours are only kept for tutors, and this person is not set up as a tutor."
       />
     )
   }
 
   if (scheduleQuery.isLoading) {
     return (
-      <p className="px-6 py-12 text-center text-sm text-slate-500">
-        Loading working schedule...
-      </p>
+      <div className="grid gap-2 p-5 sm:grid-cols-7 sm:p-6" aria-busy="true">
+        {WEEKDAYS.map((day) => (
+          <div key={day.key} className="h-24 animate-pulse rounded-2xl bg-canvas" />
+        ))}
+      </div>
     )
   }
 
   if (scheduleQuery.isError) {
     return (
       <EmptyScheduleState
-        title="Unable to load schedule"
-        description="Something went wrong while fetching this tutor's working schedule."
+        title="Unable to load working hours"
+        description="Something went wrong while loading this tutor's working hours. Please refresh the page to try again."
       />
     )
   }
 
   const schedule = scheduleQuery.data ?? null
 
+  const workingDays = schedule
+    ? WEEKDAYS.filter((day) => schedule[day.inKey] && schedule[day.outKey]).length
+    : 0
+
+  const isFreelance = user.employmentType === 'FL'
+
   return (
     <>
-      <div className="space-y-6 p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h4 className="text-base font-bold text-slate-900">
-              Tutor schedule
-            </h4>
-            <p className="mt-1 text-sm text-slate-500">
-              Weekly hours and schedule-linked rates.
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setDialogOpen(true)}
-          >
-            <CalendarClock className="size-3.5" />
-            {schedule ? 'Update schedule' : 'Record schedule'}
-          </Button>
-        </div>
-
-        {schedule ? (
+      <div className="space-y-4 p-5 sm:p-6">
+        {isFreelance ? (
+          <EmptyScheduleState
+            title="Freelance: no working hours"
+            description={
+              schedule && schedule.salaryPerSession > 0
+                ? `${user.fullName} can be booked for any session and is paid ${formatStaffCurrency(schedule.salaryPerSession)} per session. There's no base salary, overtime or paid leave.`
+                : `${user.fullName} can be booked for any session and is paid per session only. Set their per-session rate.`
+            }
+            action={
+              <Button
+                variant={schedule ? 'soft' : 'primary'}
+                onClick={() => setDialogOpen(true)}
+              >
+                <CalendarClock className="size-4" />
+                {schedule ? 'Update per-session rate' : 'Set per-session rate'}
+              </Button>
+            }
+          />
+        ) : schedule ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-slate-600">
+                Works{' '}
+                <span className="font-semibold text-ink">
+                  {workingDays} day{workingDays === 1 ? '' : 's'}
+                </span>{' '}
+                a week.
+              </p>
+              <Button variant="soft" size="sm" onClick={() => setDialogOpen(true)}>
+                <CalendarClock className="size-3.5" />
+                Edit working hours
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+              {WEEKDAYS.map((day) => {
+                const timeIn = schedule[day.inKey] || null
+                const timeOut = schedule[day.outKey] || null
+                const working = Boolean(timeIn && timeOut)
+                return (
+                  <div
+                    key={day.key}
+                    className={cn(
+                      'rounded-2xl px-3.5 py-3',
+                      working ? 'bg-brand-50' : 'bg-canvas',
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        'text-xs font-bold tracking-wide uppercase',
+                        working ? 'text-brand-700' : 'text-slate-400',
+                      )}
+                    >
+                      {day.label.slice(0, 3)}
+                    </p>
+                    {working ? (
+                      <p className="mt-2 text-sm font-semibold text-ink tabular-nums">
+                        {formatStaffTime(timeIn)}
+                        <span className="text-slate-400"> – </span>
+                        {formatStaffTime(timeOut)}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-sm font-medium text-slate-400">
+                        Day off
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <dl className="grid gap-2 sm:grid-cols-3">
               <StaffDetailItem
                 label="Main salary"
                 value={formatStaffCurrency(schedule.mainSalary)}
               />
               <StaffDetailItem
-                label="Per session"
+                label="Pay per session"
                 value={formatStaffCurrency(schedule.salaryPerSession)}
               />
               <StaffDetailItem
                 label="Overtime multiplier"
                 value={`${schedule.overtimeMultiplier}x`}
               />
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-slate-100">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                  <tr>
-                    <th className="px-4 py-3">Day</th>
-                    <th className="px-4 py-3">In</th>
-                    <th className="px-4 py-3">Out</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {WEEKDAYS.map((day) => (
-                    <tr key={day.key} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-semibold text-slate-800">
-                        {day.label}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatStaffTime(schedule[day.inKey] || null)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatStaffTime(schedule[day.outKey] || null)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            </dl>
           </>
         ) : (
           <EmptyScheduleState
-            title="No schedule on file"
-            description="This tutor does not have a working schedule configured yet."
+            title="No working hours yet"
+            description="Set the days and hours this tutor works so they can be booked on the schedule."
             action={
-              <Button size="sm" onClick={() => setDialogOpen(true)}>
-                <CalendarClock className="size-3.5" />
-                Record schedule
+              <Button onClick={() => setDialogOpen(true)}>
+                <CalendarClock className="size-4" />
+                Set working hours
               </Button>
             }
           />
@@ -167,6 +199,7 @@ export function StaffScheduleTab({ user }: StaffScheduleTabProps) {
         tutorName={user.fullName}
         schedule={schedule}
         mode="full"
+        freelance={user.employmentType === 'FL'}
       />
     </>
   )
@@ -182,11 +215,13 @@ function EmptyScheduleState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-16 text-center">
-      <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
-        <CalendarClock className="size-5" />
-      </div>
-      <h4 className="mt-4 text-base font-bold text-slate-900">{title}</h4>
+    <div className="flex flex-col items-center px-6 py-12 text-center">
+      <span className="relative inline-flex size-16 items-center justify-center">
+        <span aria-hidden className="absolute inset-0 rounded-full bg-brand-50" />
+        <span aria-hidden className="absolute inset-2 rounded-full bg-brand-100" />
+        <CalendarClock className="relative size-6 text-brand-600" strokeWidth={1.7} />
+      </span>
+      <h4 className="mt-4 text-base font-bold text-ink">{title}</h4>
       <p className="mt-2 max-w-md text-sm text-slate-500">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>

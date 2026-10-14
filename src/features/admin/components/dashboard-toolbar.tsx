@@ -1,12 +1,33 @@
+import { useNavigate } from '@tanstack/react-router'
 import { format, parseISO } from 'date-fns'
-import { Building2, CalendarRange, LayoutDashboard } from 'lucide-react'
+import {
+  Building2,
+  CalendarRange,
+  CreditCard,
+  GitCompareArrows,
+  Target,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 
+import {
+  HeroPillButton,
+  HeroSpotlight,
+  PageHero,
+  type HeroStat,
+} from '../../../shared/components/page'
 import { DateRangePicker } from '../../../shared/components/ui/date-range-picker'
 import { Select } from '../../../shared/components/ui/select'
-import { cn } from '../../../shared/lib/cn'
+import {
+  formatCurrencyAmount,
+  formatCurrencyCompact,
+} from '../../../shared/lib/currency'
+import { Can } from '../../auth/components/can'
 import type { DashboardMetrics } from '../types/dashboard'
-import { ALL_BRANCHES_ID } from '../types/dashboard'
+import { ALL_BRANCHES_ID, DASHBOARD_ANCHORS } from '../types/dashboard'
+import { DashboardChip } from './dashboard-kit'
 
 type DashboardToolbarProps = {
   dateRange: DateRange | undefined
@@ -18,15 +39,26 @@ type DashboardToolbarProps = {
   onBranchChange: (branchId: string) => void
 }
 
-function formatRangeLabel(start: string, end: string, compact = false) {
-  const startDate = parseISO(start)
-  const endDate = parseISO(end)
-  if (compact) {
-    return `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d, yyyy')}`
-  }
-  return `${format(startDate, 'MMM d, yyyy')} – ${format(endDate, 'MMM d, yyyy')}`
+function formatRangeLabel(start: string, end: string) {
+  return `${format(parseISO(start), 'MMM d')} – ${format(parseISO(end), 'MMM d, yyyy')}`
 }
 
+function jumpTo(id: string) {
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function changeCaption(changePct: number | null | undefined) {
+  if (changePct == null) return 'No earlier period to compare'
+  if (changePct === 0) return 'Same as the previous period'
+  return `${changePct > 0 ? 'Up' : 'Down'} ${Math.abs(changePct)}% on the previous period`
+}
+
+/**
+ * Dashboard banner: title, period + branch filters, the four headline numbers
+ * and a spotlight for payments waiting on approval.
+ */
 export function DashboardToolbar({
   dateRange,
   branchId,
@@ -36,146 +68,159 @@ export function DashboardToolbar({
   onDateRangeChange,
   onBranchChange,
 }: DashboardToolbarProps) {
-  const selectedBranchName =
-    branchId === ALL_BRANCHES_ID
-      ? 'All branches'
-      : (branches.find((branch) => branch.id === branchId)?.name ??
-        'Select a branch')
+  const navigate = useNavigate()
   const isAllBranches = branchId === ALL_BRANCHES_ID
+  const selectedBranchName = isAllBranches
+    ? 'All branches'
+    : (branches.find((branch) => branch.id === branchId)?.name ??
+      'Select a branch')
+
+  const kpis = metrics?.kpis
+  const stats: HeroStat[] = [
+    {
+      id: 'revenue',
+      label: 'Revenue',
+      icon: TrendingUp,
+      value: kpis ? (
+        <span title={formatCurrencyAmount(kpis.revenue.current)}>
+          {formatCurrencyCompact(kpis.revenue.current)}
+        </span>
+      ) : (
+        '–'
+      ),
+      caption: kpis ? changeCaption(kpis.revenue.changePct) : undefined,
+      hint: 'Jump to the revenue trend',
+      onSelect: () => jumpTo(DASHBOARD_ANCHORS.money),
+    },
+    {
+      id: 'enrollments',
+      label: 'New enrollments',
+      icon: UserPlus,
+      value: kpis ? kpis.newEnrollments.current.toLocaleString('en-US') : '–',
+      caption: kpis
+        ? `${kpis.newEnrollments.previous.toLocaleString('en-US')} in the previous period`
+        : undefined,
+      hint: 'Jump to the enrollment trend',
+      onSelect: () => jumpTo(DASHBOARD_ANCHORS.pipeline),
+    },
+    {
+      id: 'active',
+      label: 'Active students',
+      icon: Users,
+      value: kpis ? kpis.activeStudents.toLocaleString('en-US') : '–',
+      caption: kpis
+        ? metrics?.branchId == null
+          ? 'Across all branches'
+          : 'At this branch'
+        : undefined,
+      hint: 'Jump to teaching capacity',
+      onSelect: () => jumpTo(DASHBOARD_ANCHORS.capacity),
+    },
+    {
+      id: 'conversion',
+      label: 'Conversion',
+      icon: Target,
+      value: kpis
+        ? kpis.conversionRate == null
+          ? '—'
+          : `${kpis.conversionRate.toFixed(kpis.conversionRate % 1 === 0 ? 0 : 1)}%`
+        : '–',
+      caption: kpis ? 'New leads who went on to enroll' : undefined,
+      hint: 'Jump to where leads come from',
+      onSelect: () => jumpTo(DASHBOARD_ANCHORS.acquisition),
+    },
+  ]
+
+  const pending = kpis?.pendingCollections
 
   return (
-    <header
-      className={cn(
-        'relative overflow-hidden rounded-[1.5rem]',
-        'border border-slate-200/70 bg-white',
-        'shadow-[0_1px_0_rgba(15,23,42,0.03),0_12px_32px_-20px_rgba(37,60,161,0.18)]',
-        'animate-in fade-in slide-in-from-top-1 duration-500',
-      )}
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,60,161,0.08),transparent_55%),linear-gradient(180deg,#F8FAFF_0%,#FFFFFF_42%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-16 -right-10 size-44 rounded-full bg-[#253CA1]/10 blur-3xl"
-      />
-
-      <div className="relative z-10 flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-white shadow-sm shadow-[#253CA1]/25">
-              <LayoutDashboard className="size-4" strokeWidth={2.25} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[0.14em] text-[#253CA1]/80 uppercase">
-                Operations
-              </p>
-              <h1 className="truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Dashboard
-              </h1>
-            </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
-                isAllBranches
-                  ? 'bg-slate-100 text-slate-600'
-                  : 'bg-[#E8EEFF] text-[#1B2A5A]',
-              )}
-            >
-              <Building2 className="size-3.5 shrink-0 opacity-70" />
-              <span className="truncate">{selectedBranchName}</span>
-            </span>
-
-            {metrics ? (
-              <>
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200/80"
-                  title={formatRangeLabel(
-                    metrics.dateRange.start,
-                    metrics.dateRange.end,
-                  )}
-                >
-                  <CalendarRange className="size-3.5 shrink-0 text-[#253CA1]" />
-                  <span className="truncate">
-                    {formatRangeLabel(
-                      metrics.dateRange.start,
-                      metrics.dateRange.end,
-                      true,
-                    )}
-                  </span>
-                </span>
-                <span className="hidden text-xs text-slate-400 sm:inline">
-                  vs{' '}
-                  {formatRangeLabel(
-                    metrics.comparisonRange.start,
-                    metrics.comparisonRange.end,
-                    true,
-                  )}
-                </span>
-              </>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Revenue, enrollment, pipeline, and delivery health.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div
-          className={cn(
-            'flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-stretch',
-            'rounded-2xl border border-slate-200/80 bg-white/80 p-2 shadow-sm shadow-slate-200/40 backdrop-blur-sm',
-          )}
-        >
-          <label className="flex min-w-0 flex-1 flex-col gap-1 px-1 sm:min-w-[15rem]">
-            <span className="px-1 text-[10px] font-semibold tracking-[0.1em] text-slate-400 uppercase">
-              Period
-            </span>
-            <DateRangePicker
-              value={dateRange}
-              onChange={onDateRangeChange}
-              placeholder="Select date range"
-              className="w-full border-slate-200/80 bg-slate-50/80 hover:bg-white"
-            />
-          </label>
-
-          <div
-            aria-hidden
-            className="hidden w-px self-stretch bg-slate-200/80 sm:block"
+    <PageHero
+      eyebrow="Overview"
+      title="Dashboard"
+      description="Money, students, classes and leads for the period and branch you pick."
+      theme="sky"
+      pattern="waves"
+      actions={
+        <div className="flex w-full flex-col gap-2 rounded-[1.5rem] bg-white/60 p-1.5 backdrop-blur-md sm:w-auto sm:flex-row sm:rounded-full">
+          <DateRangePicker
+            value={dateRange}
+            onChange={onDateRangeChange}
+            placeholder="Pick a date range"
+            className="h-10 w-full min-w-0 bg-white sm:w-auto sm:min-w-60"
           />
-
-          <label className="flex min-w-0 flex-1 flex-col gap-1 px-1 sm:w-52 sm:flex-none">
-            <span className="px-1 text-[10px] font-semibold tracking-[0.1em] text-slate-400 uppercase">
-              Branch
-            </span>
-            <Select
-              value={branchId}
-              aria-label="Select branch"
-              disabled={branchesLoading || branches.length === 0}
-              onChange={(event) => onBranchChange(event.target.value)}
-              containerClassName="w-full"
-              className="h-10 border-slate-200/80 bg-slate-50/80 hover:bg-white"
-            >
-              {branches.length === 0 ? (
-                <option value="">Loading branches…</option>
-              ) : (
-                <>
-                  <option value={ALL_BRANCHES_ID}>All branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </Select>
-          </label>
+          <Select
+            value={branchId}
+            aria-label="Choose a branch"
+            disabled={branchesLoading || branches.length === 0}
+            onChange={(event) => onBranchChange(event.target.value)}
+            containerClassName="w-full sm:w-52"
+            className="h-10 rounded-full border-transparent bg-white"
+          >
+            {branches.length === 0 ? (
+              <option value="">Loading branches…</option>
+            ) : (
+              <>
+                <option value={ALL_BRANCHES_ID}>All branches</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </Select>
         </div>
+      }
+      stats={stats}
+      spotlight={
+        pending ? (
+          <Can module="studentPayments">
+            <HeroSpotlight
+              title={
+                pending.count > 0
+                  ? `${formatCurrencyCompact(pending.amount)} to approve`
+                  : 'Payments are up to date'
+              }
+              description={
+                pending.count > 0
+                  ? `${pending.count} payment${pending.count === 1 ? '' : 's'} waiting for approval.`
+                  : 'Nothing is waiting for approval right now.'
+              }
+              actions={
+                <HeroPillButton
+                  icon={CreditCard}
+                  onClick={() => void navigate({ to: '/student-payments' })}
+                >
+                  {pending.count > 0 ? 'Review payments' : 'Open payments'}
+                </HeroPillButton>
+              }
+            />
+          </Can>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <DashboardChip icon={Building2} className="bg-white/70 text-ink">
+          {selectedBranchName}
+        </DashboardChip>
+        {metrics ? (
+          <>
+            <DashboardChip icon={CalendarRange} className="bg-white/70 text-ink">
+              {formatRangeLabel(metrics.dateRange.start, metrics.dateRange.end)}
+            </DashboardChip>
+            <DashboardChip
+              icon={GitCompareArrows}
+              className="bg-white/40 text-slate-600"
+            >
+              Compared with{' '}
+              {formatRangeLabel(
+                metrics.comparisonRange.start,
+                metrics.comparisonRange.end,
+              )}
+            </DashboardChip>
+          </>
+        ) : null}
       </div>
-    </header>
+    </PageHero>
   )
 }

@@ -1,3 +1,5 @@
+import type { EmploymentTypeCode } from '../../users/api/users-api'
+
 export type TutorGender = 'male' | 'female'
 
 export type TutorListItem = {
@@ -12,4 +14,6 @@ export type TutorListItem = {
   dateJoined: string
   paidLeaveLeft: number
   hasWorkingSchedule: boolean
+  /** Freelancers (FL) have no working hours or paid leave. */
+  employmentType: EmploymentTypeCode | null
 }

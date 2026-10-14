@@ -7,9 +7,12 @@ import {
 import {
   Check,
   ChevronDown,
-  KeyRound,
+  LayoutGrid,
+  Loader2,
   Search,
   Shield,
+  SlidersHorizontal,
+  Trash2,
   X,
 } from 'lucide-react'
 
@@ -18,6 +21,10 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { cn } from '../../../shared/lib/cn'
 import { usePermissionsCatalogQuery } from '../hooks/use-permissions-catalog-query'
+import { PAGES } from '../../auth/lib/page-catalog'
+import { accessChanges, buildPermissionIndex } from '../lib/access-levels'
+import { RoleAccessMatrix } from './role-access-matrix'
+import { RoleAccessPreview } from './role-access-preview'
 import {
   getPermissionActionHint,
   getPermissionActionLabel,
@@ -101,10 +108,13 @@ type StaffPermissionFormProps = {
   onSubmit: () => void | Promise<void>
   onCancel: () => void
   onDelete?: () => void
+  /** The role being edited, so "Copy from role" leaves it out. */
+  roleId?: string
 }
 
 export function StaffPermissionForm({
   mode,
+  roleId,
   values,
   errors,
   isSubmitting,
@@ -128,9 +138,42 @@ export function StaffPermissionForm({
     [values.permissionIds],
   )
 
-  const allPermissions = permissionsQuery.data ?? []
-  const totalCount = allPermissions.length
+  const allPermissions = useMemo(
+    () => permissionsQuery.data ?? [],
+    [permissionsQuery.data],
+  )
   const selectedCount = values.permissionIds.length
+  const [fineTuneOpen, setFineTuneOpen] = useState(false)
+  // Snapshot of what the role had when the form opened, for the change list.
+  const [initialIds] = useState(() => new Set(values.permissionIds))
+
+  const permissionIndex = useMemo(
+    () => buildPermissionIndex(allPermissions),
+    [allPermissions],
+  )
+  const changes = useMemo(
+    () => accessChanges(initialIds, selectedIds, permissionIndex),
+    [initialIds, selectedIds, permissionIndex],
+  )
+  const rawChangeCount = useMemo(() => {
+    let count = 0
+    for (const id of selectedIds) if (!initialIds.has(id)) count += 1
+    for (const id of initialIds) if (!selectedIds.has(id)) count += 1
+    return count
+  }, [initialIds, selectedIds])
+
+  const visiblePageCount = useMemo(
+    () =>
+      PAGES.filter((page) => {
+        const id = permissionIndex.get(page.openPermission)
+        return Boolean(id && selectedIds.has(id))
+      }).length,
+    [permissionIndex, selectedIds],
+  )
+
+  function setSelected(next: Set<string>) {
+    onChange('permissionIds', Array.from(next))
+  }
 
   const appLabels = useMemo(() => {
     const labels = new Set(allPermissions.map((item) => item.appLabel))
@@ -255,33 +298,31 @@ export function StaffPermissionForm({
     await onSubmit()
   }
 
-  const progress =
-    totalCount > 0 ? Math.round((selectedCount / totalCount) * 100) : 0
-
   return (
-    <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-        <aside className="animate-in fade-in slide-in-from-left-2 space-y-4 xl:sticky xl:top-6 xl:self-start">
-          <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-[#F5F8FF] via-white to-white p-5 shadow-sm">
-            <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
-              <Shield className="size-5" />
+    <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+        <aside className="animate-in fade-in slide-in-from-left-2 space-y-3 xl:sticky xl:top-4 xl:self-start">
+          <div className="overflow-hidden rounded-[1.75rem] bg-white p-5">
+            <div className="inline-flex size-10 items-center justify-center rounded-full bg-ink text-white">
+              <Shield className="size-[1.1rem]" />
             </div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900">
+            <h3 className="mt-3 text-base font-bold tracking-tight text-ink">
               {mode === 'create' ? 'Name this role' : 'Role details'}
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-slate-500">
-              The name is what staff see. Then tick only the actions this role
-              should be allowed to do.
+              The name is what staff see. Then pick, page by page, what this
+              role can open and change.
             </p>
 
             <div className="mt-5 space-y-2">
-              <Label htmlFor="name">Role name</Label>
+              <Label htmlFor="name">
+                Role name<span className="text-rose-500"> *</span>
+              </Label>
               <Input
                 id="name"
                 value={values.name}
                 onChange={(event) => onChange('name', event.target.value)}
                 placeholder="e.g. Front Desk"
-                className="bg-white"
                 autoFocus={mode === 'create'}
               />
               <p className="text-xs text-slate-400">
@@ -291,17 +332,17 @@ export function StaffPermissionForm({
             </div>
 
             <div className="mt-4 space-y-2">
-              <Label htmlFor="code">Short code</Label>
+              <Label htmlFor="code">Short code (optional)</Label>
               <Input
                 id="code"
                 value={values.code}
                 onChange={(event) => onChange('code', event.target.value)}
                 placeholder="e.g. front-desk"
-                className="bg-white font-mono text-sm"
+                className="font-mono text-sm"
               />
               <p className="text-xs text-slate-400">
-                Internal id used by the system. Use lowercase letters, numbers,
-                and hyphens. Built-in roles cannot change this.
+                A short name the system uses behind the scenes. Lowercase
+                letters, numbers and hyphens only. Built-in roles keep theirs.
               </p>
               <FieldError message={errors.code} />
             </div>
@@ -315,7 +356,6 @@ export function StaffPermissionForm({
                   onChange('description', event.target.value)
                 }
                 placeholder="Optional, e.g. Front-office staff who enroll students"
-                className="bg-white"
               />
               <FieldError message={errors.description} />
             </div>
@@ -324,22 +364,37 @@ export function StaffPermissionForm({
               <Label htmlFor="canViewAllData">Whose records they can see</Label>
               <label
                 htmlFor="canViewAllData"
-                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700"
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-2xl px-3.5 py-3 text-sm transition',
+                  values.canViewAllData
+                    ? 'bg-ink text-white'
+                    : 'bg-canvas text-slate-700 hover:bg-canvas-deep',
+                )}
               >
                 <input
                   id="canViewAllData"
                   type="checkbox"
-                  className="mt-0.5 size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+                  className="mt-0.5 size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                   checked={values.canViewAllData}
                   onChange={(event) =>
                     onChange('canViewAllData', event.target.checked)
                   }
                 />
                 <span>
-                  <span className="block font-semibold text-slate-900">
+                  <span
+                    className={cn(
+                      'block font-semibold',
+                      values.canViewAllData ? 'text-white' : 'text-ink',
+                    )}
+                  >
                     See all records in the pages they can access
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
+                  <span
+                    className={cn(
+                      'mt-0.5 block text-xs',
+                      values.canViewAllData ? 'text-white/70' : 'text-slate-500',
+                    )}
+                  >
                     Turn this off if they should only see records linked to
                     their own account (for example a tutor seeing only their
                     classes).
@@ -350,83 +405,119 @@ export function StaffPermissionForm({
             </div>
           </div>
 
-          <div className="animate-in fade-in slide-in-from-bottom-1 delay-75 rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">
-                  Selected
-                </p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">
-                  {selectedCount}
-                </p>
-              </div>
-              <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#1B2A5A]">
-                <KeyRound className="size-5" />
-              </div>
-            </div>
+          <div className="animate-in fade-in slide-in-from-bottom-1 delay-75">
+            <RoleAccessPreview
+              index={permissionIndex}
+              selected={selectedIds}
+              changes={changes}
+              showChanges={mode === 'edit'}
+            />
+          </div>
+        </aside>
 
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-[#253CA1] transition-[width] duration-300"
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              {totalCount
-                ? `${progress}% of available actions · ${totalCount} total`
-                : 'Loading available actions…'}
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-2">
+        <section className="animate-in fade-in slide-in-from-bottom-2 delay-100 min-w-0 space-y-3">
+          <div className="rounded-[1.75rem] bg-white p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+                  <LayoutGrid className="size-[1.1rem]" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold tracking-tight text-ink">
+                    Pages and data
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    <strong className="font-semibold text-ink">Data only</strong>{' '}
+                    keeps a page out of the sidebar but lets other pages use its
+                    records, e.g. a tutor dropdown. View, Edit and Full open the
+                    page.
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 disabled={selectedCount === 0}
                 onClick={() => onChange('permissionIds', [])}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-canvas px-3 text-xs font-semibold text-slate-600 transition hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <X className="size-3.5" />
                 Clear all
               </button>
-              <button
-                type="button"
-                onClick={() => setSelectionFilter('selected')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-              >
-                <Check className="size-3.5" />
-                Review selected
-              </button>
+            </div>
+
+            {errors.permissionIds ? (
+              <div className="mt-4">
+                <FieldError message={errors.permissionIds} />
+              </div>
+            ) : null}
+
+            <div className="mt-5">
+              {permissionsQuery.isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-16 animate-pulse rounded-2xl bg-canvas"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {permissionsQuery.isSuccess ? (
+                <RoleAccessMatrix
+                  index={permissionIndex}
+                  selected={selectedIds}
+                  onChange={setSelected}
+                  roleId={roleId}
+                />
+              ) : null}
             </div>
           </div>
-        </aside>
 
-        <section className="animate-in fade-in slide-in-from-bottom-2 delay-100 min-w-0 space-y-4">
-          <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  What this role can do
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Tick an action to allow it. View opens the page; Add, Edit,
-                  and Delete control whether they can change records.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
+          <div className="rounded-[1.75rem] bg-white p-5 sm:p-6">
+            <button
+              type="button"
+              onClick={() => setFineTuneOpen((open) => !open)}
+              aria-expanded={fineTuneOpen}
+              className="flex w-full items-center gap-3 text-left"
+            >
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas text-slate-500">
+                <SlidersHorizontal className="size-[1.1rem]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-base font-bold tracking-tight text-ink">
+                  Fine-tune individual permissions
+                </span>
+                <span className="mt-0.5 block text-sm text-slate-500">
+                  Every permission on its own, including special ones like
+                  approving payments. {selectedCount} allowed.
+                </span>
+              </span>
+              <ChevronDown
+                className={cn(
+                  'size-5 shrink-0 text-slate-400 transition-transform',
+                  fineTuneOpen ? 'rotate-180' : '',
+                )}
+              />
+            </button>
+
+            {fineTuneOpen ? (
+          <div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
                   onClick={expandAllVisible}
-                  className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
+                  className="h-8 rounded-full bg-canvas px-3 text-xs font-semibold text-slate-600 transition hover:bg-canvas-deep hover:text-ink"
                 >
                   Expand all
                 </button>
                 <button
                   type="button"
                   onClick={collapseAll}
-                  className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
+                  className="h-8 rounded-full bg-canvas px-3 text-xs font-semibold text-slate-600 transition hover:bg-canvas-deep hover:text-ink"
                 >
                   Collapse
                 </button>
-              </div>
             </div>
 
             <div className="relative mt-5">
@@ -457,8 +548,8 @@ export function StaffPermissionForm({
                     className={cn(
                       'rounded-full px-3.5 py-1.5 text-xs font-semibold transition',
                       active
-                        ? 'bg-[#253CA1] text-white shadow-sm shadow-[#253CA1]/25'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80',
+                        ? 'bg-ink text-white'
+                        : 'bg-canvas text-slate-600 hover:bg-canvas-deep',
                     )}
                   >
                     {option.label}
@@ -485,19 +576,13 @@ export function StaffPermissionForm({
               </div>
             ) : null}
 
-            {errors.permissionIds ? (
-              <div className="mt-4">
-                <FieldError message={errors.permissionIds} />
-              </div>
-            ) : null}
-
             <div className="mt-5">
               {permissionsQuery.isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={index}
-                      className="h-16 animate-pulse rounded-2xl bg-slate-100"
+                      className="h-16 animate-pulse rounded-2xl bg-canvas"
                       style={{ animationDelay: `${index * 50}ms` }}
                     />
                   ))}
@@ -505,7 +590,7 @@ export function StaffPermissionForm({
               ) : null}
 
               {permissionsQuery.isError ? (
-                <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-5 py-10 text-center">
+                <div className="rounded-2xl bg-rose-50/70 px-5 py-10 text-center">
                   <p className="text-sm font-semibold text-rose-700">
                     Couldn’t load role actions
                   </p>
@@ -516,16 +601,17 @@ export function StaffPermissionForm({
                     type="button"
                     className="mt-4"
                     size="sm"
+                    variant="ink"
                     onClick={() => void permissionsQuery.refetch()}
                   >
-                    Retry
+                    Try again
                   </Button>
                 </div>
               ) : null}
 
               {permissionsQuery.isSuccess && groups.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-12 text-center">
-                  <p className="text-sm font-semibold text-slate-800">
+                <div className="rounded-2xl bg-canvas px-5 py-12 text-center">
+                  <p className="text-sm font-semibold text-ink">
                     No matches
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
@@ -533,7 +619,7 @@ export function StaffPermissionForm({
                   </p>
                   <button
                     type="button"
-                    className="mt-4 text-sm font-semibold text-[#253CA1] hover:underline"
+                    className="mt-4 text-sm font-semibold text-brand-500 hover:underline"
                     onClick={() => {
                       setSearch('')
                       setSelectionFilter('all')
@@ -561,10 +647,8 @@ export function StaffPermissionForm({
                       <div
                         key={group.key}
                         className={cn(
-                          'overflow-hidden rounded-2xl border transition',
-                          groupSelectedCount > 0
-                            ? 'border-[#C8D4F5] bg-[#F5F8FF]/60'
-                            : 'border-slate-200 bg-white',
+                          'overflow-hidden rounded-2xl transition',
+                          groupSelectedCount > 0 ? 'bg-brand-50' : 'bg-canvas',
                         )}
                       >
                         <div className="flex items-center gap-2 px-3 py-2.5 sm:px-4">
@@ -576,10 +660,10 @@ export function StaffPermissionForm({
                           >
                             <span
                               className={cn(
-                                'inline-flex size-8 shrink-0 items-center justify-center rounded-xl transition',
+                                'inline-flex size-8 shrink-0 items-center justify-center rounded-full transition',
                                 isOpen
-                                  ? 'bg-[#253CA1] text-white'
-                                  : 'bg-slate-100 text-slate-500',
+                                  ? 'bg-ink text-white'
+                                  : 'bg-white text-slate-500',
                               )}
                             >
                               <ChevronDown
@@ -591,11 +675,11 @@ export function StaffPermissionForm({
                             </span>
                             <span className="min-w-0">
                               <span className="flex items-center gap-2">
-                                <span className="truncate text-sm font-semibold text-slate-900">
+                                <span className="truncate text-sm font-semibold text-ink">
                                   {group.label}
                                 </span>
                                 {groupSelectedCount > 0 ? (
-                                  <span className="shrink-0 rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#1B2A5A]">
+                                  <span className="shrink-0 rounded-full bg-brand-500 px-2 py-0.5 text-[10px] font-semibold text-white tabular-nums">
                                     {groupSelectedCount}/{groupIds.length}
                                   </span>
                                 ) : null}
@@ -606,10 +690,10 @@ export function StaffPermissionForm({
                             </span>
                           </button>
 
-                          <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#C8D4F5]">
+                          <label className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-white px-3 text-xs font-semibold text-slate-600 transition hover:text-ink">
                             <input
                               type="checkbox"
-                              className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+                              className="size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                               checked={allSelected}
                               ref={(element) => {
                                 if (element) {
@@ -628,7 +712,7 @@ export function StaffPermissionForm({
                         </div>
 
                         {isOpen ? (
-                          <div className="border-t border-slate-100 bg-white px-3 py-3 sm:px-4">
+                          <div className="px-3 pb-3 sm:px-4">
                             <div className="grid gap-2 sm:grid-cols-2">
                               {group.permissions.map((permission) => {
                                 const checked = selectedIds.has(permission.id)
@@ -638,15 +722,15 @@ export function StaffPermissionForm({
                                     className={cn(
                                       'group relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3.5 py-3 transition',
                                       checked
-                                        ? 'border-[#253CA1] bg-[#E8EEFF] shadow-sm shadow-[#253CA1]/10'
-                                        : 'border-slate-200 bg-[#F5F8FF]/70 hover:border-[#C8D4F5] hover:bg-white',
+                                        ? 'border-transparent bg-white ring-2 ring-brand-500'
+                                        : 'border-transparent bg-white/70 hover:bg-white',
                                     )}
                                   >
                                     <span
                                       className={cn(
                                         'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md border transition',
                                         checked
-                                          ? 'border-[#253CA1] bg-[#253CA1] text-white'
+                                          ? 'border-brand-500 bg-brand-500 text-white'
                                           : 'border-slate-300 bg-white text-transparent',
                                       )}
                                       aria-hidden
@@ -662,7 +746,7 @@ export function StaffPermissionForm({
                                       }
                                     />
                                     <span className="min-w-0">
-                                      <span className="block text-sm font-semibold text-slate-900">
+                                      <span className="block text-sm font-semibold text-ink">
                                         {getPermissionActionLabel(
                                           permission.codename,
                                           group.label,
@@ -689,47 +773,64 @@ export function StaffPermissionForm({
               ) : null}
             </div>
           </div>
+            ) : null}
+          </div>
         </section>
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-1 border-t border-slate-200/80 bg-white/90 px-1 py-4 backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+      {/* Mirrors FormSaveBar, but keeps Save disabled until the role has a name. */}
+      <div className="sticky bottom-3 z-10 animate-in fade-in slide-in-from-bottom-2 delay-150">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[1.75rem] bg-white/95 py-2 pr-2 pl-3 shadow-xl shadow-ink/15 ring-1 ring-slate-200/60 backdrop-blur-md sm:pl-4">
+          <div className="flex min-w-0 items-center gap-2">
             {mode === 'edit' && onDelete ? (
               <Button
                 type="button"
                 variant="ghost"
+                size="sm"
                 className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                 onClick={onDelete}
                 disabled={isSubmitting}
               >
+                <Trash2 className="size-4" />
                 Delete role
               </Button>
-            ) : (
-              <p className="text-sm text-slate-500">
-                {selectedCount === 0
-                  ? 'You can save now and tick actions later.'
-                  : `${selectedCount} action${selectedCount === 1 ? '' : 's'} allowed for this role.`}
-              </p>
-            )}
+            ) : null}
+            <p className="hidden truncate text-xs text-slate-500 sm:block">
+              {mode === 'create'
+                ? visiblePageCount === 0
+                  ? 'You can save now and choose pages later.'
+                  : `Opens ${visiblePageCount} page${visiblePageCount === 1 ? '' : 's'}.`
+                : changes.length > 0
+                  ? `${changes.length} page${changes.length === 1 ? '' : 's'} changed: ${changes
+                      .slice(0, 3)
+                      .map((change) => change.label)
+                      .join(', ')}${changes.length > 3 ? '…' : ''}`
+                  : rawChangeCount > 0
+                    ? `${rawChangeCount} individual permission${rawChangeCount === 1 ? '' : 's'} changed.`
+                    : 'No changes yet.'}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               onClick={onCancel}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !values.name.trim()}>
+            <Button
+              type="submit"
+              className="min-w-32"
+              disabled={isSubmitting || !values.name.trim()}
+              title={!values.name.trim() ? 'Give the role a name first' : undefined}
+            >
+              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {isSubmitting
-                ? mode === 'create'
-                  ? 'Saving...'
-                  : 'Updating...'
+                ? 'Saving...'
                 : mode === 'create'
                   ? 'Create role'
-                  : 'Save Changes'}
+                  : 'Save changes'}
             </Button>
           </div>
         </div>
@@ -754,8 +855,8 @@ function AppChip({
       className={cn(
         'shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition',
         active
-          ? 'bg-slate-900 text-white'
-          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80',
+          ? 'bg-brand-500 text-white'
+          : 'bg-canvas text-slate-600 hover:bg-canvas-deep',
       )}
     >
       {label}

@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BookOpen } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -122,46 +123,48 @@ function ProgramEditForm({
   }
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/programs"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/programs"
+          backLabel="Programs"
+          title={program.title}
+          description={
+            <>
+              Editing <span className="font-mono">{program.code}</span>
+            </>
+          }
+          icon={BookOpen}
+          theme="harbor"
+          pattern="arcs"
+          badge={
+            <span
+              className={
+                program.isActive
+                  ? 'rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white'
+                  : 'rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/70'
+              }
             >
-              <ArrowLeft className="size-4" />
-              Programs
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Update Program
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Edit details for {program.title}.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+              {program.isActive ? 'Active' : 'Inactive'}
+            </span>
+          }
+        />
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <ProgramForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            meta={{
-              createdAt: program.createdAt,
-              updatedAt: program.updatedAt,
-              createdBy: program.createdBy ?? '',
-            }}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+        <ProgramForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          meta={{
+            createdAt: program.createdAt,
+            updatedAt: program.updatedAt,
+            createdBy: program.createdBy ?? '',
+          }}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )

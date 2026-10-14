@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CalendarRange } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { EmptyState, PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -14,12 +15,13 @@ import {
 } from '../api/bookkeeping-api'
 import { bookkeepingQueryKeys } from '../api/bookkeeping-query-keys'
 import { BookkeepingForm } from '../components/bookkeeping-form'
-import {
-  BookkeepingListErrorState,
-  BookkeepingListLoadingState,
-} from '../components/bookkeeping-list-states'
+import { BookkeepingListLoadingState } from '../components/bookkeeping-list-states'
 import { useBookkeepingForm } from '../hooks/use-bookkeeping-form'
 import { useBookkeepingItemQuery } from '../hooks/use-bookkeeping-query'
+import {
+  bookkeepingStatusLabel,
+  formatPeriodDate,
+} from '../lib/bookkeeping-status'
 import type {
   BookkeepingDetail,
   BookkeepingFormValues,
@@ -34,44 +36,40 @@ export default function BookkeepingEditPage() {
 
   if (itemQuery.isLoading) {
     return (
-      <AdminShell>
-        <BookkeepingListLoadingState />
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl space-y-3">
+          <div className="h-24 animate-pulse rounded-[1.75rem] bg-ink/80" />
+          <BookkeepingListLoadingState />
+        </div>
       </AdminShell>
     )
   }
 
   if (itemQuery.isError || !itemQuery.data) {
     return (
-      <AdminShell>
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Bookkeeping period not found
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This period may have been removed or the link is invalid.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void navigate({ to: '/bookkeeping' })}
-            >
-              <ArrowLeft className="size-3.5" />
-              Back to bookkeeping
-            </Button>
-            {itemQuery.isError ? (
-              <Button size="sm" onClick={() => void itemQuery.refetch()}>
-                Retry
-              </Button>
-            ) : null}
-          </div>
-          {itemQuery.isError ? (
-            <div className="mt-8 w-full">
-              <BookkeepingListErrorState
-                onRetry={() => void itemQuery.refetch()}
-              />
-            </div>
-          ) : null}
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-2xl py-10">
+          <EmptyState
+            icon={CalendarRange}
+            title="Bookkeeping period not found"
+            description="This period may have been removed or the link is invalid."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button
+                  variant="soft"
+                  onClick={() => void navigate({ to: '/bookkeeping' })}
+                >
+                  <ArrowLeft className="size-4" />
+                  Back to bookkeeping
+                </Button>
+                {itemQuery.isError ? (
+                  <Button variant="ink" onClick={() => void itemQuery.refetch()}>
+                    Try again
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
         </div>
       </AdminShell>
     )
@@ -103,9 +101,11 @@ function BookkeepingEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete bookkeeping?',
-      description:
-        'This will permanently remove this bookkeeping period and its salary calculations. This action cannot be undone.',
+      title: 'Delete bookkeeping period?',
+      description: `This will permanently remove ${
+        item.title.trim() ||
+        `${formatPeriodDate(item.startDate)} – ${formatPeriodDate(item.endDate)}`
+      } and its salary calculations. This cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -129,50 +129,45 @@ function BookkeepingEditForm({
     })
   }
 
-  return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/bookkeeping/$bookkeepingId"
-              params={{ bookkeepingId: item.id }}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Period detail
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Edit Bookkeeping Period
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Update dates, status, or scope for this payroll period.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+  const periodName =
+    item.title.trim() ||
+    `${formatPeriodDate(item.startDate)} – ${formatPeriodDate(item.endDate)}`
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <BookkeepingForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            branchOptions={branchesQuery.data?.data ?? []}
-            branchesLoading={branchesQuery.isLoading}
-            meta={{
-              createdAt: item.createdAt,
-              updatedAt: item.updatedAt,
-              createdBy: item.createdBy,
-            }}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+  return (
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo={`/bookkeeping/${item.id}`}
+          backLabel="Period detail"
+          title={periodName}
+          description="Update dates, status, or branch for this payroll period."
+          icon={CalendarRange}
+          theme="dusk"
+          pattern="waves"
+          badge={
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+              {bookkeepingStatusLabel(item.status)}
+            </span>
+          }
+        />
+
+        <BookkeepingForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          branchOptions={branchesQuery.data?.data ?? []}
+          branchesLoading={branchesQuery.isLoading}
+          meta={{
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            createdBy: item.createdBy,
+          }}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )

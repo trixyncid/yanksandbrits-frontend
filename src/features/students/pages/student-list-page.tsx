@@ -1,14 +1,19 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { GraduationCap, Plus, UserCheck, UserMinus } from 'lucide-react'
 import { useMemo } from 'react'
 
 import {
   ClearListFiltersButton,
   DataTable,
   ListFilterSearchSelect,
+  ListFilterSelect,
   ListToolbarFilters,
 } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
+import {
+  HeroPillButton,
+  HeroSpotlight,
+  PageHero,
+} from '../../../shared/components/page'
 import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
@@ -40,11 +45,19 @@ function filterStudent(row: StudentListItem, search: string) {
   return haystack.includes(search)
 }
 
-const EMPTY_FILTERS = { counsellorId: '' } as const
+const EMPTY_FILTERS = { counsellorId: '', status: '' } as const
 
 type StudentListFilterState = {
   counsellorId: string
+  /** Quick filter from the hero stats; applied on the loaded list only. */
+  status: string
 }
+
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
 
 export default function StudentListPage() {
   const navigate = useNavigate()
@@ -67,14 +80,39 @@ export default function StudentListPage() {
     ],
     [counsellorsQuery.data],
   )
-  const hasActiveFilters = !hideCounsellorFilter && Boolean(filters.counsellorId)
+  const statusFilter = filters.status ?? ''
+  const hasCounsellorFilter =
+    !hideCounsellorFilter && Boolean(filters.counsellorId)
+  const hasActiveFilters = hasCounsellorFilter || Boolean(statusFilter)
   const studentsQuery = useStudentsQuery({
     counsellorId: hideCounsellorFilter
       ? undefined
       : filters.counsellorId || undefined,
   })
+  const allStudents = useMemo(
+    () => studentsQuery.data?.data ?? [],
+    [studentsQuery.data?.data],
+  )
+  const students = useMemo(
+    () =>
+      statusFilter
+        ? allStudents.filter((student) => student.status === statusFilter)
+        : allStudents,
+    [allStudents, statusFilter],
+  )
+
+  const loaded = studentsQuery.isSuccess
+  const stat = (count: number) => (loaded ? count : '–')
+  const activeCount = allStudents.filter(
+    (student) => student.status === 'active',
+  ).length
+  const withAccountCount = allStudents.filter(
+    (student) => student.hasAccount,
+  ).length
 
   const clearFilters = () => setFilters({ ...EMPTY_FILTERS })
+  const setStatus = (status: string) =>
+    setFilters((current) => ({ ...current, status }))
 
   function openCreate() {
     void navigate({
@@ -83,50 +121,92 @@ export default function StudentListPage() {
     })
   }
 
-  const listFilters = hideCounsellorFilter ? undefined : (
+  const listFilters = (
     <ListToolbarFilters>
-      <ListFilterSearchSelect
-        label="Counsellor"
-        ariaLabel="Filter by counsellor"
-        value={filters.counsellorId}
-        onChange={(counsellorId) =>
-          setFilters((current) => ({ ...current, counsellorId }))
-        }
-        options={counsellorOptions}
-        disabled={counsellorsQuery.isLoading}
-        searchPlaceholder="Search by name or PIN"
-        emptyMessage="No counsellors found"
+      <ListFilterSelect
+        label="Status"
+        ariaLabel="Filter by status"
+        value={statusFilter}
+        onChange={setStatus}
+        options={STATUS_FILTER_OPTIONS}
       />
+      {hideCounsellorFilter ? null : (
+        <ListFilterSearchSelect
+          label="Counsellor"
+          ariaLabel="Filter by counsellor"
+          value={filters.counsellorId}
+          onChange={(counsellorId) =>
+            setFilters((current) => ({ ...current, counsellorId }))
+          }
+          options={counsellorOptions}
+          disabled={counsellorsQuery.isLoading}
+          searchPlaceholder="Search by name or PIN"
+          emptyMessage="No counsellors found"
+        />
+      )}
       <ClearListFiltersButton
         visible={hasActiveFilters}
         onClear={clearFilters}
-        className="h-10 rounded-full border-slate-200 bg-white hover:bg-slate-50"
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
       />
     </ListToolbarFilters>
   )
 
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Students
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Browse enrolled students, their branch, and enrollment status.
-            </p>
-          </div>
-          <Can module="students" action="add">
-            <Button
-              onClick={openCreate}
-              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
-            >
-              <Plus className="size-4" />
-              Add New Student
-            </Button>
-          </Can>
-        </div>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Students"
+          title="Students"
+          description="Everyone enrolled with us: their branch, counsellor, and whether they're currently studying."
+          theme="harbor"
+          pattern="waves"
+          stats={[
+            {
+              id: 'all',
+              label: 'Students',
+              value: stat(allStudents.length),
+              icon: GraduationCap,
+              caption: loaded
+                ? `${withAccountCount} with a student app account`
+                : undefined,
+              hint: 'Show all students',
+              active: !statusFilter,
+              onSelect: () => setStatus(''),
+            },
+            {
+              id: 'active',
+              label: 'Active',
+              value: stat(activeCount),
+              icon: UserCheck,
+              hint: 'Show active students only',
+              active: statusFilter === 'active',
+              onSelect: () => setStatus('active'),
+            },
+            {
+              id: 'inactive',
+              label: 'Inactive',
+              value: stat(allStudents.length - activeCount),
+              icon: UserMinus,
+              hint: 'Show inactive students only',
+              active: statusFilter === 'inactive',
+              onSelect: () => setStatus('inactive'),
+            },
+          ]}
+          spotlight={
+            <Can module="students" action="add">
+              <HeroSpotlight
+                title="Enroll a student"
+                description="Start fresh or convert an existing prospective student."
+                actions={
+                  <HeroPillButton icon={Plus} onClick={openCreate}>
+                    Add student
+                  </HeroPillButton>
+                }
+              />
+            </Can>
+          }
+        />
 
         {studentsQuery.isLoading ? <StudentListLoadingState /> : null}
 
@@ -139,19 +219,24 @@ export default function StudentListPage() {
           </div>
         ) : null}
 
-        {studentsQuery.isSuccess ? (
+        {loaded ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
             <DataTable
-              title="Students"
-              description="Search and manage enrolled student records."
+              variant="soft"
+              title="Student Directory"
+              description="Search, filter, and open any student record."
               totalLabel="students"
               columns={studentListColumns}
-              data={studentsQuery.data.data}
-              searchPlaceholder="Search by name, PIN, or email..."
+              data={students}
+              searchPlaceholder="Search by name, PIN, email, or phone..."
               searchVariant="pill"
               globalFilterFn={filterStudent}
               initialPageSize={10}
-              emptyMessage="No students found"
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No students match these filters'
+                  : 'No students yet'
+              }
               toolbarFilters={listFilters}
             />
           </div>

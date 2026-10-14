@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '../../../shared/components/ui/dialog'
 import type { TimetableColumn, TimetableEvent } from '../../../shared/components/timetable'
+import { useModulePermissions } from '../../auth/hooks/use-permissions'
 import { useClassroomsQuery } from '../../classrooms/hooks/use-classrooms-query'
 import {
   emptyScheduleFormValues,
@@ -91,18 +92,18 @@ function buildCreateDescription(
   const window = `${values.startTime} – ${values.endTime}`
 
   if (classroomLabel) {
-    return `Schedule ${duration} in ${classroomLabel} (${window}).`
+    return `Book ${duration} in ${classroomLabel}, ${window}.`
   }
 
   if (values.classroomId) {
-    return `Schedule ${duration} (${window}).`
+    return `Book ${duration}, ${window}.`
   }
 
   if (values.date) {
-    return `Schedule ${duration} on ${values.date} (${window}). Pick a classroom in the form.`
+    return `Book ${duration} on ${values.date}, ${window}. Pick a classroom below.`
   }
 
-  return `Schedule ${duration} (${window}). Pick a classroom in the form.`
+  return `Book ${duration}, ${window}. Pick a classroom below.`
 }
 
 function ScheduleDialogChrome({
@@ -118,14 +119,16 @@ function ScheduleDialogChrome({
 }) {
   return (
     <div className="flex max-h-[90vh] flex-col">
-      <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-        <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
-          {icon}
+      <div className="shrink-0 bg-brand-50 px-6 pt-6 pb-5">
+        <div className="flex items-start gap-3.5 pr-8">
+          <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-white">
+            {icon}
+          </div>
+          <DialogHeader className="min-w-0 pr-0 text-left">
+            <DialogTitle className="text-ink">{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
         </div>
-        <DialogHeader className="pr-0">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
       </div>
       {children}
     </div>
@@ -176,7 +179,7 @@ function ScheduleFormDialogBody({
         initialClassroomLabel={
           context.column.id ? context.column.label : undefined
         }
-        title="New class session"
+        title="Book a class session"
         onClose={onClose}
       />
     )
@@ -215,8 +218,13 @@ function ScheduleFormDialogEditLoader({
         title="Edit class session"
         description={`Loading ${eventTitle}…`}
       >
-        <div className="flex flex-1 items-center justify-center px-6 py-16">
-          <p className="text-sm text-slate-500">Loading session details…</p>
+        <div className="space-y-3 px-6 py-6" aria-busy="true">
+          <div className="h-24 animate-pulse rounded-3xl bg-canvas" />
+          <div className="h-11 animate-pulse rounded-full bg-canvas" />
+          <div className="h-11 animate-pulse rounded-full bg-canvas/70" />
+          <p className="pt-1 text-center text-sm text-slate-500">
+            Loading session details…
+          </p>
         </div>
       </ScheduleDialogChrome>
     )
@@ -227,10 +235,10 @@ function ScheduleFormDialogEditLoader({
       <ScheduleDialogChrome
         icon={<CalendarClock className="size-5" />}
         title="Session not found"
-        description="This class session may have been removed."
+        description="This class session may have been removed or moved. Close this and refresh the schedule."
       >
-        <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+        <DialogFooter className="mt-0 shrink-0 px-6 py-4">
+          <Button variant="soft" onClick={onClose}>
             Close
           </Button>
         </DialogFooter>
@@ -276,7 +284,9 @@ function ScheduleFormDialogEditor({
     initialValues,
     onSuccess: onClose,
     onCancel: onClose,
+    recordLabel: eventTitle,
   })
+  const { canDelete } = useModulePermissions('schedules')
 
   const classroomsQuery = useClassroomsQuery({
     branchId,
@@ -311,7 +321,7 @@ function ScheduleFormDialogEditor({
   const description =
     mode === 'create'
       ? buildCreateDescription(form.values, classroomLabel)
-      : `Update details for ${eventTitle ?? 'this session'}.`
+      : `Change the time, room, tutor or status of ${eventTitle ?? 'this session'}.`
 
   return (
     <ScheduleDialogChrome
@@ -334,7 +344,7 @@ function ScheduleFormDialogEditor({
         onChange={form.updateField}
         onSubmit={form.submit}
         onCancel={form.cancel}
-        onDelete={mode === 'edit' ? form.remove : undefined}
+        onDelete={mode === 'edit' && canDelete ? form.remove : undefined}
       />
     </ScheduleDialogChrome>
   )

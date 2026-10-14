@@ -5,11 +5,13 @@ import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 export type NavBadges = {
   predictionTestsPending: number
   studentPaymentsPending: number
+  tutorSwitchesPending: number
 }
 
 type NavBadgesDto = {
   prediction_tests_pending: number
   student_payments_pending: number
+  tutor_switches_pending?: number
 }
 
 export async function fetchNavBadges(): Promise<NavBadges> {
@@ -20,6 +22,7 @@ export async function fetchNavBadges(): Promise<NavBadges> {
   return {
     predictionTestsPending: payload.prediction_tests_pending ?? 0,
     studentPaymentsPending: payload.student_payments_pending ?? 0,
+    tutorSwitchesPending: payload.tutor_switches_pending ?? 0,
   }
 }
 
@@ -31,5 +34,6 @@ export function badgeCountForNavItem(
   if (!badges) return 0
   if (itemId === 'prediction-test') return badges.predictionTestsPending
   if (itemId === 'student-payment') return badges.studentPaymentsPending
+  if (itemId === 'full-schedule') return badges.tutorSwitchesPending
   return 0
 }

@@ -66,12 +66,11 @@ export function PredictionTestListFiltersMenu({
         <button
           type="button"
           className={cn(
-            'inline-flex h-10 items-center gap-2 rounded-full border bg-white px-3.5 text-sm font-medium shadow-sm transition-colors',
-            'hover:border-slate-300',
-            'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+            'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30',
             activeCount > 0
-              ? 'border-[#253CA1]/40 bg-[#F5F7FF] text-[#253CA1]'
-              : 'border-slate-200/80 text-slate-800',
+              ? 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+              : 'bg-canvas text-ink hover:bg-canvas-deep',
           )}
           aria-label={
             activeCount > 0 ? `Filters, ${activeCount} active` : 'Filters'
@@ -80,7 +79,7 @@ export function PredictionTestListFiltersMenu({
           <ListFilter className="size-4" aria-hidden />
           Filters
           {activeCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#253CA1] px-1.5 text-[11px] font-semibold text-white">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[11px] font-semibold text-white">
               {activeCount}
             </span>
           ) : null}
@@ -102,14 +101,17 @@ export function PredictionTestListFiltersMenu({
         }}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-          <p className="text-sm font-semibold text-slate-900">Filters</p>
+          <div>
+            <p className="text-sm font-bold text-ink">Filters</p>
+            <p className="text-xs text-slate-500">Narrow the list of tests.</p>
+          </div>
           {activeCount > 0 ? (
             <button
               type="button"
               onClick={onClear}
-              className="text-sm font-medium text-[#253CA1] hover:text-[#1f3190]"
+              className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-xs font-semibold text-white transition hover:bg-ink-soft"
             >
-              Clear
+              Clear all
             </button>
           ) : null}
         </div>
@@ -161,7 +163,7 @@ export function PredictionTestListFiltersMenu({
   )
 }
 
-const activeControlClassName = 'border-[#253CA1]/40 bg-[#F5F7FF]'
+const activeControlClassName = 'border-brand-500/40 bg-brand-50'
 
 function FilterField({
   id,

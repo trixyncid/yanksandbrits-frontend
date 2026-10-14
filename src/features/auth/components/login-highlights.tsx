@@ -1,35 +1,50 @@
-const highlights = [
+import { BriefcaseBusiness, CalendarDays, GraduationCap, type LucideIcon } from 'lucide-react'
+
+const highlights: {
+  icon: LucideIcon
+  title: string
+  description: string
+}[] = [
   {
-    title: 'Operational visibility',
-    description:
-      'A focused admin entry point for schedules, finance, branch operations, and staff workflows.',
+    icon: CalendarDays,
+    title: 'Your schedule',
+    description: 'Classes, rooms and sessions for the week ahead.',
   },
   {
-    title: 'Ready for incremental migration',
-    description:
-      'This frontend can replace the old Django-rendered pages step by step without blocking future API work.',
+    icon: GraduationCap,
+    title: 'Your students',
+    description: 'Leads, tests, enrolments and progress.',
   },
   {
-    title: 'Structured for maintainability',
-    description:
-      'Separated routes, features, services, and shared UI keep debugging and future extension manageable.',
+    icon: BriefcaseBusiness,
+    title: 'Your work',
+    description: 'Payments, reports, leave and pay, based on your role.',
   },
 ]
 
 export function LoginHighlights() {
   return (
-    <div className="space-y-5">
-      {highlights.map((highlight) => (
-        <div
-          key={highlight.title}
-          className="rounded-2xl border border-white/10 bg-white/5 p-5"
-        >
-          <h3 className="text-sm font-semibold text-white">{highlight.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-300">
-            {highlight.description}
-          </p>
-        </div>
-      ))}
-    </div>
+    <ul className="grid gap-3 sm:grid-cols-3">
+      {highlights.map((highlight, index) => {
+        const Icon = highlight.icon
+        return (
+          <li
+            key={highlight.title}
+            className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both rounded-3xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur-md"
+            style={{ animationDelay: `${150 + index * 80}ms` }}
+          >
+            <span className="inline-flex size-9 items-center justify-center rounded-full bg-white text-brand-600">
+              <Icon className="size-4" strokeWidth={1.9} />
+            </span>
+            <h3 className="mt-3 text-sm font-semibold text-white">
+              {highlight.title}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-white/75">
+              {highlight.description}
+            </p>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

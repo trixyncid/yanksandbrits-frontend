@@ -20,49 +20,51 @@ export function BranchActionsCell({ branch }: { branch: BranchListItem }) {
         <button
           type="button"
           aria-label={`Edit branch ${branch.name}`}
+          title="Edit branch"
           onClick={() =>
             void navigate({
               to: '/branches/$branchId/edit',
               params: { branchId: branch.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
       </Can>
       <Can module="branches" action="delete">
         <button
-        type="button"
-        aria-label={`Delete branch ${branch.name}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete branch?',
-            description: `This will permanently remove ${branch.name}. This action cannot be undone.`,
-            onConfirm: () => {
-              void (async () => {
-                try {
-                  await deleteBranch(branch.id)
-                  await queryClient.invalidateQueries({
-                    queryKey: branchQueryKeys.all,
-                  })
-                  notify('success', {
-                    title: 'Branch deleted',
-                    description: `${branch.name} has been removed.`,
-                  })
-                } catch (error) {
-                  notify('error', {
-                    title: 'Unable to delete branch',
-                    description: getApiErrorMessage(error),
-                  })
-                }
-              })()
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
+          type="button"
+          aria-label={`Delete branch ${branch.name}`}
+          title="Delete branch"
+          onClick={() =>
+            requestDeleteConfirm({
+              title: `Delete ${branch.name}?`,
+              description: `This will permanently remove the ${branch.name} branch. This action cannot be undone.`,
+              onConfirm: () => {
+                void (async () => {
+                  try {
+                    await deleteBranch(branch.id)
+                    await queryClient.invalidateQueries({
+                      queryKey: branchQueryKeys.all,
+                    })
+                    notify('success', {
+                      title: 'Branch deleted',
+                      description: `${branch.name} has been removed.`,
+                    })
+                  } catch (error) {
+                    notify('error', {
+                      title: 'Unable to delete branch',
+                      description: getApiErrorMessage(error),
+                    })
+                  }
+                })()
+              },
+            })
+          }
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
+        >
+          <Trash2 className="size-3.5" />
         </button>
       </Can>
     </div>

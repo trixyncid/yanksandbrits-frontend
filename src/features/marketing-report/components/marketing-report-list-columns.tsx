@@ -6,6 +6,7 @@ import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { downloadMarketingSalaryPdf } from '../api/marketing-report-api'
+import { getInitials } from '../../student-payments/lib/payment-ui'
 import type { MarketingReportListItem } from '../types/marketing-report'
 
 function formatCurrency(amount: number) {
@@ -45,10 +46,12 @@ function MarketingPdfButton({ item }: { item: MarketingReportListItem }) {
           }
         })()
       }}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1] disabled:opacity-60"
+      title="Download salary PDF"
+      aria-label={`Download salary PDF for ${item.marketerName}`}
+      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-canvas px-3.5 text-xs font-semibold text-ink transition hover:bg-ink hover:text-white disabled:cursor-wait disabled:opacity-60"
     >
       <FileDown className="size-3.5" />
-      {isDownloading ? '…' : 'PDF'}
+      {isDownloading ? 'Saving…' : 'PDF'}
     </button>
   )
 }
@@ -59,14 +62,24 @@ export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
       id: 'marketer',
       accessorFn: (row) => `${row.marketerPin} ${row.marketerName}`,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Marketer" />
+        <DataTableColumnHeader column={column} title="Education counsellor" />
       ),
       cell: ({ row }) => (
-        <div>
-          <p className="text-sm font-semibold text-slate-900">
-            {row.original.marketerPin} - {row.original.marketerName}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">{row.original.email}</p>
+        <div className="flex min-w-[14rem] items-center gap-3 py-0.5">
+          <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas text-[11px] font-bold text-ink">
+            {getInitials(row.original.marketerName)}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-ink">
+              {row.original.marketerName}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              <span className="font-mono">{row.original.marketerPin}</span>
+              {row.original.email && row.original.email !== '—'
+                ? ` · ${row.original.email}`
+                : ''}
+            </p>
+          </div>
         </div>
       ),
     },
@@ -75,7 +88,7 @@ export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title="Number of Students"
+          title="Students"
           align="center"
         />
       ),
@@ -105,7 +118,7 @@ export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title="Bonus Salary"
+          title="Bonus"
           align="center"
         />
       ),
@@ -120,13 +133,15 @@ export const marketingReportListColumns: ColumnDef<MarketingReportListItem>[] =
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title="Total Salary"
+          title="Total Pay"
           align="center"
         />
       ),
       cell: ({ row }) => (
-        <p className="text-center text-xs font-semibold text-slate-800 tabular-nums">
-          {formatCurrency(row.original.totalSalary)}
+        <p className="text-center">
+          <span className="inline-flex rounded-full bg-ink px-3 py-1 text-xs font-bold text-white tabular-nums">
+            {formatCurrency(row.original.totalSalary)}
+          </span>
         </p>
       ),
     },

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { Button } from '../../../shared/components/ui/button'
+import { ListErrorState } from '../../../shared/components/page'
+import { cn } from '../../../shared/lib/cn'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { DashboardSection } from '../../admin/components/dashboard-section'
 import {
   BookkeepingPeriodSelect,
   OPEN_BOOKKEEPING_PERIOD,
@@ -14,14 +16,21 @@ import {
   MarketingDashboardFunnel,
   MarketingDashboardGoals,
 } from '../components/marketing-dashboard-funnel'
-import { MarketingDashboardKpiGrid } from '../components/marketing-dashboard-kpi-grid'
-import { MarketingDashboardLeadSources } from '../components/marketing-dashboard-lead-sources'
+import { MarketingDashboardHero } from '../components/marketing-dashboard-hero'
+import {
+  MarketingCommissionCard,
+  MarketingStudentPaymentsCard,
+} from '../components/marketing-dashboard-kpi-grid'
 import { MarketingDashboardSkeleton } from '../components/marketing-dashboard-skeleton'
 import {
   AUTO_BOOKKEEPING_PERIOD,
   useMarketingPerformanceQuery,
 } from '../hooks/use-marketing-performance-query'
-import type { MarketingPeriodOption } from '../types/marketing-dashboard'
+import {
+  MARKETING_ANCHORS,
+  type MarketingPeriodOption,
+} from '../types/marketing-dashboard'
+import { TeamRangeCard } from '../../bookkeeping/components/team-range-card'
 
 function mapPeriodStatus(
   status: string,
@@ -85,88 +94,80 @@ export default function MarketingDashboardPage() {
     ? 'opacity-70 transition-opacity'
     : ''
 
+  const periodPicker = (
+    <BookkeepingPeriodSelect
+      variant="pill"
+      value={selectValue}
+      periods={periods}
+      openPeriodLabel="This period"
+      disabled={metricsQuery.isLoading && !metricsQuery.data}
+      onChange={(next) => {
+        setHasUserSelectedPeriod(true)
+        setPeriod(next)
+      }}
+    />
+  )
+
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Performance Overview
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Leads, consults, and expected pay for the selected bookkeeping
-              period.
-            </p>
-            {showMetrics && metricsQuery.data.period.label ? (
-              <p className="mt-2 text-xs text-slate-400 sm:text-sm">
-                Showing{' '}
-                <span className="font-semibold text-slate-600">
-                  {metricsQuery.data.period.label}
-                </span>
-                {metricsQuery.data.comparisonPeriod.label
-                  ? ` · vs ${metricsQuery.data.comparisonPeriod.label}`
-                  : null}
-                {metricsQuery.data.period.periodType
-                  ? ` · ${metricsQuery.data.period.periodType} tiers`
-                  : null}
-              </p>
-            ) : null}
-          </div>
-          <BookkeepingPeriodSelect
-            variant="pill"
-            value={selectValue}
-            periods={periods}
-            openPeriodLabel="This period"
-            disabled={metricsQuery.isLoading && !metricsQuery.data}
-            onChange={(next) => {
-              setHasUserSelectedPeriod(true)
-              setPeriod(next)
-            }}
-          />
-        </div>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <MarketingDashboardHero
+          metrics={showMetrics ? metricsQuery.data : undefined}
+          periodPicker={periodPicker}
+        />
 
         {metricsQuery.isError ? (
-          <div className="rounded-3xl border border-rose-200/80 bg-rose-50/60 px-4 py-8 text-center">
-            <p className="text-sm font-semibold text-rose-700">
-              Unable to load your performance metrics
-            </p>
-            <p className="mt-1 text-sm text-rose-600/80">
-              {getApiErrorMessage(metricsQuery.error)}
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-4"
-              onClick={() => void metricsQuery.refetch()}
-            >
-              Try again
-            </Button>
-          </div>
+          <ListErrorState
+            title="We couldn't load your performance"
+            description={getApiErrorMessage(metricsQuery.error)}
+            onRetry={() => void metricsQuery.refetch()}
+          />
         ) : null}
 
         {isInitialLoading ? <MarketingDashboardSkeleton /> : null}
 
         {showMetrics ? (
-          <div className={`space-y-4 ${fetchingClass}`}>
-            <MarketingDashboardKpiGrid metrics={metricsQuery.data} />
-            <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-              <MarketingDashboardFunnel
-                metrics={metricsQuery.data}
-                className="lg:col-span-7"
-              />
-              <MarketingDashboardGoals
-                metrics={metricsQuery.data}
-                className="lg:col-span-5"
-              />
-            </div>
-            <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-              <div className="lg:col-span-7">
-                <MarketingDashboardEarnings metrics={metricsQuery.data} />
+          <div
+            className={cn(
+              'animate-in fade-in slide-in-from-bottom-2 fill-mode-both space-y-3',
+              fetchingClass,
+            )}
+          >
+            <DashboardSection id={MARKETING_ANCHORS.funnel} title="Pipeline">
+              <div className="grid items-stretch gap-3 lg:grid-cols-12">
+                <MarketingDashboardFunnel
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-7"
+                />
+                <MarketingCommissionCard
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-5"
+                />
               </div>
-              <div className="lg:col-span-5">
-                <MarketingDashboardLeadSources metrics={metricsQuery.data} />
+            </DashboardSection>
+
+            <DashboardSection id={MARKETING_ANCHORS.goals} title="Progress">
+              <div className="grid items-stretch gap-3 lg:grid-cols-12">
+                <MarketingDashboardGoals
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-7"
+                />
+                <MarketingStudentPaymentsCard
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-5"
+                />
               </div>
-            </div>
+            </DashboardSection>
+
+            <DashboardSection id={MARKETING_ANCHORS.pay} title="Pay">
+              {metricsQuery.data.earnings?.teamRange ? (
+                <TeamRangeCard
+                  teamRange={metricsQuery.data.earnings.teamRange}
+                  className="mb-3"
+                />
+              ) : null}
+              <MarketingDashboardEarnings metrics={metricsQuery.data} />
+            </DashboardSection>
           </div>
         ) : null}
       </div>

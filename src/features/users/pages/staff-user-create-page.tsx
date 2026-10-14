@@ -1,11 +1,9 @@
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
-
-import { Button } from '../../../shared/components/ui/button'
+import { PageHeader } from '../../../shared/components/page'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { UserForm } from '../components/user-form'
 import { useUserForm } from '../hooks/use-user-form'
 import type { StaffEntityConfig } from '../lib/staff-entity-config'
+import { STAFF_ENTITY_THEME } from '../lib/staff-entity-theme'
 
 export function StaffUserCreatePage({ entity }: { entity: StaffEntityConfig }) {
   const form = useUserForm({
@@ -13,39 +11,23 @@ export function StaffUserCreatePage({ entity }: { entity: StaffEntityConfig }) {
     entity,
   })
   const isRoleAccount = entity.kind === 'tutor' || entity.kind === 'marketing'
+  const look = STAFF_ENTITY_THEME[entity.kind]
 
   return (
-    <AdminShell
-      mainClassName={isRoleAccount ? 'px-3 py-4 sm:px-5 sm:py-5' : undefined}
-    >
-      <div
-        className={
-          isRoleAccount
-            ? 'mx-auto max-w-6xl space-y-6'
-            : 'mx-auto max-w-4xl space-y-6'
-        }
-      >
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to={entity.listPath}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              {entity.plural}
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              {entity.createTitle ?? `Add ${entity.singular}`}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {entity.createDescription ??
-                `Create a ${entity.singular.toLowerCase()} account with profile, contact, and role details.`}
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo={entity.listPath}
+          backLabel={entity.plural}
+          title={entity.createTitle ?? `Add ${entity.singular}`}
+          description={
+            entity.createDescription ??
+            `Create a ${entity.singular.toLowerCase()} account with profile, contact, and role details.`
+          }
+          icon={look.icon}
+          theme={look.theme}
+          pattern={look.pattern}
+        />
 
         {isRoleAccount ? (
           <UserForm
@@ -61,18 +43,16 @@ export function StaffUserCreatePage({ entity }: { entity: StaffEntityConfig }) {
             onCancel={form.cancel}
           />
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <UserForm
-              mode="create"
-              values={form.values}
-              errors={form.errors}
-              isSubmitting={form.isSubmitting}
-              entityLabel={entity.singular}
-              onChange={form.updateField}
-              onSubmit={form.submit}
-              onCancel={form.cancel}
-            />
-          </div>
+          <UserForm
+            mode="create"
+            values={form.values}
+            errors={form.errors}
+            isSubmitting={form.isSubmitting}
+            entityLabel={entity.singular}
+            onChange={form.updateField}
+            onSubmit={form.submit}
+            onCancel={form.cancel}
+          />
         )}
       </div>
     </AdminShell>

@@ -1,29 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { Button } from '../../../shared/components/ui/button'
+import { ListErrorState } from '../../../shared/components/page'
+import { cn } from '../../../shared/lib/cn'
 import { AdminShell } from '../../admin/components/admin-shell'
-import {
-  DashboardInsightsSkeleton,
-  DashboardKpiSkeleton,
-} from '../../admin/components/dashboard-skeleton'
+import { DashboardSection } from '../../admin/components/dashboard-section'
 import {
   BookkeepingPeriodSelect,
   OPEN_BOOKKEEPING_PERIOD,
   type BookkeepingPeriodValue,
 } from '../../bookkeeping/components/bookkeeping-period-select'
 import type { BookkeepingListItem } from '../../bookkeeping/types/bookkeeping'
+import { TutorAssignedSessions } from '../components/tutor-assigned-sessions'
 import { TutorDashboardEarnings } from '../components/tutor-dashboard-earnings'
+import { TutorDashboardHero } from '../components/tutor-dashboard-hero'
 import {
   TutorDashboardCancellations,
+  TutorDashboardGoals,
   TutorDashboardInsights,
 } from '../components/tutor-dashboard-insights'
-import { TutorDashboardKpiGrid } from '../components/tutor-dashboard-kpi-grid'
+import { TutorBonusCard } from '../components/tutor-dashboard-kpi-grid'
+import { TutorDashboardSkeleton } from '../components/tutor-dashboard-skeleton'
 import {
   AUTO_BOOKKEEPING_PERIOD,
   useTutorPerformanceQuery,
 } from '../hooks/use-tutor-performance-query'
-import type { TutorPeriodOption } from '../types/tutor-dashboard'
+import {
+  TUTOR_ANCHORS,
+  type TutorPeriodOption,
+} from '../types/tutor-dashboard'
 
 function mapPeriodStatus(
   status: string,
@@ -87,86 +92,86 @@ export default function TutorDashboardPage() {
     ? 'opacity-70 transition-opacity'
     : ''
 
+  const periodPicker = (
+    <BookkeepingPeriodSelect
+      variant="pill"
+      value={selectValue}
+      periods={periods}
+      openPeriodLabel="This period"
+      disabled={metricsQuery.isLoading && !metricsQuery.data}
+      onChange={(next) => {
+        setHasUserSelectedPeriod(true)
+        setPeriod(next)
+      }}
+    />
+  )
+
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Performance Overview
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Sessions, reliability, and expected pay for the selected
-              bookkeeping period.
-            </p>
-            {showMetrics && metricsQuery.data.period.label ? (
-              <p className="mt-2 text-xs text-slate-400 sm:text-sm">
-                Showing{' '}
-                <span className="font-semibold text-slate-600">
-                  {metricsQuery.data.period.label}
-                </span>
-                {metricsQuery.data.comparisonPeriod.label
-                  ? ` · vs ${metricsQuery.data.comparisonPeriod.label}`
-                  : null}
-                {metricsQuery.data.period.periodType
-                  ? ` · ${metricsQuery.data.period.periodType} tiers`
-                  : null}
-              </p>
-            ) : null}
-          </div>
-          <BookkeepingPeriodSelect
-            variant="pill"
-            value={selectValue}
-            periods={periods}
-            openPeriodLabel="This period"
-            disabled={metricsQuery.isLoading && !metricsQuery.data}
-            onChange={(next) => {
-              setHasUserSelectedPeriod(true)
-              setPeriod(next)
-            }}
-          />
-        </div>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <TutorDashboardHero
+          metrics={showMetrics ? metricsQuery.data : undefined}
+          periodPicker={periodPicker}
+        />
 
         {metricsQuery.isError ? (
-          <div className="rounded-3xl border border-rose-200/80 bg-rose-50/60 px-4 py-8 text-center">
-            <p className="text-sm font-semibold text-rose-700">
-              Unable to load your performance metrics
-            </p>
-            <p className="mt-1 text-sm text-rose-600/80">
-              {getApiErrorMessage(metricsQuery.error)}
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-4"
-              onClick={() => void metricsQuery.refetch()}
-            >
-              Try again
-            </Button>
-          </div>
+          <ListErrorState
+            title="We couldn't load your performance"
+            description={getApiErrorMessage(metricsQuery.error)}
+            onRetry={() => void metricsQuery.refetch()}
+          />
         ) : null}
 
-        {isInitialLoading ? (
-          <div className="space-y-4">
-            <DashboardKpiSkeleton />
-            <DashboardInsightsSkeleton />
-          </div>
-        ) : null}
+        {isInitialLoading ? <TutorDashboardSkeleton /> : null}
 
         {showMetrics ? (
-          <div className={`space-y-4 ${fetchingClass}`}>
-            <TutorDashboardKpiGrid metrics={metricsQuery.data} />
-            <TutorDashboardInsights metrics={metricsQuery.data} />
-            <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-              <div className="lg:col-span-7">
-                <TutorDashboardEarnings metrics={metricsQuery.data} />
+          <div
+            className={cn(
+              'animate-in fade-in slide-in-from-bottom-2 fill-mode-both space-y-3',
+              fetchingClass,
+            )}
+          >
+            <DashboardSection id={TUTOR_ANCHORS.teaching} title="Teaching">
+              <div className="grid items-stretch gap-3 lg:grid-cols-12">
+                <TutorBonusCard
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-4"
+                />
+                <TutorDashboardInsights
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-8"
+                />
               </div>
-              <div className="lg:col-span-5">
-                <TutorDashboardCancellations metrics={metricsQuery.data} />
+            </DashboardSection>
+
+            <DashboardSection id={TUTOR_ANCHORS.pay} title="Pay">
+              <div className="grid items-stretch gap-3 lg:grid-cols-12">
+                <TutorDashboardEarnings
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-7"
+                />
+                <TutorDashboardGoals
+                  metrics={metricsQuery.data}
+                  className="lg:col-span-5"
+                />
               </div>
-            </div>
+            </DashboardSection>
           </div>
         ) : null}
+
+        <DashboardSection id={TUTOR_ANCHORS.classes} title="Classes">
+          <div className="grid items-stretch gap-3 lg:grid-cols-12">
+            <TutorAssignedSessions
+              className={showMetrics ? 'lg:col-span-7' : 'lg:col-span-12'}
+            />
+            {showMetrics ? (
+              <TutorDashboardCancellations
+                metrics={metricsQuery.data}
+                className="lg:col-span-5"
+              />
+            ) : null}
+          </div>
+        </DashboardSection>
       </div>
     </AdminShell>
   )

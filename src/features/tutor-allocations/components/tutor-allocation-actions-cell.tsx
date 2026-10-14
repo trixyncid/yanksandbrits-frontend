@@ -24,14 +24,15 @@ export function TutorAllocationActionsCell({
       <Can module="tutorAllocations" action="change">
         <button
           type="button"
-          aria-label={`Edit tutor allocation for ${label || 'class'}`}
+          aria-label={`Open class for ${label || 'these students'}`}
+          title="Open class"
           onClick={() =>
             void navigate({
               to: '/tutor-allocations/$allocationId/edit',
               params: { allocationId: allocation.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -39,11 +40,12 @@ export function TutorAllocationActionsCell({
       <Can module="tutorAllocations" action="delete">
         <button
           type="button"
-          aria-label={`Delete tutor allocation for ${label || 'class'}`}
+          aria-label={`Delete class for ${label || 'these students'}`}
+          title="Delete class"
           onClick={() =>
             requestDeleteConfirm({
-              title: 'Delete tutor allocation?',
-              description: `This will permanently remove this class${label ? ` for ${label}` : ''}. This action cannot be undone.`,
+              title: label ? `Delete the class for ${label}?` : 'Delete this class?',
+              description: `This permanently removes the ${allocation.classType === 'private' ? 'private class' : `group class of ${allocation.groupSize}`}${label ? ` for ${label}` : ''}, with its tutors and weekly schedule. This can't be undone.`,
               onConfirm: () => {
                 void (async () => {
                   try {
@@ -52,12 +54,14 @@ export function TutorAllocationActionsCell({
                       queryKey: tutorAllocationQueryKeys.all,
                     })
                     notify('success', {
-                      title: 'Tutor allocation deleted',
-                      description: 'The class has been removed.',
+                      title: 'Class deleted',
+                      description: label
+                        ? `The class for ${label} has been removed.`
+                        : 'The class has been removed.',
                     })
                   } catch (error) {
                     notify('error', {
-                      title: 'Unable to delete tutor allocation',
+                      title: 'Unable to delete class',
                       description: getApiErrorMessage(error),
                     })
                   }
@@ -65,7 +69,7 @@ export function TutorAllocationActionsCell({
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
         >
           <Trash2 className="size-3.5" />
         </button>

@@ -201,8 +201,8 @@ export function EditProfileDialog({
           noValidate
           className="flex max-h-[90vh] flex-col"
         >
-          <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="shrink-0 bg-gradient-to-br from-brand-50 via-white to-white px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
               <Pencil className="size-5" />
             </div>
             <DialogHeader className="pr-0">
@@ -386,10 +386,10 @@ export function EditProfileDialog({
             </section>
           </div>
 
-          <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 shrink-0 bg-canvas/70 px-6 py-4">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}

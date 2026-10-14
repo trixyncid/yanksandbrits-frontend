@@ -1,5 +1,5 @@
 import { httpClient } from '../../../shared/api/http-client'
-import { adminPath } from '../../../shared/api/paths'
+import { adminPath, tutorPortalPath } from '../../../shared/api/paths'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type {
   TutorEarnings,
@@ -230,4 +230,39 @@ export async function fetchTutorPerformanceMetrics(
   })
 
   return mapMetrics(data.data)
+}
+
+export type TutorAssignedSession = {
+  id: string
+  section: string
+  sessions: number
+  programCode: string
+  programTitle: string
+  classType: string
+  students: string[]
+}
+
+type TutorAssignedSessionDto = {
+  id: number
+  section: string
+  sessions: number
+  program_code: string
+  program_title: string
+  class_type: string
+  students: string[]
+}
+
+export async function fetchTutorAssignedSessions(): Promise<TutorAssignedSession[]> {
+  const { data } = await httpClient.get<
+    ApiSuccessEnvelope<TutorAssignedSessionDto[]>
+  >(tutorPortalPath('/assigned-sessions'))
+  return (data.data ?? []).map((row) => ({
+    id: String(row.id),
+    section: row.section,
+    sessions: row.sessions,
+    programCode: row.program_code ?? '',
+    programTitle: row.program_title ?? '',
+    classType: row.class_type,
+    students: row.students ?? [],
+  }))
 }

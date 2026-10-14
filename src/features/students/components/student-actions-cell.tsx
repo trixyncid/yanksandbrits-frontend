@@ -10,22 +10,29 @@ import { deleteStudent } from '../api/students-api'
 import { studentQueryKeys } from '../api/student-query-keys'
 import type { StudentListItem } from '../types/student'
 
+const ICON_BUTTON =
+  'inline-flex size-9 items-center justify-center rounded-full bg-canvas transition'
+
 export function StudentActionsCell({ student }: { student: StudentListItem }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const label = student.pin
+    ? `${student.fullName} (${student.pin})`
+    : student.fullName
 
   return (
     <div className="flex items-center justify-center gap-2">
       <button
         type="button"
         aria-label={`View ${student.fullName}`}
+        title="View student"
         onClick={() =>
           void navigate({
             to: '/students/$studentId',
             params: { studentId: student.id },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+        className={`${ICON_BUTTON} text-ink hover:bg-brand-500 hover:text-white`}
       >
         <Eye className="size-3.5" />
       </button>
@@ -33,13 +40,14 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
         <button
           type="button"
           aria-label={`Edit ${student.fullName}`}
+          title="Edit student"
           onClick={() =>
             void navigate({
               to: '/students/$studentId/edit',
               params: { studentId: student.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className={`${ICON_BUTTON} text-ink hover:bg-ink hover:text-white`}
         >
           <Pencil className="size-3.5" />
         </button>
@@ -48,10 +56,12 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
         <button
           type="button"
           aria-label={`Delete ${student.fullName}`}
+          title="Delete student"
           onClick={() =>
             requestDeleteConfirm({
-              title: 'Delete student?',
-              description: `This will permanently remove ${student.fullName} (${student.pin}). This action cannot be undone.`,
+              title: `Delete ${student.fullName}?`,
+              description: `This will permanently remove the student record for ${label}. This cannot be undone.`,
+              confirmLabel: 'Delete student',
               onConfirm: () => {
                 void deleteStudent(student.id)
                   .then(async () => {
@@ -60,7 +70,7 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
                     })
                     notify('success', {
                       title: 'Student deleted',
-                      description: `${student.pin} has been removed.`,
+                      description: `${label} has been removed.`,
                     })
                   })
                   .catch((error) => {
@@ -72,7 +82,7 @@ export function StudentActionsCell({ student }: { student: StudentListItem }) {
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
+          className={`${ICON_BUTTON} text-rose-500 hover:bg-rose-500 hover:text-white`}
         >
           <Trash2 className="size-3.5" />
         </button>

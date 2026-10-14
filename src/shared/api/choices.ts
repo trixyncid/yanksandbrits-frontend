@@ -19,7 +19,7 @@ export type ResponseStatusUi =
   | 'cancelled'
   | 'enrolled'
 
-export type CourseCode = 'TOE' | 'IEL' | 'GET' | 'SAT' | 'HSK' | 'GEN'
+export type CourseCode = 'TOE' | 'IEL' | 'GET' | 'SAT' | 'HSK' | 'GEN' | 'IT' | 'NON'
 export type LanguageTestCode = 'IELTS' | 'TOEFL' | 'SAT'
 export type ProspectResource =
   | 'Instagram'
@@ -146,6 +146,8 @@ export const COURSE_OPTIONS: { value: CourseCode; label: string }[] = [
   { value: 'SAT', label: 'SAT Prediction Test' },
   { value: 'HSK', label: 'HSK Prediction Test' },
   { value: 'GEN', label: 'General English' },
+  { value: 'IT', label: 'Computer Science / IT Placement Test' },
+  { value: 'NON', label: 'None' },
 ]
 
 const COURSE_LABELS: Record<string, string> = {
@@ -155,6 +157,8 @@ const COURSE_LABELS: Record<string, string> = {
   SAT: 'SAT Prediction Test',
   HSK: 'HSK Prediction Test',
   GEN: 'General English',
+  IT: 'Computer Science / IT Placement Test',
+  NON: 'None',
   // Legacy codes kept for display until historical rows are fully migrated
   TOR: 'TOEFL Prediction Test - ITP',
   TOG: 'TOEFL Prediction Test - ITP',
@@ -321,6 +325,16 @@ export function isGeneralEnglishCourse(
   return code === 'GEN'
 }
 
+export function isComputerScienceCourse(
+  code: string | null | undefined,
+): boolean {
+  return code === 'IT'
+}
+
+export function isNoneCourse(code: string | null | undefined): boolean {
+  return code === 'NON'
+}
+
 export function isHskCourse(code: string | null | undefined): boolean {
   return (
     code === 'HSK' ||
@@ -339,8 +353,9 @@ export function isHskCourse(code: string | null | undefined): boolean {
  */
 export function predictionTestStaffType(
   code: string | null | undefined,
-): 'English' | 'Mandarin' | null {
-  if (!code) return null
+): 'English' | 'Mandarin' | 'IT' | null {
+  if (!code || isNoneCourse(code)) return null
+  if (isComputerScienceCourse(code)) return 'IT'
   return isHskCourse(code) ? 'Mandarin' : 'English'
 }
 

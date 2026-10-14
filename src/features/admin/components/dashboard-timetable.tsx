@@ -31,47 +31,53 @@ export function DashboardTimetable({
   const todayLabel = format(startOfDay(new Date()), 'EEEE, MMM d')
 
   return (
-    <DashboardPanel className="overflow-hidden p-0">
+    <DashboardPanel className="overflow-hidden p-0 sm:p-0">
       <ScheduleFormDialog
         context={scheduleDialog.context}
         onOpenChange={scheduleDialog.setOpen}
       />
 
-      <div className="flex flex-col gap-2 border-b border-slate-200 bg-[#F5F8FF] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#1B2A5A] uppercase ring-1 ring-[#D8E6FA]">
-              <CalendarDays className="size-3.5" />
-              Live today
-            </span>
+      <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pt-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <CalendarDays className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-bold tracking-tight text-ink sm:text-lg">
+                {dateLabel}&apos;s timetable
+              </h3>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                <span className="size-1.5 animate-pulse rounded-full bg-white" />
+                Live
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              {todayLabel} · {events.length} session
+              {events.length === 1 ? '' : 's'} scheduled · pick an empty slot to
+              book a class
+            </p>
           </div>
-          <h3 className="mt-1.5 text-base font-bold text-slate-900">
-            {dateLabel}&apos;s timetable
-          </h3>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {todayLabel} · {events.length} session
-            {events.length === 1 ? '' : 's'} scheduled
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8EEFF] px-2.5 py-1 text-[#1B2A5A]">
-              <span className="size-2 rounded-full bg-[#253CA1]" />
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-brand-700">
+              <span className="size-2 rounded-full bg-brand-500" />
               Ongoing
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F7EF] px-2.5 py-1 text-[#1F5A3D]">
-              <span className="size-2 rounded-full bg-[#3D9B6E]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
+              <span className="size-2 rounded-full bg-emerald-500" />
               Finished
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEEF1] px-2.5 py-1 text-[#6E2433]">
-              <span className="size-2 rounded-full bg-[#C45B6E]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-rose-700">
+              <span className="size-2 rounded-full bg-rose-500" />
               Cancelled
             </span>
           </div>
           <Link
             to="/full-schedule"
-            className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+            className={buttonVariants({ variant: 'ink', size: 'sm' })}
           >
             Open full schedule
             <ArrowRight className="size-4" />
@@ -79,16 +85,16 @@ export function DashboardTimetable({
         </div>
       </div>
 
-      <div className="p-4 sm:p-6">
+      <div className="p-3 sm:p-5">
         {isLoading ? (
-          <div className="space-y-2 py-6">
-            <div className="mx-auto h-4 w-40 animate-pulse rounded bg-slate-100" />
-            <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="space-y-2 py-6" aria-busy="true">
+            <div className="mx-auto h-4 w-40 animate-pulse rounded-full bg-canvas" />
+            <div className="h-48 animate-pulse rounded-3xl bg-canvas" />
           </div>
         ) : columns.length === 0 ? (
-          <p className="py-16 text-center text-sm text-slate-500">
-            No classrooms found for this branch. Add classrooms to start
-            scheduling sessions.
+          <p className="rounded-3xl bg-canvas px-4 py-14 text-center text-sm text-slate-500">
+            This branch has no classrooms yet. Add a classroom to start
+            booking sessions.
           </p>
         ) : (
           <ClassroomTimetable

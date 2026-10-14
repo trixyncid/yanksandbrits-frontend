@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { PageBackdrop } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import {
   Dialog,
@@ -109,26 +110,31 @@ export function TutorSalaryBonusTierDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showClose className="overflow-hidden p-0 sm:max-w-md">
         <form onSubmit={handleSubmit} noValidate>
-          <div className="bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="relative isolate overflow-hidden px-6 pt-6 pb-5 text-white">
+            <PageBackdrop theme="dusk" pattern="ribbons" />
+            <div className="relative">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-white text-brand-600">
               <Wallet className="size-5" />
             </div>
             <DialogHeader className="pr-0">
-              <DialogTitle>
-                {isUpdate ? 'Update bonus tier' : 'Add bonus tier'}
+              <DialogTitle className="text-white">
+                {isUpdate ? 'Edit bonus bracket' : 'Add bonus bracket'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-white/80">
                 {employmentTypeLabels[employmentType]} tutors ·{' '}
                 {workingDaysPerWeek} working days/week · {periodWeeks}-week
                 period.
               </DialogDescription>
             </DialogHeader>
+            </div>
           </div>
 
           <div className="space-y-4 px-6 py-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="bonus-min-sessions">Min sessions</Label>
+                <Label htmlFor="bonus-min-sessions">
+                  Min sessions<span className="text-rose-500"> *</span>
+                </Label>
                 <Input
                   id="bonus-min-sessions"
                   inputMode="numeric"
@@ -156,6 +162,9 @@ export function TutorSalaryBonusTierDialog({
                   }
                   placeholder="Blank = no max"
                 />
+                <p className="text-xs text-slate-500">
+                  Leave empty for the top bracket.
+                </p>
               </div>
             </div>
             <div className="space-y-2">
@@ -172,13 +181,18 @@ export function TutorSalaryBonusTierDialog({
                 }
                 placeholder="e.g. 250000"
               />
+              <p className="text-xs text-slate-500">
+                Paid on top of salary when the tutor's sessions fall in this
+                range.
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="mt-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 bg-canvas px-6 py-4">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
+              className="bg-white"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
@@ -187,7 +201,11 @@ export function TutorSalaryBonusTierDialog({
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting}>
               <Wallet className="size-3.5" />
-              {isSubmitting ? 'Saving...' : isUpdate ? 'Update' : 'Add tier'}
+              {isSubmitting
+                ? 'Saving...'
+                : isUpdate
+                  ? 'Save changes'
+                  : 'Add bracket'}
             </Button>
           </DialogFooter>
         </form>

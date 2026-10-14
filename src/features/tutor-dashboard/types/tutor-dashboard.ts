@@ -105,3 +105,10 @@ export type TutorPerformanceMetrics = {
     endDate: string
   }
 }
+
+/** Ids of the cards the hero arrows scroll to. */
+export const TUTOR_ANCHORS = {
+  teaching: 'tutor-teaching',
+  pay: 'tutor-pay',
+  classes: 'tutor-classes',
+} as const

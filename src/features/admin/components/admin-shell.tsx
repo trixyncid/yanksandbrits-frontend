@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 
 import { DeleteConfirmDialog } from '../../../shared/components/delete-confirm-dialog'
+import { SupportedBy } from '../../../shared/components/branding/supported-by'
 import { AdminSidebar } from './admin-sidebar'
 import { AdminTopbar } from './admin-topbar'
 
@@ -13,13 +14,13 @@ export function AdminShell({ children, mainClassName }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC]">
+    <div className="min-h-screen bg-canvas text-ink">
       <AdminSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      <div className="min-h-screen transition-all duration-300 lg:pl-[18rem]">
+      <div className="min-h-screen transition-all duration-300 lg:pl-[5.75rem]">
         <AdminTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />
         <main
           className={
@@ -28,6 +29,9 @@ export function AdminShell({ children, mainClassName }: AdminShellProps) {
         >
           {children}
         </main>
+        <footer className="flex justify-center px-4 pb-5">
+          <SupportedBy />
+        </footer>
       </div>
 
       <DeleteConfirmDialog />

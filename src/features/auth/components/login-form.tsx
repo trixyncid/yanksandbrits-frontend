@@ -1,11 +1,11 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
-import { Card } from '../../../shared/components/ui/card'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { PasswordInput } from '../../../shared/components/ui/password-input'
+import { SupportedBy } from '../../../shared/components/branding/supported-by'
 import { useLoginForm } from '../hooks/use-login-form'
 
 function FieldError({ message }: { message?: string }) {
@@ -31,28 +31,29 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md px-7 py-8 sm:px-9">
-      <div className="mb-8 text-center">
+    <div className="w-full animate-in fade-in slide-in-from-bottom-2">
+      <div className="mb-8">
         <img
           src="/logo.svg"
-          alt="Yanks and Brits logo"
-          className="mx-auto mb-5 h-28 w-auto object-contain"
+          alt=""
+          aria-hidden
+          className="mb-6 hidden h-16 w-auto object-contain lg:block"
         />
-        <h2 className="text-2xl font-bold text-[#253CA1]">Welcome back!</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Enter your email and password to sign in.
+        <h2 className="text-3xl font-bold tracking-tight text-ink">
+          Welcome back
+        </h2>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Sign in with your Yanks &amp; Brits staff email and password.
         </p>
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-        <div className="space-y-2.5">
-          <div className="pb-1">
-            <Label htmlFor="email">Email</Label>
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
-            placeholder="admin@yanksandbrits.com"
+            placeholder="you@yanksandbrits.com"
             autoComplete="email"
             value={values.email}
             onChange={(event) => updateField('email', event.target.value)}
@@ -60,19 +61,19 @@ export function LoginForm() {
           <FieldError message={errors.email} />
         </div>
 
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between gap-3 pb-1">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
             <Label htmlFor="password">Password</Label>
             <button
               type="button"
-              className="text-xs font-medium text-[#253CA1] transition hover:text-[#1B2A5A]"
+              className="text-xs font-semibold text-brand-500 transition hover:text-brand-700"
             >
               Forgot password?
             </button>
           </div>
           <PasswordInput
             id="password"
-            placeholder="Enter your secure password"
+            placeholder="Your password"
             autoComplete="current-password"
             value={values.password}
             onChange={(event) => updateField('password', event.target.value)}
@@ -80,25 +81,32 @@ export function LoginForm() {
           <FieldError message={errors.password} />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <label className="inline-flex items-center gap-3 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              className="size-4 rounded border-slate-300 bg-white text-[#253CA1] focus:ring-[#253CA1]/40"
-              checked={values.rememberMe}
-              onChange={(event) =>
-                updateField('rememberMe', event.target.checked)
-              }
-            />
-            Remember me
-          </label>
-        </div>
+        <label className="flex w-fit cursor-pointer items-center gap-3 rounded-full bg-canvas py-2 pr-4 pl-3 text-sm font-medium text-slate-600">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-slate-300 bg-white text-brand-500 focus:ring-brand-500/40"
+            checked={values.rememberMe}
+            onChange={(event) =>
+              updateField('rememberMe', event.target.checked)
+            }
+          />
+          Keep me signed in
+        </label>
 
         <Button type="submit" size="lg" fullWidth disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in...' : 'Sign In'}
-          <ArrowRight className="size-4" />
+          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
+          {isSubmitting ? null : <ArrowRight className="size-4" />}
         </Button>
       </form>
-    </Card>
+
+      <p className="mt-8 text-center text-xs text-slate-400">
+        Can't sign in? Please check with the IT Team.
+      </p>
+
+      <div className="mt-10 flex justify-center">
+        <SupportedBy />
+      </div>
+    </div>
   )
 }

@@ -1,14 +1,12 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
-import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+import { Mail, Phone } from 'lucide-react'
+
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import { courseLabel } from '../api/prospective-students-api'
-import type {
-  ProspectiveStudentListItem,
-  ProspectiveStudentStatus,
-} from '../types/prospective-student'
+import { getInitials } from '../lib/lead-status'
+import type { ProspectiveStudentListItem } from '../types/prospective-student'
+import { LeadStatusPill } from './lead-status-pill'
 import { ProspectiveStudentActionsCell } from './prospective-student-actions-cell'
 
 function formatDateTime(value: string) {
@@ -21,49 +19,6 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
-function statusTone(status: ProspectiveStudentStatus) {
-  if (status === 'enrolled') {
-    return 'success' as const
-  }
-
-  if (status === 'prediction_test') {
-    return 'primary' as const
-  }
-
-  if (status === 'consult') {
-    return 'primary' as const
-  }
-
-  if (status === 'cancelled') {
-    return 'danger' as const
-  }
-
-  return 'neutral' as const
-}
-
-function statusLabel(status: ProspectiveStudentStatus) {
-  if (status === 'consult') {
-    return 'Consult'
-  }
-
-  if (status === 'prediction_test') {
-    return 'Pre-Test'
-  }
-
-  if (status === 'enrolled') {
-    return 'Enrolled'
-  }
-
-  return 'Cancelled'
-}
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-}
-
 export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem>[] = [
   {
     id: 'studentDetail',
@@ -72,27 +27,31 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
       <DataTableColumnHeader column={column} title="Student's Detail" />
     ),
     cell: ({ row }) => (
-      <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
-        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
+      <div className="flex min-w-[15rem] items-center gap-3 py-0.5">
+        <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold tracking-wide text-brand-700">
           {getInitials(row.original.fullName)}
         </div>
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-semibold text-slate-900">
               {row.original.fullName}
             </p>
             {row.original.gender ? (
-              <DataTableBadge
-                tone={row.original.gender === 'male' ? 'info' : 'primary'}
-              >
+              <span className="shrink-0 rounded-full bg-canvas px-2 py-0.5 text-[10px] font-semibold text-slate-500">
                 {row.original.gender === 'male' ? 'Male' : 'Female'}
-              </DataTableBadge>
+              </span>
             ) : null}
           </div>
-          <p className="mt-0.5 truncate text-xs text-slate-500">
-            {row.original.email || '—'}
+          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
+            <Phone aria-hidden className="size-3 shrink-0 text-slate-400" />
+            {row.original.phone || '—'}
           </p>
-          <p className="truncate text-xs text-slate-500">{row.original.phone}</p>
+          {row.original.email ? (
+            <p className="flex items-center gap-1 truncate text-xs text-slate-500">
+              <Mail aria-hidden className="size-3 shrink-0 text-slate-400" />
+              <span className="truncate">{row.original.email}</span>
+            </p>
+          ) : null}
         </div>
       </div>
     ),
@@ -103,9 +62,15 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
       <DataTableColumnHeader column={column} title="Prediction Test" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {courseLabel(row.original.course) || '-'}
-      </p>
+      <div className="text-center">
+        {row.original.course ? (
+          <span className="inline-flex rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
+            {courseLabel(row.original.course)}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
+        )}
+      </div>
     ),
   },
   {
@@ -115,9 +80,7 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
     ),
     cell: ({ row }) => (
       <div className="text-center">
-        <DataTableBadge tone={statusTone(row.original.status)}>
-          {statusLabel(row.original.status)}
-        </DataTableBadge>
+        <LeadStatusPill status={row.original.status} />
       </div>
     ),
   },
@@ -141,7 +104,7 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Created At"
+        title="Created"
         align="center"
       />
     ),

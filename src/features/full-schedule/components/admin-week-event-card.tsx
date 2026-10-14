@@ -43,10 +43,10 @@ export function AdminWeekEventCard({
       onClick={onClick}
       title={`${event.title} · ${durationLabel} · ${event.startLabel} · ${event.status}${event.tutor ? ` · ${event.tutor}` : ''}${event.classroom ? ` · ${event.classroom}` : ''}`}
       className={cn(
-        'absolute flex min-h-0 flex-col overflow-hidden rounded-lg border text-left shadow-sm transition-shadow',
+        'absolute flex min-h-0 flex-col overflow-hidden rounded-xl border text-left shadow-sm transition',
         isCompact ? 'gap-0.5 px-1.5 py-1' : 'gap-0.5 px-2 py-1.5',
         interactive
-          ? 'cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20'
+          ? 'cursor-pointer hover:-translate-y-px hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30'
           : 'cursor-default',
         !hasProgramColors && timetableToneClasses[event.tone],
         className,

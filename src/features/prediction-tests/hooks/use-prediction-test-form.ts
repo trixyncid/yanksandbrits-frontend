@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '../../../shared/api/errors'
 import type { ApiErrorBody } from '../../../shared/api/types'
 import { notify } from '../../../shared/lib/notify'
 import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
+import { prospectiveStudentQueryKeys } from '../../prospective-students/api/prospective-student-query-keys'
 import {
   useCanAssignGeneralEnglishTutor,
   useIsAcademicLeader,
@@ -155,6 +156,10 @@ export function usePredictionTestForm({
         const created = await createPredictionTest(payload, apiOptions)
         await queryClient.invalidateQueries({
           queryKey: predictionTestQueryKeys.all,
+        })
+        // Adding a test moves the prospect to Pre-Test.
+        await queryClient.invalidateQueries({
+          queryKey: prospectiveStudentQueryKeys.all,
         })
         invalidateNavBadges()
         notify('success', {

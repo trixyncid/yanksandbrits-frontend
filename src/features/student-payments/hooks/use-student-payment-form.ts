@@ -12,10 +12,10 @@ import {
 import {
   createStudentPayment,
   createEmptyStudentPaymentFormValues,
-  studentPaymentToFormValues,
   updateStudentPayment,
   uploadStudentPaymentTermProof,
 } from '../api/student-payments-api'
+import { studentQueryKeys } from '../../students/api/student-query-keys'
 import { studentPaymentQueryKeys } from '../api/student-payment-query-keys'
 import {
   createTermFormKey,
@@ -233,6 +233,50 @@ export function useStudentPaymentForm({
     return messages.length > 0 ? messages : ['Check the highlighted fields.']
   }
 
+  /**
+   * Approving an installment makes an inactive student active on the server,
+   * so refresh student data as well as payments. `refetchType: 'all'` also
+   * refetches lists that are not on screen, so the Students directory is
+   * already up to date when the user opens it.
+   */
+  async function refreshAfterPaymentSave() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: studentPaymentQueryKeys.all }),
+      queryClient.invalidateQueries({
+        queryKey: studentQueryKeys.all,
+        refetchType: 'all',
+      }),
+    ])
+  }
+
+  /** Success toast that names whose payment was saved. */
+  function savedPaymentMessage(
+    payment: StudentPaymentListItem,
+    action: 'created' | 'updated',
+  ) {
+    const payer =
+      payment.studentName && payment.studentName !== '—'
+        ? payment.studentName
+        : 'this student'
+    const plan = payment.title ? `“${payment.title}”` : 'The payment plan'
+    if (payment.installmentPlan === 'two' && !payment.installmentPlanApproved) {
+      return {
+        title: `Sent for approval · ${payer}`,
+        description: `${plan} is waiting for a manager to approve the 2-payment plan before payments can be entered.`,
+      }
+    }
+    return action === 'created'
+      ? {
+          title: `Payment recorded for ${payer}`,
+          description: `${plan} has been added to ${payer}'s payments.`,
+        }
+      : {
+          title: `Payment updated for ${payer}`,
+          description: `${plan} has been saved.`,
+        }
+  }
+
+  /** Where Cancel goes: back to the page the user came from. */
   function navigateAfterSave() {
     if (returnToStudentId) {
       void navigate({
@@ -429,24 +473,10 @@ export function useStudentPaymentForm({
           omitStatus: lockTransactionStatus,
         })
         await uploadStagedProofs(created, values.terms)
-        await queryClient.invalidateQueries({
-          queryKey: studentPaymentQueryKeys.all,
-        })
+        await refreshAfterPaymentSave()
         invalidateNavBadges()
-        notify(
-          'success',
-          created.installmentPlan === 'two' && !created.installmentPlanApproved
-            ? {
-                title: 'Submitted for approval',
-                description:
-                  'Finance, a branch manager, or a system admin still needs to approve this 2-payment plan.',
-              }
-            : {
-                title: 'Payment recorded',
-                description: `${created.title} for ${created.studentName} has been added.`,
-              },
-        )
-        navigateAfterSave()
+        notify('success', savedPaymentMessage(created, 'created'))
+        void navigate({ to: '/student-payments' })
         return
       }
 
@@ -460,46 +490,10 @@ export function useStudentPaymentForm({
         }),
         values.terms,
       )
-      await queryClient.invalidateQueries({
-        queryKey: studentPaymentQueryKeys.all,
-      })
+      await refreshAfterPaymentSave()
       invalidateNavBadges()
-      const mapped = studentPaymentToFormValues(updated)
-      const byId = new Map(
-        mapped.terms
-          .filter((term) => term.id)
-          .map((term) => [term.id as string, term]),
-      )
-      const usedIds = new Set<string>()
-      const orderedTerms = values.terms.flatMap((term) => {
-        if (!term.id) return []
-        const server = byId.get(term.id)
-        if (!server) return []
-        usedIds.add(term.id)
-        return [{ ...server, key: term.key }]
-      })
-      for (const term of mapped.terms) {
-        if (term.id && !usedIds.has(term.id)) {
-          orderedTerms.push(term)
-        }
-      }
-      setValues({
-        ...mapped,
-        terms: orderedTerms,
-      })
-      notify(
-        'success',
-        updated.installmentPlan === 'two' && !updated.installmentPlanApproved
-          ? {
-              title: 'Submitted for approval',
-              description:
-                'Finance, a branch manager, or a system admin still needs to approve this 2-payment plan.',
-            }
-          : {
-              title: 'Payment updated',
-              description: `${updated.title} has been saved.`,
-            },
-      )
+      notify('success', savedPaymentMessage(updated, 'updated'))
+      void navigate({ to: '/student-payments' })
       return updated
     } catch (error) {
       notify('error', {

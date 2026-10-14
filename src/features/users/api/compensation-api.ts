@@ -561,3 +561,57 @@ export function programSalaryToFormValues(
       salary == null ? '' : String(salary.overtimeMultiplier),
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Staff base salary (Finance, CRO, Academic Leader, Digital Marketing…) */
+/* ------------------------------------------------------------------ */
+
+export type StaffSalary = {
+  id: string
+  staffId: string
+  mainSalary: number
+  updatedAt: string
+}
+
+type StaffSalaryDto = {
+  id: number
+  staff: number
+  main_salary: number
+  updated_at: string
+}
+
+function mapStaffSalary(dto: StaffSalaryDto): StaffSalary {
+  return {
+    id: String(dto.id),
+    staffId: String(dto.staff),
+    mainSalary: dto.main_salary ?? 0,
+    updatedAt: dto.updated_at,
+  }
+}
+
+export async function fetchStaffSalary(userId: string): Promise<StaffSalary | null> {
+  const { items } = await fetchAllPages<StaffSalaryDto>({
+    client: httpClient,
+    path: adminPath('/staff-salaries'),
+    params: { staff: Number(userId) },
+  })
+  return items[0] ? mapStaffSalary(items[0]) : null
+}
+
+export async function saveStaffSalary(
+  userId: string,
+  mainSalary: number,
+  existingId?: string,
+): Promise<StaffSalary> {
+  const payload = { staff: Number(userId), main_salary: mainSalary }
+  const { data } = existingId
+    ? await httpClient.patch<ApiSuccessEnvelope<StaffSalaryDto>>(
+        adminPath(`/staff-salaries/${existingId}`),
+        payload,
+      )
+    : await httpClient.post<ApiSuccessEnvelope<StaffSalaryDto>>(
+        adminPath('/staff-salaries'),
+        payload,
+      )
+  return mapStaffSalary(data.data)
+}

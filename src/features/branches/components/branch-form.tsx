@@ -1,9 +1,21 @@
+import {
+  Building2,
+  Clock3,
+  Eye,
+  MapPin,
+  Phone,
+  Star,
+  Users,
+} from 'lucide-react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { Button } from '../../../shared/components/ui/button'
+import { FormSectionCard } from '../../../shared/components/feature-page'
+import { FormSaveBar } from '../../../shared/components/page'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { cn } from '../../../shared/lib/cn'
 import type {
   BranchFormErrors,
   BranchFormValues,
@@ -24,16 +36,21 @@ function Field({
   error,
   children,
   hint,
+  required,
 }: {
   label: string
   htmlFor: string
   error?: string
   children: ReactNode
   hint?: string
+  required?: boolean
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
       <FieldError message={error} />
@@ -49,6 +66,46 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function BranchPreview({ values }: { values: BranchFormValues }) {
+  const name = values.name.trim() || 'Branch name'
+  const address = values.address.trim()
+  const phone = values.phone.trim()
+
+  return (
+    <div className="rounded-3xl bg-canvas p-4">
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            'inline-flex size-11 shrink-0 items-center justify-center rounded-2xl',
+            values.isMain ? 'bg-ink text-white' : 'bg-white text-brand-600',
+          )}
+        >
+          <Building2 className="size-5" strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-bold text-ink">{name}</p>
+            {values.isMain ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                <Star className="size-3 fill-current" />
+                Main
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-slate-500">
+            <MapPin className="mt-0.5 size-3 shrink-0" />
+            <span className="line-clamp-2">{address || 'No address yet'}</span>
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+            <Phone className="size-3 shrink-0" />
+            {phone || 'No phone yet'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 type BranchFormProps = {
@@ -86,144 +143,152 @@ export function BranchForm({
   }
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit} noValidate>
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">Branch Details</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Set the branch name and contact info.
-          </p>
-        </div>
-
-        <Field label="Branch Name" htmlFor="name" error={errors.name}>
-          <Input
-            id="name"
-            value={values.name}
-            onChange={(event) => onChange('name', event.target.value)}
-            placeholder="Main Branch"
-          />
-        </Field>
-
-        <Field
-          label="Phone Number"
-          htmlFor="phone"
-          error={errors.phone}
-          hint="Optional. Use international format when possible (e.g. +6281234567890)."
-        >
-          <Input
-            id="phone"
-            value={values.phone}
-            onChange={(event) => onChange('phone', event.target.value)}
-            placeholder="+6281234567890"
-          />
-        </Field>
-
-        <Field label="Address" htmlFor="address" error={errors.address}>
-          <Textarea
-            id="address"
-            value={values.address}
-            onChange={(event) => onChange('address', event.target.value)}
-            placeholder="Street address, city"
-            rows={3}
-          />
-        </Field>
-
-        <div className="space-y-2">
-          <Label htmlFor="isMain">Main Branch</Label>
-          <label
-            htmlFor="isMain"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-slate-200/80 bg-white px-4 text-sm text-slate-600 shadow-sm"
+    <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-3">
+          <FormSectionCard
+            icon={Building2}
+            title="Branch"
+            description="The name staff see when picking a branch, and how to reach it."
           >
-            <input
-              id="isMain"
-              type="checkbox"
-              className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
-              checked={values.isMain}
-              onChange={(event) => onChange('isMain', event.target.checked)}
-            />
-            <span>
-              {values.isMain
-                ? 'This is the main branch (default for schedule and admin views)'
-                : 'Set as the main branch'}
-            </span>
-          </label>
-          <p className="text-xs text-slate-400">
-            Only one branch can be main. Setting this will clear the flag on any
-            other branch.
-          </p>
-          <FieldError message={errors.isMain} />
-        </div>
-      </section>
-
-      {mode === 'edit' && meta ? (
-        <>
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-          <section className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-            <h3 className="text-sm font-bold text-slate-900">Record Info</h3>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-slate-400">Date created</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDateTime(meta.createdAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Date updated</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDateTime(meta.updatedAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Created by</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {meta.createdBy || '-'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Total students</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800 tabular-nums">
-                  {meta.totalStudent}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
-        <div>
-          {mode === 'edit' && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              onClick={onDelete}
-              disabled={isSubmitting}
+            <Field
+              label="Branch name"
+              htmlFor="name"
+              error={errors.name}
+              required
             >
-              Delete Data
-            </Button>
+              <Input
+                id="name"
+                value={values.name}
+                onChange={(event) => onChange('name', event.target.value)}
+                placeholder="Main Branch"
+              />
+            </Field>
+
+            <Field
+              label="Phone number"
+              htmlFor="phone"
+              error={errors.phone}
+              hint="Optional. Include the country code if you can, e.g. +6281234567890."
+            >
+              <Input
+                id="phone"
+                value={values.phone}
+                onChange={(event) => onChange('phone', event.target.value)}
+                placeholder="+6281234567890"
+              />
+            </Field>
+          </FormSectionCard>
+
+          <FormSectionCard
+            icon={MapPin}
+            title="Location"
+            description="Where students and parents can find this branch."
+            delayClassName="delay-75"
+          >
+            <Field
+              label="Address"
+              htmlFor="address"
+              error={errors.address}
+              hint="Optional."
+            >
+              <Textarea
+                id="address"
+                value={values.address}
+                onChange={(event) => onChange('address', event.target.value)}
+                placeholder="Street address, city"
+                rows={3}
+              />
+            </Field>
+          </FormSectionCard>
+
+          <FormSectionCard
+            icon={Star}
+            title="Main branch"
+            description="The main branch opens first on the schedule and admin screens."
+            delayClassName="delay-100"
+          >
+            <StatusToggle
+              id="isMain"
+              label=""
+              value={values.isMain}
+              onChange={(next) => onChange('isMain', next)}
+              activeLabel="Main branch"
+              inactiveLabel="Regular branch"
+              error={errors.isMain}
+            />
+            <p className="text-xs text-slate-500">
+              Only one branch can be the main one. Choosing this branch moves
+              the main label away from any other branch.
+            </p>
+          </FormSectionCard>
+        </div>
+
+        <div className="space-y-3 lg:sticky lg:top-4">
+          <FormSectionCard
+            icon={Eye}
+            title="Preview"
+            description="How this branch shows up in lists."
+            delayClassName="delay-75"
+          >
+            <BranchPreview values={values} />
+          </FormSectionCard>
+
+          {mode === 'edit' && meta ? (
+            <FormSectionCard
+              icon={Clock3}
+              title="Record Info"
+              description="Details about this branch record."
+              delayClassName="delay-100"
+            >
+              <div className="flex items-center gap-3 rounded-3xl bg-ink px-4 py-3.5 text-white">
+                <span className="inline-flex size-10 items-center justify-center rounded-full bg-white/15">
+                  <Users className="size-4" />
+                </span>
+                <div>
+                  <p className="text-2xl font-bold tabular-nums">
+                    {meta.totalStudent}
+                  </p>
+                  <p className="text-xs text-white/70">
+                    {meta.totalStudent === 1 ? 'student' : 'students'} at this
+                    branch
+                  </p>
+                </div>
+              </div>
+              <dl className="grid gap-2">
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Date created</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {formatDateTime(meta.createdAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Date updated</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {formatDateTime(meta.updatedAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Created by</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {meta.createdBy || '-'}
+                  </dd>
+                </div>
+              </dl>
+            </FormSectionCard>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? mode === 'create'
-                ? 'Saving...'
-                : 'Updating...'
-              : mode === 'create'
-                ? 'Submit Data'
-                : 'Update Data'}
-          </Button>
-        </div>
       </div>
+
+      <FormSaveBar
+        mode={mode}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onDelete={onDelete}
+        deleteLabel="Delete branch"
+        submitLabel={mode === 'create' ? 'Create branch' : undefined}
+        hint="Only the branch name is required."
+      />
     </form>
   )
 }

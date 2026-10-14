@@ -1,9 +1,12 @@
 import { format, startOfDay } from 'date-fns'
-import { Building2 } from 'lucide-react'
+import { Building2, CalendarDays } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
-import { Button } from '../../../shared/components/ui/button'
+import {
+  EmptyState,
+  ListErrorState,
+} from '../../../shared/components/page'
 import { cn } from '../../../shared/lib/cn'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useDayScheduleQuery } from '../../schedules/hooks/use-day-schedule-query'
@@ -13,7 +16,7 @@ import {
   DashboardFunnel,
   DashboardOperationsCard,
 } from '../components/dashboard-insights'
-import { DashboardKpiGrid } from '../components/dashboard-kpi-grid'
+import { DashboardRevenueCard } from '../components/dashboard-kpi-grid'
 import {
   DashboardChartSkeleton,
   DashboardInsightsSkeleton,
@@ -32,12 +35,13 @@ import {
 } from '../components/dashboard-capacity'
 import { DashboardMarketingAttribution } from '../components/dashboard-marketing-attribution'
 import { DashboardSection } from '../components/dashboard-section'
-import { DashboardTrendCharts } from '../components/dashboard-trend-charts'
+import { DashboardEnrollmentTrend } from '../components/dashboard-trend-charts'
 import { DashboardTimetable } from '../components/dashboard-timetable'
 import { DashboardToolbar } from '../components/dashboard-toolbar'
 import { useDashboardMetricsQuery } from '../hooks/use-dashboard-metrics-query'
 import {
   ALL_BRANCHES_ID,
+  DASHBOARD_ANCHORS,
   formatDashboardDateRange,
   getDefaultDashboardDateRange,
   isAllBranches,
@@ -85,7 +89,7 @@ export default function DashboardPage() {
     : ''
 
   return (
-    <AdminShell mainClassName="px-3 py-3 sm:px-4 sm:py-3">
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
       <div className="space-y-3">
         <DashboardToolbar
           dateRange={dateRange}
@@ -98,139 +102,144 @@ export default function DashboardPage() {
         />
 
         {!branchesQuery.isLoading && branches.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center">
-            <div className="mx-auto inline-flex size-12 items-center justify-center rounded-xl bg-[#E8EEFF] text-[#253CA1]">
-              <Building2 className="size-6" />
-            </div>
-            <p className="mt-3 text-base font-semibold text-slate-900">
-              Add a branch to view business metrics
-            </p>
-            <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
-              Dashboard KPIs, trends, and today&apos;s timetable are scoped to a
-              branch. Create a branch first, then return here.
-            </p>
-          </div>
+          <EmptyState
+            icon={Building2}
+            title="Add a branch to see your numbers"
+            description="Everything on the dashboard is grouped by branch. Create your first branch, then come back here."
+          />
         ) : !hasBranch || !hasDateRange ? (
           <DashboardKpiSkeleton />
         ) : (
           <>
             {isInitialLoading ? (
-              <DashboardKpiSkeleton />
-            ) : metricsQuery.isError ? (
-              <div className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-6 text-center">
-                <p className="text-sm font-semibold text-rose-700">
-                  Unable to load business metrics.
-                </p>
-                <p className="mt-1 text-sm text-rose-600">
-                  Check your connection and try again.
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => void metricsQuery.refetch()}
-                >
-                  Try again
-                </Button>
-              </div>
-            ) : showMetrics ? (
-              <div className={cn('space-y-3', fetchingClass)}>
-                <DashboardKpiGrid metrics={metricsQuery.data} />
-
-                <DashboardSection title="Needs attention">
-                  <DashboardActionItems metrics={metricsQuery.data} />
-                </DashboardSection>
-              </div>
-            ) : null}
-
-            {isInitialLoading ? (
               <>
-                <DashboardSection title="Performance">
-                  <DashboardChartSkeleton />
-                </DashboardSection>
-                <DashboardSection title="Pipeline & delivery">
-                  <DashboardInsightsSkeleton />
-                </DashboardSection>
+                <DashboardKpiSkeleton />
+                <DashboardChartSkeleton />
+                <DashboardInsightsSkeleton />
               </>
             ) : null}
 
+            {metricsQuery.isError ? (
+              <ListErrorState
+                title="We couldn't load the dashboard"
+                description="Check your connection and try again."
+                onRetry={() => void metricsQuery.refetch()}
+              />
+            ) : null}
+
             {showMetrics ? (
-              <div className={cn('space-y-3', fetchingClass)}>
-                <DashboardSection title="Performance">
-                  <DashboardTrendCharts metrics={metricsQuery.data} />
+              <div
+                className={cn(
+                  'animate-in fade-in slide-in-from-bottom-2 fill-mode-both space-y-3',
+                  fetchingClass,
+                )}
+              >
+                <DashboardSection
+                  id={DASHBOARD_ANCHORS.money}
+                  title="Money"
+                >
+                  <div className="grid items-stretch gap-3 xl:grid-cols-12">
+                    <DashboardRevenueCard
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-8"
+                    />
+                    <DashboardActionItems
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-4"
+                    />
+                  </div>
                 </DashboardSection>
 
-                <DashboardSection title="Pipeline & delivery">
-                  <div className="grid items-stretch gap-2 xl:grid-cols-12">
+                <DashboardSection
+                  id={DASHBOARD_ANCHORS.pipeline}
+                  title="Students & classes"
+                >
+                  <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-12">
+                    <DashboardEnrollmentTrend
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-4"
+                    />
                     <DashboardFunnel
                       metrics={metricsQuery.data}
                       className="xl:col-span-5"
                     />
-                    <DashboardOperationsCard
-                      metrics={metricsQuery.data}
-                      className="xl:col-span-4"
-                    />
                     <DashboardDeliveryOverview
                       metrics={metricsQuery.data}
-                      className="xl:col-span-3"
+                      className="md:col-span-2 xl:col-span-3"
                     />
                   </div>
                 </DashboardSection>
 
-                <DashboardSection title="Operations & capacity">
-                  <div className="grid items-stretch gap-2 xl:grid-cols-2">
-                    <DashboardProgramDemand metrics={metricsQuery.data} />
-                    <DashboardClassroomUtilization metrics={metricsQuery.data} />
-                  </div>
-                  <div className="mt-2">
-                    <DashboardTutorUtilization metrics={metricsQuery.data} />
+                <DashboardSection
+                  id={DASHBOARD_ANCHORS.capacity}
+                  title="Teaching capacity"
+                >
+                  <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-12">
+                    <DashboardOperationsCard
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-4"
+                    />
+                    <DashboardClassroomUtilization
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-4"
+                    />
+                    <DashboardProgramDemand
+                      metrics={metricsQuery.data}
+                      className="md:col-span-2 xl:col-span-4"
+                    />
+                    <DashboardTutorUtilization
+                      metrics={metricsQuery.data}
+                      className="md:col-span-2 xl:col-span-12"
+                    />
                   </div>
                 </DashboardSection>
 
                 {isAllBranches(branchId) &&
                 metricsQuery.data.branchComparison.length > 0 ? (
-                  <DashboardSection title="Locations">
+                  <DashboardSection title="Branches">
                     <DashboardBranchComparison metrics={metricsQuery.data} />
                   </DashboardSection>
                 ) : null}
 
-                <DashboardSection title="Acquisition">
-                  <div className="grid items-stretch gap-2 xl:grid-cols-12">
+                <DashboardSection
+                  id={DASHBOARD_ANCHORS.acquisition}
+                  title="Leads"
+                >
+                  <div className="grid items-stretch gap-3 xl:grid-cols-12">
                     <DashboardLeadSources
                       metrics={metricsQuery.data}
-                      className="xl:col-span-5"
+                      className="xl:col-span-6"
                     />
                     <DashboardCourseInterest
                       metrics={metricsQuery.data}
-                      className="xl:col-span-7"
+                      className="xl:col-span-6"
                     />
-                  </div>
-                  <div className="mt-2">
-                    <DashboardMarketingAttribution metrics={metricsQuery.data} />
+                    <DashboardMarketingAttribution
+                      metrics={metricsQuery.data}
+                      className="xl:col-span-12"
+                    />
                   </div>
                 </DashboardSection>
               </div>
             ) : null}
 
-            {isAllBranches(branchId) ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center">
-                <p className="text-sm font-semibold text-slate-700">
-                  Select a branch to view today&apos;s timetable
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  The schedule is branch-specific. Choose a branch from the
-                  filter above.
-                </p>
-              </div>
-            ) : (
-              <DashboardTimetable
-                columns={scheduleQuery.data?.columns ?? []}
-                events={scheduleQuery.data?.events ?? []}
-                branchId={branchId}
-                isLoading={scheduleQuery.isLoading || scheduleQuery.isFetching}
-                dateLabel="Today"
-              />
-            )}
+            <DashboardSection title="Today">
+              {isAllBranches(branchId) ? (
+                <EmptyState
+                  icon={CalendarDays}
+                  title="Pick a branch to see today's timetable"
+                  description="Each branch has its own rooms and schedule. Choose one from the branch filter at the top."
+                />
+              ) : (
+                <DashboardTimetable
+                  columns={scheduleQuery.data?.columns ?? []}
+                  events={scheduleQuery.data?.events ?? []}
+                  branchId={branchId}
+                  isLoading={scheduleQuery.isLoading || scheduleQuery.isFetching}
+                  dateLabel="Today"
+                />
+              )}
+            </DashboardSection>
           </>
         )}
       </div>

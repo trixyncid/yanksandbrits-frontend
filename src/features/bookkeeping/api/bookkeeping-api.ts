@@ -17,6 +17,7 @@ import type {
 } from '../types/bookkeeping'
 import type { BookkeepingListFilters } from './bookkeeping-query-keys'
 import { adminPath } from '../../../shared/api/paths'
+import { mapTeamRange, type TeamRangeDto } from '../lib/team-range'
 
 export type BookkeepingListResponse = {
   data: BookkeepingListItem[]
@@ -242,6 +243,15 @@ type SalaryBreakdownMarketerDto = {
   bonus_tier_min_amount?: number | null
   bonus_tier_max_amount?: number | null
   expected_salary: number
+  team_range?: TeamRangeDto | null
+  branch_ranges?: Array<{
+    branch_id: number
+    branch_name?: string | null
+    range_amount?: number
+    payout_amount?: number
+    commission_percentage?: number
+    commission_bonus?: number
+  }>
   consults: Array<{
     id: number
     name: string
@@ -305,6 +315,15 @@ function mapSalaryBreakdownMarketer(
     bonusTierMinAmount: dto.bonus_tier_min_amount ?? null,
     bonusTierMaxAmount: dto.bonus_tier_max_amount ?? null,
     expectedSalary: dto.expected_salary ?? 0,
+    teamRange: mapTeamRange(dto.team_range),
+    branchRanges: (dto.branch_ranges ?? []).map((item) => ({
+      branchId: item.branch_id,
+      branchName: item.branch_name || 'Branch',
+      rangeAmount: item.range_amount ?? 0,
+      payoutAmount: item.payout_amount ?? 0,
+      commissionPercentage: item.commission_percentage ?? 0,
+      commissionBonus: item.commission_bonus ?? 0,
+    })),
     consults: (dto.consults ?? []).map((item) => ({
       id: String(item.id),
       name: item.name,

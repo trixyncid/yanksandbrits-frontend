@@ -1,6 +1,11 @@
-import { FileDown, FileText } from 'lucide-react'
+import { CheckCircle2, FileDown, FileText, ListChecks } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import {
+  PageHero,
+  type PagePattern,
+  type PageTheme,
+} from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
 import { AdminShell } from './admin-shell'
@@ -19,8 +24,16 @@ type ReportGeneratorLayoutProps = {
   isDownloading: boolean
   onDownload: () => void
   readyHint?: string
+  /** Hero styling; defaults to a calm report look. */
+  theme?: PageTheme
+  pattern?: PagePattern
+  eyebrow?: string
 }
 
+/**
+ * Shared page for "pick filters → download a PDF" reports: a compact hero,
+ * the criteria card, and a sticky summary with the download button.
+ */
 export function ReportGeneratorLayout({
   title,
   description,
@@ -30,97 +43,126 @@ export function ReportGeneratorLayout({
   isDownloading,
   onDownload,
   readyHint = 'Fill in the required criteria to enable download.',
+  theme = 'mist',
+  pattern = 'grid',
+  eyebrow = 'Reports',
 }: ReportGeneratorLayoutProps) {
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 mx-auto max-w-5xl space-y-6">
-        <header className="space-y-2">
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#253CA1] uppercase">
-            Reports
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            {title}
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
-            {description}
-          </p>
-        </header>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="animate-in fade-in slide-in-from-bottom-2 mx-auto max-w-6xl space-y-3">
+        <PageHero
+          compact
+          eyebrow={eyebrow}
+          title={title}
+          description={description}
+          theme={theme}
+          pattern={pattern}
+        />
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-b from-[#F5F8FF] to-white shadow-sm">
-          <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.85fr)]">
-            <section className="space-y-6 border-b border-slate-200/80 p-6 sm:p-8 lg:border-r lg:border-b-0">
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <section className="rounded-[1.75rem] bg-white p-5 sm:p-6">
+            <div className="mb-5 flex items-start gap-3">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                <ListChecks className="size-4" />
+              </span>
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">
-                  Report criteria
+                <h2 className="text-base font-bold tracking-tight text-ink sm:text-lg">
+                  What should the report cover?
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Set the filters used to generate this PDF.
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Choose the filters for this PDF.
                 </p>
               </div>
-              <div className="space-y-5">{criteria}</div>
-            </section>
+            </div>
+            <div className="space-y-5">{criteria}</div>
+          </section>
 
-            <aside
+          <aside className="space-y-3 lg:sticky lg:top-20">
+            <div
               className={cn(
-                'flex flex-col gap-5 bg-white/70 p-6 sm:p-8 transition-opacity duration-200',
-                ready ? 'opacity-100' : 'opacity-90',
+                'rounded-[1.75rem] p-5 transition-colors duration-300',
+                ready ? 'bg-ink text-white' : 'bg-white',
               )}
             >
               <div className="flex items-start gap-3">
-                <div
+                <span
                   className={cn(
-                    'flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors',
-                    ready
-                      ? 'bg-gradient-to-br from-[#3A56B8] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/25'
-                      : 'bg-[#E8EEFF] text-[#253CA1]',
+                    'inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors',
+                    ready ? 'bg-brand-500 text-white' : 'bg-brand-50 text-brand-600',
                   )}
                 >
-                  <FileText className="size-5" />
-                </div>
+                  {ready ? (
+                    <CheckCircle2 className="size-5" />
+                  ) : (
+                    <FileText className="size-5" />
+                  )}
+                </span>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {ready ? 'Ready to export' : 'Complete the criteria'}
+                  <p className={cn('text-base font-bold', ready ? 'text-white' : 'text-ink')}>
+                    {ready ? 'Ready to download' : 'Almost there'}
                   </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                    {ready
-                      ? 'Review the summary, then download the PDF.'
-                      : readyHint}
+                  <p
+                    className={cn(
+                      'mt-0.5 text-xs leading-relaxed',
+                      ready ? 'text-white/65' : 'text-slate-500',
+                    )}
+                  >
+                    {ready ? 'Check the summary, then download the PDF.' : readyHint}
                   </p>
                 </div>
               </div>
 
-              <dl className="space-y-3 rounded-xl border border-slate-200/80 bg-[#F5F8FF]/80 px-4 py-3.5">
+              <dl
+                className={cn(
+                  'mt-4 space-y-2 rounded-3xl px-4 py-3.5',
+                  ready ? 'bg-white/8' : 'bg-canvas/70',
+                )}
+              >
                 {summaryItems.map((item) => (
                   <div
                     key={item.label}
                     className="flex items-start justify-between gap-4"
                   >
-                    <dt className="shrink-0 text-xs font-medium text-slate-500">
+                    <dt
+                      className={cn(
+                        'shrink-0 text-xs font-medium',
+                        ready ? 'text-white/60' : 'text-slate-500',
+                      )}
+                    >
                       {item.label}
                     </dt>
-                    <dd className="text-right text-xs font-semibold text-slate-800">
+                    <dd
+                      className={cn(
+                        'text-right text-xs font-semibold',
+                        ready ? 'text-white' : 'text-ink',
+                      )}
+                    >
                       {item.value}
                     </dd>
                   </div>
                 ))}
               </dl>
 
-              <div className="mt-auto space-y-2">
-                <Button
-                  fullWidth
-                  size="lg"
-                  disabled={!ready || isDownloading}
-                  onClick={onDownload}
-                >
-                  <FileDown className="size-4" />
-                  {isDownloading ? 'Downloading…' : 'Download PDF'}
-                </Button>
-                <p className="text-center text-[11px] text-slate-400">
-                  PDF downloads to your device
-                </p>
-              </div>
-            </aside>
-          </div>
+              <Button
+                fullWidth
+                size="lg"
+                className="mt-4"
+                disabled={!ready || isDownloading}
+                onClick={onDownload}
+              >
+                <FileDown className="size-4" />
+                {isDownloading ? 'Downloading…' : 'Download PDF'}
+              </Button>
+              <p
+                className={cn(
+                  'mt-2 text-center text-[11px]',
+                  ready ? 'text-white/50' : 'text-slate-400',
+                )}
+              >
+                The PDF saves to this device
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
     </AdminShell>

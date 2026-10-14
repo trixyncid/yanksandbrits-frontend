@@ -6,6 +6,7 @@ import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { downloadTutorSalaryPdf } from '../api/tutor-report-api'
+import { getInitials } from '../../student-payments/lib/payment-ui'
 import type { TutorReportListItem } from '../types/tutor-report'
 
 function formatCurrency(amount: number) {
@@ -45,10 +46,12 @@ function TutorPdfButton({ item }: { item: TutorReportListItem }) {
           }
         })()
       }}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B2A5A] transition hover:text-[#253CA1] disabled:opacity-60"
+      title="Download salary PDF"
+      aria-label={`Download salary PDF for ${item.tutorName}`}
+      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-canvas px-3.5 text-xs font-semibold text-ink transition hover:bg-ink hover:text-white disabled:cursor-wait disabled:opacity-60"
     >
       <FileDown className="size-3.5" />
-      {isDownloading ? '…' : 'PDF'}
+      {isDownloading ? 'Saving…' : 'PDF'}
     </button>
   )
 }
@@ -61,13 +64,21 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
       <DataTableColumnHeader column={column} title="Tutor" />
     ),
     cell: ({ row }) => (
-      <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.tutorPin} - {row.original.tutorName}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">
-          {row.original.tutorEmail}
-        </p>
+      <div className="flex min-w-[14rem] items-center gap-3 py-0.5">
+        <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas text-[11px] font-bold text-ink">
+          {getInitials(row.original.tutorName)}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">
+            {row.original.tutorName}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            <span className="font-mono">{row.original.tutorPin}</span>
+            {row.original.tutorEmail && row.original.tutorEmail !== '—'
+              ? ` · ${row.original.tutorEmail}`
+              : ''}
+          </p>
+        </div>
       </div>
     ),
   },
@@ -106,7 +117,7 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Number of Sessions"
+        title="Sessions"
         align="center"
       />
     ),
@@ -136,7 +147,7 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Overtime Sessions"
+        title="OT Sessions"
         align="center"
       />
     ),
@@ -151,7 +162,7 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Overtime Salary"
+        title="OT Pay"
         align="center"
       />
     ),
@@ -181,13 +192,15 @@ export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Total Salary"
+        title="Total Pay"
         align="center"
       />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-semibold text-slate-800 tabular-nums">
-        {formatCurrency(row.original.totalSalary)}
+      <p className="text-center">
+        <span className="inline-flex rounded-full bg-ink px-3 py-1 text-xs font-bold text-white tabular-nums">
+          {formatCurrency(row.original.totalSalary)}
+        </span>
       </p>
     ),
   },

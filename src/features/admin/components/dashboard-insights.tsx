@@ -1,6 +1,13 @@
+import { Activity, Filter } from 'lucide-react'
+
 import { cn } from '../../../shared/lib/cn'
 import type { DashboardMetrics } from '../types/dashboard'
-import { DashboardDonutChart, DashboardFunnelChart } from './dashboard-charts'
+import {
+  DashboardDonutChart,
+  DashboardFunnelChart,
+} from './dashboard-charts'
+import { BRAND_CHART } from './dashboard-palette'
+import { DashboardChip, DashboardSwatch } from './dashboard-kit'
 import {
   DashboardCardHeader,
   DashboardEmptyState,
@@ -10,16 +17,16 @@ import {
 const FUNNEL_ORDER = ['3_CO', '4_PT', '6_EN', '5_CA']
 
 const FUNNEL_TONES: Record<string, string> = {
-  '3_CO': 'bg-[#253CA1]',
-  '4_PT': 'bg-[#1B2A5A]',
-  '6_EN': 'bg-[#3D9B6E]',
-  '5_CA': 'bg-[#C45B6E]',
+  '3_CO': 'bg-brand-300 text-ink',
+  '4_PT': 'bg-brand-500',
+  '6_EN': 'bg-brand-700',
+  '5_CA': 'bg-brand-gray text-ink',
 }
 
 function cancellationTone(rate: number) {
-  if (rate <= 5) return 'text-[#1F5A3D] bg-[#E8F7EF]'
-  if (rate <= 12) return 'text-[#9A3412] bg-[#FFF7ED]'
-  return 'text-[#6E2433] bg-[#FCEEF1]'
+  if (rate <= 5) return 'bg-emerald-50 text-emerald-700'
+  if (rate <= 12) return 'bg-amber-50 text-amber-700'
+  return 'bg-rose-50 text-rose-700'
 }
 
 export function DashboardFunnel({
@@ -39,25 +46,24 @@ export function DashboardFunnel({
   return (
     <DashboardPanel className={className}>
       <DashboardCardHeader
-        title="Prospect funnel"
-        description="New leads created in the selected period."
+        title="Lead pipeline"
+        description="Where this period's new leads are now."
+        icon={<Filter className="size-4" />}
         action={
           total > 0 ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 tabular-nums">
-              {total} total leads
-            </span>
+            <DashboardChip tone="brand">{total} leads</DashboardChip>
           ) : null
         }
       />
 
       {ordered.length === 0 ? (
-        <DashboardEmptyState message="No new prospects in this period." />
+        <DashboardEmptyState message="No new leads in this period." />
       ) : (
         <DashboardFunnelChart
           items={ordered.map((item) => ({
             label: item.label,
             value: item.count,
-            tone: FUNNEL_TONES[item.status] ?? 'bg-[#253CA1]',
+            tone: FUNNEL_TONES[item.status] ?? 'bg-brand-500',
           }))}
         />
       )}
@@ -86,86 +92,92 @@ export function DashboardOperationsCard({
         )
       : 0
 
+  const rows = [
+    {
+      label: 'Scheduled',
+      value: operations.sessionsTotal,
+      color: BRAND_CHART.brand200,
+      extra: null as string | null,
+    },
+    {
+      label: 'Taught',
+      value: operations.sessionsFinished,
+      color: BRAND_CHART.brand500,
+      extra: null,
+    },
+    {
+      label: 'Cancelled',
+      value: operations.sessionsCancelled,
+      color: BRAND_CHART.gray,
+      extra: `${operations.cancellationRate.toFixed(1)}%`,
+    },
+  ]
+
   return (
-    <DashboardPanel variant="quiet" className={className}>
+    <DashboardPanel className={className}>
       <DashboardCardHeader
-        title="Delivery health"
-        description="How classes ran during the selected period."
+        title="Classes delivered"
+        description="How this period's sessions went."
+        icon={<Activity className="size-4" />}
       />
 
       {operations.sessionsTotal === 0 ? (
         <DashboardEmptyState message="No sessions scheduled in this period." />
       ) : (
-        <div className="flex flex-1 flex-col items-center gap-3 sm:flex-row sm:items-start xl:flex-col xl:items-stretch">
+        <div className="flex flex-1 flex-col items-center gap-4 sm:flex-row xl:flex-col">
           <DashboardDonutChart
             className="self-center"
-            size={132}
-            strokeWidth={14}
+            size={148}
+            strokeWidth={16}
             centerValue={`${completionRate}%`}
-            centerLabel="completed"
+            centerLabel="taught"
             segments={[
               {
-                label: 'Finished',
+                label: 'Taught',
                 value: operations.sessionsFinished,
-                color: '#3D9B6E',
+                color: BRAND_CHART.brand500,
               },
               {
-                label: 'Remaining',
+                label: 'Still to run',
                 value: remaining,
-                color: '#93B8E8',
+                color: BRAND_CHART.brand200,
               },
               {
                 label: 'Cancelled',
                 value: operations.sessionsCancelled,
-                color: '#C45B6E',
+                color: BRAND_CHART.gray,
               },
             ]}
           />
 
-          <dl className="grid w-full flex-1 gap-2">
-            <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
-              <div>
-                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                  Scheduled
+          <dl className="grid w-full flex-1 gap-1.5">
+            {rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between gap-2 rounded-2xl bg-canvas/70 px-3.5 py-2"
+              >
+                <dt className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <DashboardSwatch color={row.color} />
+                  {row.label}
                 </dt>
-                <dd className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
-                  {operations.sessionsTotal.toLocaleString('en-US')}
-                </dd>
-              </div>
-              <span className="size-2 rounded-full bg-[#93B8E8]" />
-            </div>
-            <div className="flex items-center justify-between gap-2 rounded-xl bg-[#F4FBF7] px-3 py-2">
-              <div>
-                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                  Delivered
-                </dt>
-                <dd className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
-                  {operations.sessionsFinished.toLocaleString('en-US')}
-                </dd>
-              </div>
-              <span className="size-2 rounded-full bg-[#3D9B6E]" />
-            </div>
-            <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
-              <div>
-                <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                  Cancelled
-                </dt>
-                <dd className="mt-0.5 flex items-center gap-2">
-                  <span className="text-base font-bold text-slate-900 tabular-nums">
-                    {operations.sessionsCancelled.toLocaleString('en-US')}
-                  </span>
-                  <span
-                    className={cn(
-                      'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                      cancellationTone(operations.cancellationRate),
-                    )}
-                  >
-                    {operations.cancellationRate.toFixed(1)}%
+                <dd className="flex items-center gap-2">
+                  {row.extra ? (
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                        cancellationTone(operations.cancellationRate),
+                      )}
+                      title="Share of sessions cancelled"
+                    >
+                      {row.extra}
+                    </span>
+                  ) : null}
+                  <span className="text-sm font-bold text-ink tabular-nums">
+                    {row.value.toLocaleString('en-US')}
                   </span>
                 </dd>
               </div>
-              <span className="size-2 rounded-full bg-[#C45B6E]" />
-            </div>
+            ))}
           </dl>
         </div>
       )}

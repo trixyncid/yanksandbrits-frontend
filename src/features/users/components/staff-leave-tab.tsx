@@ -47,9 +47,9 @@ function statusTone(status: PaidLeaveStatus) {
   }
   if (status === 'pending') {
     return {
-      badge: 'bg-[#E8EEFF] text-[#253CA1]',
-      bar: 'bg-[#7B93E8]',
-      icon: 'bg-[#E8EEFF] text-[#253CA1]',
+      badge: 'bg-brand-100 text-brand-500',
+      bar: 'bg-brand-300',
+      icon: 'bg-brand-100 text-brand-500',
     }
   }
   return {
@@ -79,7 +79,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
   }
 
   return (
-    <div className="space-y-4 p-4 sm:p-5">
+    <div className="space-y-4 p-5 sm:p-6">
       <div className="grid gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
         <DashboardPanel
           variant="navy"
@@ -89,7 +89,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
             <div className="min-w-0">
               <p className="text-base font-bold text-white">Leave balance</p>
               <p className="mt-0.5 text-sm text-white/60">
-                Remaining days vs annual entitlement
+                Days left out of the yearly allowance
               </p>
             </div>
             <button
@@ -124,7 +124,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
               </div>
               <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#7B93E8] transition-all duration-700 ease-out"
+                  className="h-full rounded-full bg-brand-300 transition-all duration-700 ease-out"
                   style={{ width: `${remainingPct}%` }}
                 />
               </div>
@@ -151,7 +151,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
               </div>
               <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#A8B8F0] transition-all duration-700 ease-out"
+                  className="h-full rounded-full bg-brand-200 transition-all duration-700 ease-out"
                   style={{ width: `${usedPct}%` }}
                 />
               </div>
@@ -182,7 +182,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
             <div className="min-w-0">
               <p className="text-base font-bold text-slate-900">Leave history</p>
               <p className="mt-0.5 text-sm text-slate-400">
-                Paid leave requests for this staff member
+                Every paid leave request for this person. Click one to open it.
               </p>
             </div>
             <Button
@@ -230,7 +230,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
                         params={{ leaveId: leave.id }}
                         className={cn(
                           'group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80 sm:px-5',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#253CA1]/30',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/30',
                         )}
                       >
                         <span
@@ -277,7 +277,7 @@ export function StaffLeaveTab({ user }: StaffLeaveTabProps) {
                             />
                           </div>
                         </div>
-                        <ChevronRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#253CA1]" />
+                        <ChevronRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
                       </Link>
                     </li>
                   )

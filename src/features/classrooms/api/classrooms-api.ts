@@ -4,6 +4,7 @@ import type {
   ClassroomFormValues,
   ClassroomListItem,
 } from '../types/classroom'
+import { compareClassrooms } from '../lib/compare-classrooms'
 import type { ClassroomListFilters } from './classroom-query-keys'
 import { adminPath } from '../../../shared/api/paths'
 
@@ -116,7 +117,7 @@ export async function fetchClassrooms(
   }
 
   return {
-    data: items,
+    data: items.sort(compareClassrooms),
     meta: { total: first.total },
   }
 }

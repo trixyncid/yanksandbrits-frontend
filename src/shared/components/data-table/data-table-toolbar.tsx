@@ -15,7 +15,7 @@ type DataTableToolbarProps = {
   actions?: ReactNode
   /** Discovery filters. Sit with search in the tools row. */
   filters?: ReactNode
-  variant?: 'default' | 'glass'
+  variant?: 'default' | 'glass' | 'soft'
   /** `pill` matches Steadi-style capsule inputs (icon + rounded-full). */
   searchVariant?: 'default' | 'pill'
 }
@@ -35,6 +35,49 @@ export function DataTableToolbar({
 }: DataTableToolbarProps) {
   const isGlass = variant === 'glass'
   const isPillSearch = searchVariant === 'pill'
+
+  // Every table uses the soft toolbar; other variants are kept as aliases.
+  if (variant === 'soft' || variant === 'default' || isGlass) {
+    return (
+      <div className="flex flex-col gap-4 px-4 pt-5 pb-4 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {title ? (
+                <h2 className="text-xl font-bold tracking-tight text-ink">
+                  {title}
+                </h2>
+              ) : null}
+              <span className="inline-flex items-center rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                {totalCount} {totalLabel}
+              </span>
+            </div>
+            {description ? (
+              <p className="mt-1 text-sm text-slate-500">{description}</p>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+          <SearchField
+            value={searchValue}
+            onChange={onSearchChange}
+            placeholder={searchPlaceholder}
+            variant="pill"
+            className="w-full lg:w-80 lg:shrink-0"
+            inputClassName="border-transparent bg-canvas shadow-none hover:border-transparent focus:border-transparent focus:ring-ink/10"
+          />
+          {filters ? (
+            <div className="min-w-0 w-full lg:w-auto lg:flex-1">{filters}</div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
 
   if (!isGlass) {
     return (
@@ -82,7 +125,7 @@ export function DataTableToolbar({
   }
 
   return (
-    <div className="border-b border-[#D7E4F6]/80">
+    <div className="border-b border-brand-200/80">
       {/* Identity + primary action */}
       <div className="flex flex-col gap-3 px-4 pt-3.5 pb-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
         <div className="min-w-0">
@@ -95,7 +138,7 @@ export function DataTableToolbar({
             {description ? (
               <p className="text-sm text-slate-500">{description}</p>
             ) : null}
-            <span className="inline-flex items-center rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-[#C8D4F5]/70 backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-brand-200/70 backdrop-blur-sm">
               {totalCount} {totalLabel}
             </span>
           </div>
@@ -109,7 +152,7 @@ export function DataTableToolbar({
       </div>
 
       {/* Discovery tools: search + filters */}
-      <div className="flex flex-col gap-2 border-t border-[#D7E4F6]/70 bg-[linear-gradient(180deg,rgba(248,251,255,0.55)_0%,rgba(255,255,255,0.15)_100%)] px-4 py-2.5 sm:flex-row sm:items-center sm:px-5">
+      <div className="flex flex-col gap-2 border-t border-brand-200/70 bg-[linear-gradient(180deg,rgba(248,251,255,0.55)_0%,rgba(255,255,255,0.15)_100%)] px-4 py-2.5 sm:flex-row sm:items-center sm:px-5">
         <SearchField
           value={searchValue}
           onChange={onSearchChange}
@@ -171,7 +214,7 @@ function SearchField({
                 'box-border h-10 w-full rounded-full border border-slate-200/80 bg-white py-0 text-sm font-medium text-slate-800 shadow-sm',
                 'placeholder:font-normal placeholder:text-slate-400',
                 'transition-colors hover:border-slate-300',
-                'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+                'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                 'pl-10',
                 value ? 'pr-9' : 'pr-4',
               )
@@ -179,7 +222,7 @@ function SearchField({
                 'box-border h-11 w-full rounded-full border border-slate-200/80 bg-white py-0 text-sm font-medium text-slate-800 shadow-sm',
                 'placeholder:font-normal placeholder:text-slate-400',
                 'transition-colors hover:border-slate-300',
-                'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+                'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                 'pl-8',
                 value ? 'pr-9' : 'pr-3',
               ),

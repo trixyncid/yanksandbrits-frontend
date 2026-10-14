@@ -11,6 +11,13 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return (
+    (parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1]![0] : '')
+  ).toUpperCase() || '?'
+}
+
 export const studentReportColumns: ColumnDef<StudentReportRow>[] = [
   {
     id: 'no',
@@ -27,23 +34,25 @@ export const studentReportColumns: ColumnDef<StudentReportRow>[] = [
     ),
   },
   {
-    accessorKey: 'pin',
+    id: 'student',
+    accessorFn: (row) => `${row.fullName} ${row.pin}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="PIN" />
+      <DataTableColumnHeader column={column} title="Student" />
     ),
     cell: ({ row }) => (
-      <p className="text-sm font-semibold text-slate-900">{row.original.pin}</p>
-    ),
-  },
-  {
-    accessorKey: 'fullName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Student's Name" />
-    ),
-    cell: ({ row }) => (
-      <p className="text-sm font-medium text-slate-800">
-        {row.original.fullName}
-      </p>
+      <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
+        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">
+          {initials(row.original.fullName)}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-900">
+            {row.original.fullName}
+          </p>
+          <p className="mt-0.5 truncate font-mono text-xs text-slate-500">
+            {row.original.pin}
+          </p>
+        </div>
+      </div>
     ),
   },
   {
@@ -94,13 +103,18 @@ export const studentReportColumns: ColumnDef<StudentReportRow>[] = [
       <DataTableColumnHeader column={column} title="Program" align="center" />
     ),
     cell: ({ row }) => (
-      <ul className="space-y-1 text-center text-xs text-slate-600">
+      <ul className="flex flex-wrap justify-center gap-1">
         {row.original.programs.length > 0 ? (
           row.original.programs.map((program) => (
-            <li key={program}>{program}</li>
+            <li
+              key={program}
+              className="rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink"
+            >
+              {program}
+            </li>
           ))
         ) : (
-          <li>-</li>
+          <li className="text-xs text-slate-400">-</li>
         )}
       </ul>
     ),

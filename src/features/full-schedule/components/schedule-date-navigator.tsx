@@ -61,7 +61,7 @@ export function ScheduleDateNavigator({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-xl border border-slate-200/90 bg-[linear-gradient(180deg,#F5F8FF_0%,#FFFFFF_42%)]',
+        'overflow-hidden rounded-xl border border-slate-200/90 bg-[linear-gradient(180deg,#EEF1FB_0%,#FFFFFF_42%)]',
         className,
       )}
       aria-label="Schedule date"
@@ -69,7 +69,7 @@ export function ScheduleDateNavigator({
       <div className="flex flex-col gap-2.5 p-2.5 sm:p-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold tracking-[0.14em] text-[#253CA1] uppercase">
+            <p className="text-[10px] font-semibold tracking-[0.14em] text-brand-500 uppercase">
               Viewing day
             </p>
             <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -80,7 +80,7 @@ export function ScheduleDateNavigator({
                 className={cn(
                   'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
                   viewingToday
-                    ? 'bg-[#E8EEFF] text-[#1B2A5A]'
+                    ? 'bg-brand-100 text-brand-800'
                     : 'bg-slate-100 text-slate-600',
                 )}
               >
@@ -120,13 +120,13 @@ export function ScheduleDateNavigator({
                   aria-label="Jump to date"
                   className="shadow-sm"
                 >
-                  <CalendarDays className="size-4 text-[#253CA1]" />
+                  <CalendarDays className="size-4 text-brand-500" />
                   Calendar
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-auto p-0">
                 <div className="border-b border-slate-100 px-3 py-2.5">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-[#253CA1] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-brand-500 uppercase">
                     Jump to date
                   </p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-800">
@@ -153,7 +153,7 @@ export function ScheduleDateNavigator({
             type="button"
             aria-label="Previous week"
             onClick={() => onChange(addWeeks(selected, -1))}
-            className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#1B2A5A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/35"
+            className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-brand-200 hover:bg-brand-100 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -177,10 +177,10 @@ export function ScheduleDateNavigator({
                   onClick={() => onChange(startOfDay(day))}
                   className={cn(
                     'group relative flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-1.5 transition duration-200 sm:min-h-[3.5rem]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/35 focus-visible:ring-offset-1',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:ring-offset-1',
                     selectedDay
-                      ? 'scale-[1.02] border-transparent bg-gradient-to-b from-[#3A56B8] via-[#253CA1] to-[#1B2A5A] text-white shadow-md shadow-[#253CA1]/25'
-                      : 'border-slate-200/80 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:shadow-sm',
+                      ? 'scale-[1.02] border-transparent bg-gradient-to-b from-brand-500 via-brand-500 to-brand-800 text-white shadow-md shadow-brand-500/25'
+                      : 'border-slate-200/80 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-brand-50 hover:shadow-sm',
                   )}
                 >
                   <span
@@ -205,7 +205,7 @@ export function ScheduleDateNavigator({
                       dayIsToday
                         ? selectedDay
                           ? 'bg-white'
-                          : 'bg-[#253CA1]'
+                          : 'bg-brand-500'
                         : 'bg-transparent',
                     )}
                     aria-hidden
@@ -219,7 +219,7 @@ export function ScheduleDateNavigator({
             type="button"
             aria-label="Next week"
             onClick={() => onChange(addWeeks(selected, 1))}
-            className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#1B2A5A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/35"
+            className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-brand-200 hover:bg-brand-100 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35"
           >
             <ChevronRight className="size-4" />
           </button>

@@ -1,10 +1,10 @@
 import { format, isSameDay, parseISO, startOfDay } from 'date-fns'
 import {
+  ArrowDown,
   BookOpen,
   CheckCircle2,
   ChevronDown,
   Clock3,
-  Plus,
   XCircle,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -60,8 +60,8 @@ function sessionIcon(session: TutorDaySession): ReactNode {
 function progressBarTone(session: TutorDaySession): string {
   if (session.status === 'cancelled') return 'bg-rose-300/80'
   if (session.status === 'finished') return 'bg-emerald-300/90'
-  if (session.status === 'ongoing') return 'bg-[#7B93E8]'
-  return 'bg-[#7B93E8]'
+  if (session.status === 'ongoing') return 'bg-brand-300'
+  return 'bg-brand-300'
 }
 
 export function TutorUpcomingClasses({
@@ -100,8 +100,8 @@ export function TutorUpcomingClasses({
             onClick={onViewAll}
             className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            <Plus className="size-3.5" strokeWidth={2.5} />
-            Timeline
+            <ArrowDown className="size-3.5" strokeWidth={2.5} />
+            Day timeline
           </button>
         ) : null}
       </div>

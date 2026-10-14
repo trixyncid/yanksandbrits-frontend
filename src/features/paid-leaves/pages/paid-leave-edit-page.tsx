@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarX, RefreshCw } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { EmptyState, PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -13,10 +14,7 @@ import {
 } from '../api/paid-leaves-api'
 import { paidLeaveQueryKeys } from '../api/paid-leave-query-keys'
 import { PaidLeaveForm } from '../components/paid-leave-form'
-import {
-  PaidLeaveListErrorState,
-  PaidLeaveListLoadingState,
-} from '../components/paid-leave-list-states'
+import { PaidLeaveListLoadingState } from '../components/paid-leave-list-states'
 import { usePaidLeaveForm } from '../hooks/use-paid-leave-form'
 import { usePaidLeaveQuery } from '../hooks/use-paid-leave-query'
 import type {
@@ -31,45 +29,49 @@ export default function PaidLeaveEditPage() {
 
   if (leaveQuery.isLoading) {
     return (
-      <AdminShell>
-        <PaidLeaveListLoadingState />
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl space-y-3">
+          <div className="h-24 animate-pulse rounded-[1.75rem] bg-white/70" />
+          <PaidLeaveListLoadingState />
+        </div>
       </AdminShell>
     )
   }
 
   if (leaveQuery.isError || !leaveQuery.data) {
     return (
-      <AdminShell>
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Paid leave not found
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This leave record may have been removed or the link is invalid.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void navigate({ to: '/paid-leaves' })}
-            >
-              <ArrowLeft className="size-3.5" />
-              Back to paid leave
-            </Button>
-            {leaveQuery.isError ? (
-              <Button size="sm" onClick={() => void leaveQuery.refetch()}>
-                Retry
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <EmptyState
+          className="mx-auto max-w-2xl"
+          icon={CalendarX}
+          title={
+            leaveQuery.isError
+              ? 'Unable to load this leave record'
+              : 'Paid leave not found'
+          }
+          description={
+            leaveQuery.isError
+              ? 'Something went wrong while loading this record. You can try again.'
+              : 'This leave record may have been removed, or the link is no longer valid.'
+          }
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant="soft"
+                onClick={() => void navigate({ to: '/paid-leaves' })}
+              >
+                <ArrowLeft className="size-4" />
+                Back to paid leave
               </Button>
-            ) : null}
-          </div>
-          {leaveQuery.isError ? (
-            <div className="mt-8 w-full">
-              <PaidLeaveListErrorState
-                onRetry={() => void leaveQuery.refetch()}
-              />
+              {leaveQuery.isError ? (
+                <Button variant="ink" onClick={() => void leaveQuery.refetch()}>
+                  <RefreshCw className="size-4" />
+                  Try again
+                </Button>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          }
+        />
       </AdminShell>
     )
   }
@@ -99,8 +101,8 @@ function PaidLeaveEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete paid leave?',
-      description: `This will permanently remove the leave record for ${leave.staffName}. This action cannot be undone.`,
+      title: `Delete ${leave.staffName}'s leave?`,
+      description: `This permanently removes the ${leave.totalDays}-day leave record for ${leave.staffName}. This cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -124,48 +126,46 @@ function PaidLeaveEditForm({
     })
   }
 
-  return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/paid-leaves"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Paid Leave
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Update Paid Leave
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Edit leave details for {leave.staffName}.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+  const statusBadge = {
+    approved: 'Approved',
+    pending: 'Pending',
+    void: 'Void',
+  }[leave.status]
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <PaidLeaveForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            meta={{
-              staffName: leave.staffName,
-              branch: leave.branch,
-              totalDays: leave.totalDays,
-              fileUrl: leave.fileUrl,
-            }}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+  return (
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/paid-leaves"
+          backLabel="Paid Leave"
+          title={`${leave.staffName}'s leave`}
+          description={`${leave.totalDays} ${leave.totalDays === 1 ? 'day' : 'days'} · ${leave.branch}`}
+          icon={CalendarCheck}
+          theme="mist"
+          pattern="waves"
+          badge={
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-ink shadow-sm">
+              {statusBadge}
+            </span>
+          }
+        />
+
+        <PaidLeaveForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          meta={{
+            staffName: leave.staffName,
+            branch: leave.branch,
+            totalDays: leave.totalDays,
+            fileUrl: leave.fileUrl,
+          }}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )

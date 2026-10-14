@@ -11,6 +11,8 @@ export const TUTOR_ALLOCATION_PROGRAM_CODES = [
   'HSK_5',
   'HSK_6',
   'GEN',
+  'CS_IT',
+  'ADD',
 ] as const
 
 export const TUTOR_ALLOCATION_PROGRAM_OPTIONS: {
@@ -29,7 +31,9 @@ export const TUTOR_ALLOCATION_PROGRAM_OPTIONS: {
   { value: 'HSK_5', label: 'HSK 5' },
   { value: 'HSK_6', label: 'HSK 6' },
   { value: 'GEN', label: 'General English' },
-] 
+  { value: 'CS_IT', label: 'Computer Science / IT' },
+  { value: 'ADD', label: 'Additional Program' },
+]
 
 export type TutorAllocationProgram =
   (typeof TUTOR_ALLOCATION_PROGRAM_CODES)[number]
@@ -62,5 +66,27 @@ export function courseForProgram(program: string | null | undefined) {
   if (program === 'GEN') {
     return 'GEN'
   }
+  if (program === 'CS_IT') {
+    return 'IT'
+  }
+  if (program === 'ADD') {
+    return 'ADD'
+  }
   return null
+}
+
+export function isComputerScienceProgram(program: string | null | undefined) {
+  return program === 'CS_IT'
+}
+
+export function isAdditionalProgram(program: string | null | undefined) {
+  return program === 'ADD'
+}
+
+/**
+ * Computer Science / IT and Additional Program are built from catalog-program
+ * lines (program, sessions, tutor) and need no prediction test.
+ */
+export function usesProgramLines(program: string | null | undefined) {
+  return isComputerScienceProgram(program) || isAdditionalProgram(program)
 }

@@ -43,8 +43,11 @@ export function createStudentPaymentFormSchema(
 ) {
   const termSchema = requireInstallmentAmounts
     ? studentPaymentTermFormSchema
-    : studentPaymentTermFormSchema.extend({
+    : // Plan awaiting approval: the installment is hidden, so amount and
+      // branch are not asked for yet (the server uses the student's branch).
+      studentPaymentTermFormSchema.extend({
         amount: z.string(),
+        branchId: z.string(),
       })
 
   return z

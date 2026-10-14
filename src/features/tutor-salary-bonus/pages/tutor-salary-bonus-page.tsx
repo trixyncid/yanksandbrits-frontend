@@ -1,13 +1,21 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Layers, Pencil, Plus, Trash2, Trophy, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import {
+  ListErrorState,
+  ListLoadingState,
+  PageHero,
+} from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { cn } from '../../../shared/lib/cn'
 import { notify } from '../../../shared/lib/notify'
-import { formatCurrencyAmount } from '../../../shared/lib/currency'
+import {
+  formatCurrencyAmount,
+  formatCurrencyCompact,
+} from '../../../shared/lib/currency'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
 import {
@@ -66,7 +74,7 @@ export default function TutorSalaryBonusPage() {
 
   function handleDelete(tier: TutorSalaryBonusTier) {
     requestDeleteConfirm({
-      title: 'Delete bonus tier?',
+      title: 'Delete bonus bracket?',
       description: `This will remove the ${describeRange(tier)} bracket for ${employmentTypeLabels[tier.employmentType]} · ${tier.workingDaysPerWeek} days · ${tier.periodWeeks} weeks.`,
       onConfirm: () => {
         void (async () => {
@@ -90,101 +98,143 @@ export default function TutorSalaryBonusPage() {
     })
   }
 
+  const allTiers = tiersQuery.data ?? []
+  const loaded = tiersQuery.isSuccess
+  const topBonus = visibleTiers.reduce(
+    (max, tier) => Math.max(max, tier.bonusAmount),
+    0,
+  )
+  const segmentClass = (active: boolean) =>
+    cn(
+      'h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition',
+      active ? 'bg-white text-ink shadow-sm' : 'text-white/80 hover:text-white',
+    )
+
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-            Tutor Salary Bonus
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Global session-count bonus brackets by employment type, working
-            days/week, and payroll period weeks.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {EMPLOYMENT_TYPES.map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setEmploymentType(type)}
-              className={cn(
-                'rounded-xl px-4 py-2 text-sm font-semibold transition',
-                employmentType === type
-                  ? 'bg-[#253CA1] text-white shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-              )}
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Money"
+          title="Tutor salary bonus"
+          description="Bonus brackets that reward tutors for the number of sessions they teach in a payroll period."
+          theme="dusk"
+          pattern="ribbons"
+          stats={[
+            {
+              id: 'all',
+              label: 'All brackets',
+              value: loaded ? allTiers.length : '–',
+              icon: Layers,
+              caption: 'Across every tutor type',
+            },
+            {
+              id: 'view',
+              label: 'In this view',
+              value: loaded ? visibleTiers.length : '–',
+              icon: Users,
+              caption: `${employmentTypeLabels[employmentType]} · ${workingDaysPerWeek} days/week`,
+            },
+            {
+              id: 'top',
+              label: 'Top bonus',
+              value: loaded ? formatCurrencyCompact(topBonus) : '–',
+              icon: Trophy,
+              caption: 'Highest bracket in this view',
+            },
+          ]}
+        >
+          <div className="flex flex-wrap gap-2">
+            <div
+              role="radiogroup"
+              aria-label="Employment type"
+              className="inline-flex gap-1 rounded-full bg-white/15 p-1 backdrop-blur-md"
             >
-              {employmentTypeLabels[type]}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {WORKING_DAYS.map((days) => (
-            <button
-              key={days}
-              type="button"
-              onClick={() => setWorkingDaysPerWeek(days)}
-              className={cn(
-                'rounded-xl px-4 py-2 text-sm font-semibold transition',
-                workingDaysPerWeek === days
-                  ? 'bg-[#E8EEFF] text-[#1B2A5A] ring-1 ring-[#C8D4F5]'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-              )}
+              {EMPLOYMENT_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  role="radio"
+                  aria-checked={employmentType === type}
+                  onClick={() => setEmploymentType(type)}
+                  className={segmentClass(employmentType === type)}
+                >
+                  {employmentTypeLabels[type]}
+                </button>
+              ))}
+            </div>
+            <div
+              role="radiogroup"
+              aria-label="Working days per week"
+              className="inline-flex gap-1 rounded-full bg-white/15 p-1 backdrop-blur-md"
             >
-              {days} working days / week
-            </button>
-          ))}
-        </div>
+              {WORKING_DAYS.map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  role="radio"
+                  aria-checked={workingDaysPerWeek === days}
+                  onClick={() => setWorkingDaysPerWeek(days)}
+                  className={segmentClass(workingDaysPerWeek === days)}
+                >
+                  {days} days / week
+                </button>
+              ))}
+            </div>
+          </div>
+        </PageHero>
 
-        {tiersQuery.isLoading ? (
-          <p className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
-            Loading bonus tiers...
-          </p>
-        ) : null}
+        {tiersQuery.isLoading ? <ListLoadingState rows={4} /> : null}
 
         {tiersQuery.isError ? (
-          <div className="rounded-2xl border border-rose-100 bg-rose-50 px-6 py-8 text-center">
-            <p className="text-sm text-rose-700">
-              {getApiErrorMessage(tiersQuery.error)}
-            </p>
-            <Button
-              className="mt-4"
-              size="sm"
-              onClick={() => void tiersQuery.refetch()}
-            >
-              Retry
-            </Button>
-          </div>
+          <ListErrorState
+            title="Unable to load bonus brackets"
+            description={getApiErrorMessage(tiersQuery.error)}
+            onRetry={() => void tiersQuery.refetch()}
+          />
         ) : null}
 
         {tiersQuery.isSuccess ? (
-          <div className="space-y-6">
-            {PERIOD_WEEKS.map((periodWeeks) => {
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            {PERIOD_WEEKS.map((periodWeeks, sectionIndex) => {
               const tiers = visibleTiers.filter(
                 (tier) => tier.periodWeeks === periodWeeks,
+              )
+              const maxBonus = tiers.reduce(
+                (max, tier) => Math.max(max, tier.bonusAmount),
+                0,
               )
 
               return (
                 <section
                   key={periodWeeks}
-                  className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6"
+                  className={cn(
+                    'animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] bg-white p-5 sm:p-6',
+                    sectionIndex === 1 && 'delay-75',
+                  )}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">
-                        {periodWeeks}-week period
-                      </h3>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        Matches bookkeeping windows that resolve to a{' '}
-                        {periodWeeks}-week payroll period.
-                      </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex size-11 shrink-0 flex-col items-center justify-center rounded-2xl bg-ink text-white">
+                        <span className="text-base leading-none font-bold">
+                          {periodWeeks}
+                        </span>
+                        <span className="text-[9px] font-semibold tracking-wide uppercase opacity-75">
+                          weeks
+                        </span>
+                      </span>
+                      <div>
+                        <h2 className="text-base font-bold text-ink">
+                          {periodWeeks}-week period
+                        </h2>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          Used when a bookkeeping period works out to{' '}
+                          {periodWeeks} weeks.
+                        </p>
+                      </div>
                     </div>
                     <Can module="tutorSalaryBonus" action="add">
                       <Button
-                        variant="secondary"
+                        variant="soft"
                         size="sm"
                         onClick={() =>
                           setDialogTarget({
@@ -201,89 +251,80 @@ export default function TutorSalaryBonusPage() {
                     </Can>
                   </div>
 
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                        <tr>
-                          <th className="px-4 py-3">Min sessions</th>
-                          <th className="px-4 py-3">Max sessions</th>
-                          <th className="px-4 py-3">Bonus</th>
-                          <th className="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tiers.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={4}
-                              className="px-4 py-8 text-center text-slate-500"
-                            >
-                              No bonus tiers for this combination yet.
-                            </td>
-                          </tr>
-                        ) : (
-                          tiers.map((tier) => (
-                            <tr
-                              key={tier.id}
-                              className="border-t border-slate-100"
-                            >
-                              <td className="px-4 py-3 font-semibold tabular-nums text-slate-800">
-                                {tier.minSessions}
-                              </td>
-                              <td className="px-4 py-3 tabular-nums text-slate-600">
-                                {tier.maxSessions == null
-                                  ? 'No max'
-                                  : tier.maxSessions}
-                              </td>
-                              <td className="px-4 py-3 font-medium tabular-nums text-slate-700">
+                  {tiers.length === 0 ? (
+                    <div className="mt-4 rounded-3xl bg-canvas px-4 py-8 text-center">
+                      <p className="text-sm font-semibold text-ink">
+                        No bonus brackets yet
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {employmentTypeLabels[employmentType]} tutors on{' '}
+                        {workingDaysPerWeek} days/week get no session bonus
+                        for {periodWeeks}-week periods.
+                      </p>
+                    </div>
+                  ) : (
+                    <ol className="mt-4 space-y-2" aria-label="Bonus brackets, lowest to highest">
+                      {tiers.map((tier, index) => (
+                        <li
+                          key={tier.id}
+                          className="flex items-center gap-3 rounded-3xl bg-canvas py-2.5 pr-2.5 pl-3"
+                        >
+                          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-ink">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                              <p className="text-sm font-semibold text-ink tabular-nums">
+                                {describeRange(tier)}
+                              </p>
+                              <p className="text-sm font-bold text-ink tabular-nums">
                                 {formatCurrencyAmount(tier.bonusAmount)}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Can
-                                    module="tutorSalaryBonus"
-                                    action="change"
-                                  >
-                                    <Button
-                                      type="button"
-                                      variant="secondary"
-                                      size="sm"
-                                      onClick={() =>
-                                        setDialogTarget({
-                                          employmentType,
-                                          workingDaysPerWeek,
-                                          periodWeeks,
-                                          tier,
-                                        })
-                                      }
-                                    >
-                                      <Pencil className="size-3.5" />
-                                      Edit
-                                    </Button>
-                                  </Can>
-                                  <Can
-                                    module="tutorSalaryBonus"
-                                    action="delete"
-                                  >
-                                    <Button
-                                      type="button"
-                                      variant="secondary"
-                                      size="sm"
-                                      className="text-rose-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                                      onClick={() => handleDelete(tier)}
-                                    >
-                                      <Trash2 className="size-3.5" />
-                                      Delete
-                                    </Button>
-                                  </Can>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                              </p>
+                            </div>
+                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white">
+                              <div
+                                className="h-full rounded-full bg-brand-500"
+                                style={{
+                                  width: `${maxBonus > 0 ? Math.max(4, (tier.bonusAmount / maxBonus) * 100) : 0}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Can module="tutorSalaryBonus" action="change">
+                              <button
+                                type="button"
+                                aria-label={`Edit bracket ${describeRange(tier)}`}
+                                title="Edit bracket"
+                                onClick={() =>
+                                  setDialogTarget({
+                                    employmentType,
+                                    workingDaysPerWeek,
+                                    periodWeeks,
+                                    tier,
+                                  })
+                                }
+                                className="inline-flex size-9 items-center justify-center rounded-full bg-white text-ink transition hover:bg-ink hover:text-white"
+                              >
+                                <Pencil className="size-3.5" />
+                              </button>
+                            </Can>
+                            <Can module="tutorSalaryBonus" action="delete">
+                              <button
+                                type="button"
+                                aria-label={`Delete bracket ${describeRange(tier)}`}
+                                title="Delete bracket"
+                                onClick={() => handleDelete(tier)}
+                                className="inline-flex size-9 items-center justify-center rounded-full bg-white text-rose-500 transition hover:bg-rose-500 hover:text-white"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </Can>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </section>
               )
             })}

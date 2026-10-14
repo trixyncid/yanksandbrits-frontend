@@ -1,25 +1,27 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { BadgeDollarSign, BadgeMinus, Megaphone, Plus } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import {
+  ClearListFiltersButton,
   DataTable,
-  DataTableBadge,
   DataTableColumnHeader,
+  ListFilterSelect,
+  ListToolbarFilters,
 } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../shared/components/ui/dialog'
+  HeroPillButton,
+  HeroSpotlight,
+  ListErrorState,
+  ListLoadingState,
+  PageHero,
+} from '../../../shared/components/page'
 import { Input } from '../../../shared/components/ui/input'
-import { Label } from '../../../shared/components/ui/label'
+import { StatusToggle } from '../../../shared/components/ui/status-toggle'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
+import { cn } from '../../../shared/lib/cn'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
@@ -31,6 +33,8 @@ import {
   updateResource,
   type ResourceItem,
 } from '../api/lookups-api'
+import { LookupDialog, LookupField } from '../components/lookup-dialog'
+import { LookupRowActions } from '../components/lookup-row-actions'
 
 type ResourceFormValues = {
   name: string
@@ -40,6 +44,7 @@ type ResourceFormValues = {
 const resourceQueryKey = ['resources', 'list'] as const
 
 function formatDateTime(value: string) {
+  if (!value) return '-'
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -61,6 +66,16 @@ function filterResource(row: ResourceItem, search: string) {
   return haystack.includes(search)
 }
 
+type ResourceFilterState = { commission: string }
+
+const EMPTY_FILTERS: ResourceFilterState = { commission: '' }
+
+const COMMISSION_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'yes', label: 'Earns commission' },
+  { value: 'no', label: 'No commission' },
+]
+
 export default function ResourceListPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -70,6 +85,10 @@ export default function ResourceListPage() {
     isCommission: true,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [filters, setFilters] = useSessionState<ResourceFilterState>(
+    'list-filters:resources',
+    { ...EMPTY_FILTERS },
+  )
 
   const resourcesQuery = useQuery({
     queryKey: resourceQueryKey,
@@ -93,8 +112,8 @@ export default function ResourceListPage() {
 
   async function handleDelete(item: ResourceItem) {
     requestDeleteConfirm({
-      title: 'Delete resource?',
-      description: `This will permanently remove ${item.name}. This action cannot be undone.`,
+      title: `Delete ${item.name}?`,
+      description: `This will permanently remove the lead source ${item.name}. This action cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -160,10 +179,29 @@ export default function ResourceListPage() {
       {
         accessorKey: 'name',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Resource Name" />
+          <DataTableColumnHeader column={column} title="Lead Source" />
         ),
         cell: ({ row }) => (
-          <p className="text-sm font-semibold text-slate-900">{row.original.name}</p>
+          <div className="flex min-w-[14rem] items-center gap-3 py-0.5">
+            <span
+              className={cn(
+                'inline-flex size-10 shrink-0 items-center justify-center rounded-2xl',
+                row.original.isCommission
+                  ? 'bg-brand-500 text-white'
+                  : 'bg-canvas text-slate-500',
+              )}
+            >
+              <Megaphone className="size-4" strokeWidth={1.9} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {row.original.name}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-slate-500">
+                Added by {row.original.createdBy || 'unknown'}
+              </p>
+            </div>
+          </div>
         ),
       },
       {
@@ -176,28 +214,25 @@ export default function ResourceListPage() {
           />
         ),
         cell: ({ row }) => (
-          <div className="flex justify-center">
-            {row.original.isCommission ? (
-              <DataTableBadge tone="info">Eligible</DataTableBadge>
-            ) : (
-              <DataTableBadge tone="neutral">Excluded</DataTableBadge>
-            )}
+          <div className="text-center">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+                row.original.isCommission
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'bg-canvas text-slate-500',
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'size-1.5 rounded-full',
+                  row.original.isCommission ? 'bg-brand-500' : 'bg-slate-400',
+                )}
+              />
+              {row.original.isCommission ? 'Earns commission' : 'No commission'}
+            </span>
           </div>
-        ),
-      },
-      {
-        accessorKey: 'createdBy',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title="Created By"
-            align="center"
-          />
-        ),
-        cell: ({ row }) => (
-          <p className="text-center text-xs font-medium text-slate-600">
-            {row.original.createdBy || '—'}
-          </p>
         ),
       },
       {
@@ -205,7 +240,7 @@ export default function ResourceListPage() {
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}
-            title="Updated At"
+            title="Last Updated"
             align="center"
           />
         ),
@@ -226,158 +261,187 @@ export default function ResourceListPage() {
           </span>
         ),
         cell: ({ row }) => (
-          <div className="flex items-center justify-center gap-2">
-            <Can module="resources" action="change">
-              <button
-                type="button"
-                aria-label={`Edit resource ${row.original.name}`}
-                onClick={() => openEditDialog(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-              >
-                <Pencil className="size-3.5" />
-              </button>
-            </Can>
-            <Can module="resources" action="delete">
-              <button
-                type="button"
-                aria-label={`Delete resource ${row.original.name}`}
-                onClick={() => void handleDelete(row.original)}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </Can>
-          </div>
+          <LookupRowActions
+            module="resources"
+            noun="lead source"
+            name={row.original.name}
+            onEdit={() => openEditDialog(row.original)}
+            onDelete={() => void handleDelete(row.original)}
+          />
         ),
       },
     ],
     [],
   )
 
+  const allResources = useMemo(
+    () => resourcesQuery.data ?? [],
+    [resourcesQuery.data],
+  )
+  const resources = useMemo(
+    () =>
+      allResources.filter((item) => {
+        if (filters.commission === 'yes' && !item.isCommission) return false
+        if (filters.commission === 'no' && item.isCommission) return false
+        return true
+      }),
+    [allResources, filters.commission],
+  )
+  const hasActiveFilters = Boolean(filters.commission)
+  const loaded = resourcesQuery.isSuccess
+  const stat = (count: number) => (loaded ? count : '–')
+
+  const listFilters = (
+    <ListToolbarFilters>
+      <ListFilterSelect
+        label="Commission"
+        ariaLabel="Filter by commission"
+        value={filters.commission}
+        onChange={(commission) => setFilters({ commission })}
+        options={COMMISSION_FILTER_OPTIONS}
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={() => setFilters({ ...EMPTY_FILTERS })}
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
+      />
+    </ListToolbarFilters>
+  )
+
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-        {resourcesQuery.isSuccess ? (
-          <DataTable
-            title="Resource List"
-            description="Manage lead sources used on prospective student records."
-            totalLabel="resources"
-            columns={columns}
-            data={resourcesQuery.data}
-            searchPlaceholder="Search resource..."
-            globalFilterFn={filterResource}
-            initialPageSize={10}
-            emptyMessage="No resources found"
-            toolbarActions={
-              <Can module="resources" action="add">
-                <Button onClick={openCreateDialog}>
-                  <Plus className="size-4" />
-                  Add New Resource
-                </Button>
-              </Can>
-            }
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Settings · Lists"
+          title="Lead Sources"
+          description="Where new students hear about us, such as Instagram or a friend. Also decides which leads count toward marketing commission."
+          theme="mist"
+          pattern="dots"
+          stats={[
+            {
+              id: 'all',
+              label: 'Lead sources',
+              value: stat(allResources.length),
+              icon: Megaphone,
+              hint: 'Show all lead sources',
+              active: !filters.commission,
+              onSelect: () => setFilters({ ...EMPTY_FILTERS }),
+            },
+            {
+              id: 'commission',
+              label: 'Earn commission',
+              value: stat(allResources.filter((item) => item.isCommission).length),
+              icon: BadgeDollarSign,
+              hint: 'Show sources that earn commission',
+              active: filters.commission === 'yes',
+              onSelect: () => setFilters({ commission: 'yes' }),
+            },
+            {
+              id: 'no-commission',
+              label: 'No commission',
+              value: stat(allResources.filter((item) => !item.isCommission).length),
+              icon: BadgeMinus,
+              hint: 'Show sources that do not earn commission',
+              active: filters.commission === 'no',
+              onSelect: () => setFilters({ commission: 'no' }),
+            },
+          ]}
+          spotlight={
+            <Can module="resources" action="add">
+              <HeroSpotlight
+                title="Add a lead source"
+                description="A new channel? Add it and choose if it earns commission."
+                actions={
+                  <HeroPillButton icon={Plus} onClick={openCreateDialog}>
+                    Add lead source
+                  </HeroPillButton>
+                }
+              />
+            </Can>
+          }
+        />
+
+        {resourcesQuery.isLoading ? <ListLoadingState /> : null}
+
+        {resourcesQuery.isError ? (
+          <ListErrorState
+            title="Unable to load lead sources"
+            description="Something went wrong while fetching lead sources. You can try again."
+            onRetry={() => void resourcesQuery.refetch()}
           />
+        ) : null}
+
+        {loaded ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              variant="soft"
+              title="All Lead Sources"
+              description="Used on prospective student records."
+              totalLabel="sources"
+              columns={columns}
+              data={resources}
+              searchPlaceholder="Search lead sources..."
+              searchVariant="pill"
+              globalFilterFn={filterResource}
+              initialPageSize={10}
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No lead sources match this filter'
+                  : 'No lead sources yet'
+              }
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          showClose
-          className="overflow-hidden p-0 sm:max-w-lg"
+      <LookupDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        icon={Megaphone}
+        eyebrow="Lead source"
+        title={editing ? `Edit ${editing.name}` : 'Add lead source'}
+        description="Shown as a choice on prospective student records."
+        submitLabel={editing ? 'Save changes' : 'Add lead source'}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        onCancel={() => setDialogOpen(false)}
+      >
+        <LookupField label="Source name" htmlFor="resource-name" required>
+          <Input
+            id="resource-name"
+            value={values.name}
+            onChange={(event) =>
+              setValues((prev) => ({
+                ...prev,
+                name: event.target.value,
+              }))
+            }
+            placeholder="e.g. Instagram"
+          />
+        </LookupField>
+
+        <LookupField
+          label="Marketing commission"
+          htmlFor="resource-is-commission-active"
+          hint={
+            values.isCommission
+              ? 'Students who come from this source count toward marketing commission.'
+              : 'Students who come from this source do not count toward marketing commission.'
+          }
         >
-          <form
-            onSubmit={handleSubmit}
-            className="flex max-h-[90vh] flex-col"
-          >
-            <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
-                {editing ? (
-                  <Pencil className="size-5" />
-                ) : (
-                  <Plus className="size-5" />
-                )}
-              </div>
-              <DialogHeader className="pr-0">
-                <DialogTitle>
-                  {editing ? 'Update Resource' : 'Add New Resource'}
-                </DialogTitle>
-                <DialogDescription>
-                  Manage lead source options used on prospective students.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
-              <div className="space-y-2">
-                <Label htmlFor="resource-name">Resource Name</Label>
-                <Input
-                  id="resource-name"
-                  value={values.name}
-                  onChange={(event) =>
-                    setValues((prev) => ({
-                      ...prev,
-                      name: event.target.value,
-                    }))
-                  }
-                  placeholder="e.g. Instagram"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="resource-is-commission">Commission</Label>
-                <label
-                  htmlFor="resource-is-commission"
-                  className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-slate-200/80 bg-white px-4 text-sm text-slate-600 shadow-sm"
-                >
-                  <input
-                    id="resource-is-commission"
-                    type="checkbox"
-                    className="size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
-                    checked={values.isCommission}
-                    onChange={(event) =>
-                      setValues((prev) => ({
-                        ...prev,
-                        isCommission: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    {values.isCommission
-                      ? 'Eligible for marketing commission'
-                      : 'Excluded from marketing commission'}
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                {editing ? (
-                  <Pencil className="size-3.5" />
-                ) : (
-                  <Plus className="size-3.5" />
-                )}
-                {isSubmitting
-                  ? editing
-                    ? 'Updating...'
-                    : 'Saving...'
-                  : editing
-                    ? 'Update Data'
-                    : 'Submit Data'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          <StatusToggle
+            id="resource-is-commission"
+            label=""
+            value={values.isCommission}
+            onChange={(isCommission) =>
+              setValues((prev) => ({ ...prev, isCommission }))
+            }
+            activeLabel="Earns commission"
+            inactiveLabel="No commission"
+          />
+        </LookupField>
+      </LookupDialog>
     </AdminShell>
   )
 }

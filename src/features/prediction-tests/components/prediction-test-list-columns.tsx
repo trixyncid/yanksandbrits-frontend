@@ -2,19 +2,16 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import {
   courseLabel,
+  isComputerScienceCourse,
   isGeneralEnglishCourse,
+  isNoneCourse,
   isSatCourse,
   isToeflCourse,
 } from '../../../shared/api/choices'
-import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
-import type {
-  PredictionTestListItem,
-  PredictionTestStatus,
-} from '../types/prediction-test'
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import type { PredictionTestListItem } from '../types/prediction-test'
 import { PredictionTestActionsCell } from './prediction-test-actions-cell'
+import { PredictionTestStatusPill } from './prediction-test-status-pill'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -24,30 +21,6 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
-}
-
-function statusTone(status: PredictionTestStatus) {
-  if (status === 'approved') {
-    return 'success' as const
-  }
-
-  if (status === 'pending') {
-    return 'info' as const
-  }
-
-  return 'danger' as const
-}
-
-function statusLabel(status: PredictionTestStatus) {
-  if (status === 'approved') {
-    return 'Approved'
-  }
-
-  if (status === 'pending') {
-    return 'Pending'
-  }
-
-  return 'Void'
 }
 
 function getInitials(name: string) {
@@ -68,11 +41,11 @@ export function getPredictionTestListColumns(options?: {
     accessorFn: (row) =>
       `${row.studentName} ${row.studentEmail} ${row.studentPhone}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Student's Detail" />
+      <DataTableColumnHeader column={column} title="Student" />
     ),
     cell: ({ row }) => (
       <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
-        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
+        <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold tracking-wide text-brand-700 ring-4 ring-canvas">
           {getInitials(row.original.studentName)}
         </div>
         <div className="min-w-0">
@@ -80,10 +53,9 @@ export function getPredictionTestListColumns(options?: {
             {row.original.studentName}
           </p>
           <p className="mt-0.5 truncate text-xs text-slate-500">
-            {row.original.studentEmail || '—'}
-          </p>
-          <p className="truncate text-xs text-slate-500">
-            {row.original.studentPhone}
+            {[row.original.studentPhone, row.original.studentEmail]
+              .filter(Boolean)
+              .join(' · ') || '—'}
           </p>
         </div>
       </div>
@@ -95,19 +67,26 @@ export function getPredictionTestListColumns(options?: {
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Prediction Test"
+        title="Test type"
         align="center"
       />
     ),
     cell: ({ row }) => (
-      <p className="mx-auto max-w-52 text-center text-xs font-medium text-slate-700">
-        {courseLabel(row.original.studentCourse)}
-      </p>
+      <div className="text-center">
+        <span className="inline-flex max-w-52 rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
+          <span className="truncate">
+            {courseLabel(row.original.studentCourse)}
+          </span>
+        </span>
+      </div>
     ),
   },
   {
     id: 'skills',
     accessorFn: (row) => {
+      if (isComputerScienceCourse(row.studentCourse) || isNoneCourse(row.studentCourse)) {
+        return ''
+      }
       if (isGeneralEnglishCourse(row.studentCourse)) {
         return row.writtenTestScore == null ? '' : `WT ${row.writtenTestScore}`
       }
@@ -118,11 +97,19 @@ export function getPredictionTestListColumns(options?: {
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Test Scores"
+        title="Scores"
         align="center"
       />
     ),
     cell: ({ row }) => {
+      if (
+        isComputerScienceCourse(row.original.studentCourse) ||
+        isNoneCourse(row.original.studentCourse)
+      ) {
+        return (
+          <p className="text-center text-xs font-medium text-slate-400">-</p>
+        )
+      }
       if (isGeneralEnglishCourse(row.original.studentCourse)) {
         const writtenTest = row.original.writtenTestScore
         if (writtenTest == null) {
@@ -132,9 +119,9 @@ export function getPredictionTestListColumns(options?: {
         }
         return (
           <div className="flex justify-center">
-            <span className="inline-flex items-center gap-0.5 rounded-md bg-[#F5F8FF] px-1.5 py-0.5 text-[11px] leading-none tabular-nums ring-1 ring-[#C8D4F5]/80">
-              <span className="font-semibold text-[#253CA1]">WT</span>
-              <span className="font-medium text-slate-700">{writtenTest}</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-canvas px-2 py-1 text-[11px] leading-none tabular-nums">
+              <span className="font-semibold text-brand-600">WT</span>
+              <span className="font-semibold text-ink">{writtenTest}</span>
             </span>
           </div>
         )
@@ -171,10 +158,10 @@ export function getPredictionTestListColumns(options?: {
           {skills.map((skill) => (
             <span
               key={skill.label}
-              className="inline-flex items-center gap-0.5 rounded-md bg-[#F5F8FF] px-1.5 py-0.5 text-[11px] leading-none tabular-nums ring-1 ring-[#C8D4F5]/80"
+              className="inline-flex items-center gap-1 rounded-full bg-canvas px-2 py-1 text-[11px] leading-none tabular-nums"
             >
-              <span className="font-semibold text-[#253CA1]">{skill.label}</span>
-              <span className="font-medium text-slate-700">
+              <span className="font-semibold text-brand-600">{skill.label}</span>
+              <span className="font-semibold text-ink">
                 {skill.value == null ? '—' : skill.value}
               </span>
             </span>
@@ -192,15 +179,13 @@ export function getPredictionTestListColumns(options?: {
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}
-            title="Payment Status"
+            title="Payment"
             align="center"
           />
         ),
         cell: ({ row }) => (
           <div className="text-center">
-            <DataTableBadge tone={statusTone(row.original.status)}>
-              {statusLabel(row.original.status)}
-            </DataTableBadge>
+            <PredictionTestStatusPill status={row.original.status} />
           </div>
         ),
       },
@@ -213,7 +198,7 @@ export function getPredictionTestListColumns(options?: {
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Education Counsellor"
+        title="Counsellor"
         align="center"
       />
     ),
@@ -228,7 +213,7 @@ export function getPredictionTestListColumns(options?: {
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Created At"
+        title="Created"
         align="center"
       />
     ),
@@ -247,9 +232,15 @@ export function getPredictionTestListColumns(options?: {
         <DataTableColumnHeader column={column} title="Branch" align="center" />
       ),
       cell: ({ row }) => (
-        <p className="text-center text-xs font-medium text-slate-600">
-          {row.original.branch}
-        </p>
+        <div className="text-center">
+          {row.original.branch && row.original.branch !== '—' ? (
+            <span className="inline-flex rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-slate-600">
+              {row.original.branch}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">-</span>
+          )}
+        </div>
       ),
     })
   }

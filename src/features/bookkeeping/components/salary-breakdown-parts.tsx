@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode } from 'react'
 
 import { cn } from '../../../shared/lib/cn'
 import { formatCurrencyAmount } from '../../../shared/lib/currency'
+import { TeamRangeCard } from './team-range-card'
 import type {
   SalaryBreakdownMarketer,
   SalaryBreakdownMeta,
@@ -21,7 +22,7 @@ const breakdownSurfaceStyle = {
   '--sb-muted': '#64748b',
   '--sb-line': 'rgba(66, 116, 185, 0.16)',
   '--sb-blue': '#253CA1',
-  '--sb-blue-deep': '#1B2A5A',
+  '--sb-blue-deep': '#15225A',
   '--sb-blue-soft': '#E8F0FA',
   '--sb-wash': '#F4F8FC',
   '--sb-consult': '#0e7490',
@@ -83,7 +84,7 @@ function buildPaySlices(marketer: SalaryBreakdownMarketer): PaySlice[] {
       key: 'base',
       label: 'Base',
       amount: marketer.mainSalary,
-      color: '#1B2A5A',
+      color: '#15225A',
     },
     {
       key: 'commission',
@@ -175,7 +176,7 @@ export function SalaryBreakdownSummaryStat({
       className={cn(
         'animate-in fade-in slide-in-from-bottom-1 fill-mode-both relative overflow-hidden border px-4 py-4 transition duration-300',
         accent
-          ? 'border-[var(--sb-blue)]/25 bg-[linear-gradient(145deg,#e8eeff_0%,#ffffff_55%,#f5f8ff_100%)]'
+          ? 'border-[var(--sb-blue)]/25 bg-[linear-gradient(145deg,#DCE2F6_0%,#ffffff_55%,#EEF1FB_100%)]'
           : 'border-slate-200/90 bg-white/80',
       )}
     >
@@ -266,9 +267,11 @@ export function SalaryBreakdownSummaryStrip({
         label="Commission range"
         value={formatCurrencyAmount(rangeAmount)}
         hint={
-          marketer
-            ? periodTypeLabel(marketer.periodType)
-            : `${meta.total} marketer${meta.total === 1 ? '' : 's'}`
+          marketer && marketer.branchRanges.length > 1
+            ? `${marketer.branchRanges.length} branch ranges`
+            : marketer
+              ? periodTypeLabel(marketer.periodType)
+              : `${meta.total} marketer${meta.total === 1 ? '' : 's'}`
         }
       />
       <SalaryBreakdownSummaryStat
@@ -367,7 +370,9 @@ export function SalaryBreakdownCommissionRangeCard({
   marketer: SalaryBreakdownMarketer
   className?: string
 }) {
-  const hasTier = marketer.tierMinAmount != null
+  const branchRanges = marketer.branchRanges
+  const hasSeparateBranchRanges = branchRanges.length > 1
+  const hasTier = marketer.tierMinAmount != null && !hasSeparateBranchRanges
   const tierMin = marketer.tierMinAmount
   const tierMax = marketer.tierMaxAmount
   const rangeAmount = marketer.rangeAmount
@@ -435,7 +440,9 @@ export function SalaryBreakdownCommissionRangeCard({
               className="absolute inset-0 rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
             />
             <p className="relative text-[1.35rem] leading-none font-bold tracking-tight tabular-nums text-[var(--sb-blue-deep)]">
-              {formatCommissionPercentage(marketer.commissionPercentage)}
+              {hasSeparateBranchRanges
+                ? 'Split'
+                : formatCommissionPercentage(marketer.commissionPercentage)}
             </p>
           </div>
           <p className="mt-1.5 text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
@@ -444,14 +451,42 @@ export function SalaryBreakdownCommissionRangeCard({
         </div>
       </div>
 
+      {hasSeparateBranchRanges ? (
+        <ul className="mt-5 space-y-2 border-t border-dashed border-slate-200/90 pt-4">
+          {branchRanges.map((branch) => (
+            <li
+              key={branch.branchId}
+              className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+            >
+              <span className="font-medium text-[var(--sb-ink)]">
+                {branch.branchName}
+              </span>
+              <span className="text-xs tabular-nums text-slate-500">
+                {formatCurrencyAmount(branch.rangeAmount)} range ·{' '}
+                {formatCommissionPercentage(branch.commissionPercentage)} ·{' '}
+                <span className="font-semibold text-[var(--sb-ink)]">
+                  {formatCurrencyAmount(branch.commissionBonus)}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div className="mt-5 border-t border-dashed border-slate-200/90 pt-4">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="text-sm font-medium text-[var(--sb-ink)]">
-              {hasTier ? 'Current tier' : 'Outside configured tiers'}
+              {hasSeparateBranchRanges
+                ? 'Each branch uses your commission tiers'
+                : hasTier
+                  ? 'Current tier'
+                  : 'Outside configured tiers'}
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              {formatCommissionTierRange(tierMin, tierMax)}
+              {hasSeparateBranchRanges
+                ? `Estimated commission ${formatCurrencyAmount(marketer.commissionBonus)}`
+                : formatCommissionTierRange(tierMin, tierMax)}
             </p>
           </div>
           {hasTier ? (
@@ -523,7 +558,7 @@ export function SalaryBreakdownCommissionRangeCard({
               </p>
             ) : null}
           </div>
-        ) : (
+        ) : hasSeparateBranchRanges ? null : (
           <p className="mt-2 text-xs text-slate-500">
             No commission tier matches this range amount yet.
           </p>
@@ -721,12 +756,12 @@ function PaySummaryPanel({ marketer }: { marketer: SalaryBreakdownMarketer }) {
     {
       label: 'Telemarketing · consult',
       amount: marketer.consultTotal,
-      hint: '15k per non–walk-in consult',
+      hint: '15k per TM consult',
     },
     {
       label: 'Telemarketing · enrollment',
       amount: marketer.enrollmentTotal,
-      hint: '20k enrollment add-on',
+      hint: '35k when enrolled in the same period',
     },
     {
       label: 'SPIF telemarketing',
@@ -799,7 +834,7 @@ export function TelemarketingActivityPanel({
             Telemarketing activity
           </p>
           <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
-            Flat fees outside commission range — 15k consult, +20k enrollment,
+            Flat fees outside commission range — 15k consult, +35k enrollment,
             SPIF 100k per {threshold} prospects.
           </p>
         </div>
@@ -863,7 +898,7 @@ export function TelemarketingActivityPanel({
               <div className="mb-1 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <GraduationCap className="size-3.5 text-[var(--sb-enroll)]" />
                 <p className="text-xs font-semibold text-[var(--sb-enroll)]">
-                  Enrollment add-ons · 20k each
+                  Enrollment add-ons · 35k each
                 </p>
                 <span className="ml-auto text-[11px] tabular-nums text-slate-400">
                   {marketer.enrollmentCount}
@@ -896,6 +931,9 @@ export function SalaryBreakdownMarketerDetail({
       style={breakdownSurfaceStyle}
       className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both space-y-4 duration-500"
     >
+      {marketer.teamRange ? (
+        <TeamRangeCard teamRange={marketer.teamRange} />
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         <SalaryBreakdownCommissionRangeCard marketer={marketer} />
         <SalaryBreakdownBonusRangeCard marketer={marketer} />
@@ -930,7 +968,9 @@ export function SalaryBreakdownHeaderMeta({
       </div>
       <div className="flex flex-wrap gap-2">
         <MetaChip>
-          {formatCommissionPercentage(marketer.commissionPercentage)} rate
+          {marketer.branchRanges.length > 1
+            ? `${marketer.branchRanges.length} branch rates`
+            : `${formatCommissionPercentage(marketer.commissionPercentage)} rate`}
         </MetaChip>
         {marketer.tierBonus > 0 ? (
           <MetaChip>

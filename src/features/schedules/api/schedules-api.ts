@@ -7,6 +7,7 @@ import type {
 } from '../../../shared/components/timetable'
 import { toneFromScheduleStatus } from '../../../shared/components/timetable'
 import { fetchClassrooms } from '../../classrooms/api/classrooms-api'
+import { compareRoomNames } from '../../classrooms/lib/compare-classrooms'
 import type {
   ScheduleDetail,
   ScheduleFormValues,
@@ -143,7 +144,7 @@ function mapDayRows(
   }
 
   const columns = [...columnMap.values()].sort((a, b) =>
-    a.label.localeCompare(b.label),
+    compareRoomNames(a.label, b.label),
   )
 
   const events: TimetableEvent[] = rows

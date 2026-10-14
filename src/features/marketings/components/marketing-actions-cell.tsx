@@ -9,6 +9,7 @@ import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
 import { fetchMarketingSalary } from '../../users/api/compensation-api'
 import { MarketingSalaryDialog } from '../../users/components/marketing-salary-dialog'
+import { RowActionButton } from '../../users/components/people-ui'
 import { deleteMarketing } from '../api/marketings-api'
 import { marketingQueryKeys } from '../api/marketing-query-keys'
 import type { MarketingListItem } from '../types/marketing'
@@ -30,27 +31,25 @@ export function MarketingActionsCell({
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        aria-label={`View education counsellor ${marketing.fullName}`}
+      <RowActionButton
+        label={`View ${marketing.fullName}`}
+        icon={Eye}
         onClick={() =>
           void navigate({
             to: '/marketings/$marketingId',
             params: { marketingId: marketing.id },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-      >
-        <Eye className="size-3.5" />
-      </button>
+      />
       <Can module="users" action="change">
-        <button
-          type="button"
-          aria-label={
+        <RowActionButton
+          label={
             marketing.hasSalary
-              ? `Edit salary for ${marketing.fullName}`
-              : `Record salary for ${marketing.fullName}`
+              ? `Edit base salary for ${marketing.fullName}`
+              : `Set base salary for ${marketing.fullName}`
           }
+          icon={BadgeDollarSign}
+          tone="accent"
           onClick={() => {
             void queryClient
               .ensureQueryData({
@@ -59,44 +58,39 @@ export function MarketingActionsCell({
               })
               .then(() => setDialogOpen(true))
           }}
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-amber-600 transition hover:border-amber-200 hover:bg-amber-50"
-        >
-          <BadgeDollarSign className="size-3.5" />
-        </button>
+        />
       </Can>
       <Can module="users" action="delete">
-        <button
-        type="button"
-        aria-label={`Delete education counsellor ${marketing.fullName}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete education counsellor?',
-            description: `This will permanently remove ${marketing.fullName}. This action cannot be undone.`,
-            onConfirm: () => {
-              void (async () => {
-                try {
-                  await deleteMarketing(marketing.id)
-                  await queryClient.invalidateQueries({
-                    queryKey: marketingQueryKeys.all,
-                  })
-                  notify('success', {
-                    title: 'Education counsellor deleted',
-                    description: `${marketing.fullName} has been removed.`,
-                  })
-                } catch (error) {
-                  notify('error', {
-                    title: 'Unable to delete education counsellor',
-                    description: getApiErrorMessage(error),
-                  })
-                }
-              })()
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
-        </button>
+        <RowActionButton
+          label={`Delete ${marketing.fullName}`}
+          icon={Trash2}
+          tone="delete"
+          onClick={() =>
+            requestDeleteConfirm({
+              title: `Delete ${marketing.fullName}?`,
+              description: `This permanently removes education counsellor ${marketing.fullName} (${marketing.pin}) and their sign-in. This cannot be undone.`,
+              onConfirm: () => {
+                void (async () => {
+                  try {
+                    await deleteMarketing(marketing.id)
+                    await queryClient.invalidateQueries({
+                      queryKey: marketingQueryKeys.all,
+                    })
+                    notify('success', {
+                      title: 'Education counsellor deleted',
+                      description: `${marketing.fullName} has been removed.`,
+                    })
+                  } catch (error) {
+                    notify('error', {
+                      title: 'Unable to delete education counsellor',
+                      description: getApiErrorMessage(error),
+                    })
+                  }
+                })()
+              },
+            })
+          }
+        />
       </Can>
 
       <MarketingSalaryDialog

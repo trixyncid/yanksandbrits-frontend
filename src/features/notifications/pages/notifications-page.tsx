@@ -1,10 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { formatDistanceToNow } from 'date-fns'
-import { Bell, CheckCheck, Trash2 } from 'lucide-react'
+import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
+import { Bell, BellDot, CheckCheck, Inbox, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { EmptyState, PageHero } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { cn } from '../../../shared/lib/cn'
+import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { notificationCategoryMeta } from '../config/category-meta'
@@ -12,6 +14,13 @@ import { useNotificationsStore } from '../store/notifications-store'
 import type { AppNotification } from '../types/notification'
 
 type FilterTab = 'all' | 'unread'
+
+function dayLabel(value: string) {
+  const date = new Date(value)
+  if (isToday(date)) return 'Today'
+  if (isYesterday(date)) return 'Yesterday'
+  return 'Earlier'
+}
 
 function NotificationRow({
   item,
@@ -28,51 +37,51 @@ function NotificationRow({
   return (
     <article
       className={cn(
-        'group relative flex gap-4 rounded-2xl border px-4 py-4 transition sm:px-5',
-        item.read
-          ? 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white'
-          : 'border-[#D7E4F6] bg-[linear-gradient(135deg,#F5F8FF_0%,#FFFFFF_70%)] shadow-sm shadow-[#253CA1]/5',
+        'group relative flex gap-3.5 rounded-3xl px-4 py-4 transition sm:gap-4 sm:px-5',
+        item.read ? 'bg-white hover:bg-canvas/60' : 'bg-brand-50 hover:bg-brand-100/70',
       )}
     >
-      {!item.read ? (
-        <span className="absolute top-4 right-4 size-2 rounded-full bg-[#253CA1]" />
-      ) : null}
-
       <Link
         to="/notifications/$notificationId"
         params={{ notificationId: item.id }}
-        className="absolute inset-0 rounded-2xl"
+        className="absolute inset-0 rounded-3xl"
         aria-label={`Open ${item.title}`}
       />
 
       <div
         className={cn(
-          'relative z-10 mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1',
+          'relative z-10 mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full',
           meta.tone,
         )}
       >
         <Icon className="size-4" />
+        {!item.read ? (
+          <span
+            aria-label="Unread"
+            className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-brand-500 ring-2 ring-white"
+          />
+        ) : null}
       </div>
 
-      <div className="relative z-10 min-w-0 flex-1 pointer-events-none">
+      <div className="pointer-events-none relative z-10 min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <h3
             className={cn(
-              'text-sm tracking-tight text-slate-900',
+              'text-sm tracking-tight text-ink',
               item.read ? 'font-semibold' : 'font-bold',
             )}
           >
             {item.title}
           </h3>
-          <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase ring-1 ring-slate-200">
+          <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
             {meta.label}
           </span>
         </div>
-        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
+        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500">
           {item.body}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3 pointer-events-auto">
-          <time className="text-xs font-medium text-slate-400">
+        <div className="pointer-events-auto mt-2.5 flex flex-wrap items-center gap-2">
+          <time className="mr-1 text-xs font-medium text-slate-400">
             {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
           </time>
           {!item.read ? (
@@ -83,20 +92,22 @@ function NotificationRow({
                 event.stopPropagation()
                 onMarkRead(item.id)
               }}
-              className="text-xs font-semibold text-[#253CA1] transition hover:text-[#1B2A5A]"
+              className="inline-flex h-7 items-center gap-1 rounded-full bg-white px-2.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-500 hover:text-white"
             >
+              <CheckCheck className="size-3" />
               Mark as read
             </button>
           ) : null}
           <button
             type="button"
             aria-label={`Delete ${item.title}`}
+            title="Delete notification"
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
               onDelete(item)
             }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 transition hover:text-rose-700"
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-white px-2.5 text-xs font-semibold text-rose-500 transition hover:bg-rose-500 hover:text-white"
           >
             <Trash2 className="size-3" />
             Delete
@@ -126,11 +137,28 @@ export default function NotificationsPage() {
     return items
   }, [filter, items])
 
+  const groupedItems = useMemo(() => {
+    const groups: { label: string; items: AppNotification[] }[] = []
+    for (const item of visibleItems) {
+      const label = dayLabel(item.createdAt)
+      const group = groups.find((entry) => entry.label === label)
+      if (group) group.items.push(item)
+      else groups.push({ label, items: [item] })
+    }
+    return groups
+  }, [visibleItems])
+
   function handleDelete(item: AppNotification) {
-    remove(item.id)
-    notify('success', {
-      title: 'Notification deleted',
-      description: `"${item.title}" was removed from your inbox.`,
+    requestDeleteConfirm({
+      title: 'Delete this notification?',
+      description: `"${item.title}" will be removed from your inbox.`,
+      onConfirm: () => {
+        remove(item.id)
+        notify('success', {
+          title: 'Notification deleted',
+          description: `"${item.title}" was removed from your inbox.`,
+        })
+      },
     })
   }
 
@@ -143,81 +171,117 @@ export default function NotificationsPage() {
   }
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <header className="animate-in fade-in slide-in-from-bottom-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-[#253CA1]">Inbox</p>
-            <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
-              Notifications
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              {unreadCount > 0
-                ? `You have ${unreadCount} unread update${unreadCount === 1 ? '' : 's'}.`
-                : 'You are all caught up for now.'}
-            </p>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Inbox"
+          title="Notifications"
+          description={
+            unreadCount > 0
+              ? `You have ${unreadCount} unread update${unreadCount === 1 ? '' : 's'} about payments, schedules, students and leave.`
+              : 'You are all caught up. New updates about payments, schedules, students and leave land here.'
+          }
+          theme="mist"
+          pattern="dots"
+          actions={
+            <Button
+              variant="ink"
+              disabled={unreadCount === 0}
+              onClick={handleMarkAllRead}
+            >
+              <CheckCheck className="size-4" />
+              Mark all read
+            </Button>
+          }
+          stats={[
+            {
+              id: 'all',
+              label: 'In your inbox',
+              value: items.length,
+              icon: Inbox,
+              hint: 'Show all notifications',
+              active: filter === 'all',
+              onSelect: () => setFilter('all'),
+            },
+            {
+              id: 'unread',
+              label: 'Unread',
+              value: unreadCount,
+              icon: BellDot,
+              hint: 'Show unread only',
+              active: filter === 'unread',
+              onSelect: () => setFilter('unread'),
+            },
+          ]}
+        />
+
+        <div className="mx-auto max-w-3xl space-y-3">
+          <div
+            role="tablist"
+            aria-label="Filter notifications"
+            className="animate-in fade-in slide-in-from-bottom-2 flex gap-1 rounded-full bg-white p-1 delay-75 sm:max-w-sm"
+          >
+            {(
+              [
+                { id: 'all', label: 'All' },
+                { id: 'unread', label: `Unread (${unreadCount})` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={filter === tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={cn(
+                  'h-10 flex-1 rounded-full px-4 text-sm font-semibold transition',
+                  filter === tab.id
+                    ? 'bg-ink text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-canvas hover:text-ink',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={unreadCount === 0}
-            onClick={handleMarkAllRead}
-          >
-            <CheckCheck className="size-3.5" />
-            Mark all read
-          </Button>
-        </header>
-
-        <div className="animate-in fade-in slide-in-from-bottom-2 delay-75 flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-          {(
-            [
-              { id: 'all', label: 'All' },
-              { id: 'unread', label: `Unread (${unreadCount})` },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id)}
-              className={cn(
-                'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
-                filter === tab.id
-                  ? 'bg-[#253CA1] text-white shadow-md shadow-[#253CA1]/25'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <section className="animate-in fade-in slide-in-from-bottom-2 delay-100 space-y-2 rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm sm:p-3">
           {visibleItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
-                <Bell className="size-6" />
-              </div>
-              <h3 className="mt-4 text-lg font-bold text-slate-900">
-                No notifications
-              </h3>
-              <p className="mt-1 max-w-sm text-sm text-slate-500">
-                {filter === 'unread'
-                  ? 'Nothing unread right now. Switch to All to browse earlier updates.'
-                  : 'New payments, schedule changes, and student updates will show up here.'}
-              </p>
-            </div>
+            <EmptyState
+              icon={Bell}
+              title={filter === 'unread' ? 'Nothing unread' : 'No notifications'}
+              description={
+                filter === 'unread'
+                  ? 'Switch to All to look back at earlier updates.'
+                  : 'New payments, schedule changes and student updates will show up here.'
+              }
+              action={
+                filter === 'unread' && items.length > 0 ? (
+                  <Button variant="soft" onClick={() => setFilter('all')}>
+                    Show all
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
-            visibleItems.map((item) => (
-              <NotificationRow
-                key={item.id}
-                item={item}
-                onMarkRead={markRead}
-                onDelete={handleDelete}
-              />
-            ))
+            <div className="animate-in fade-in slide-in-from-bottom-2 space-y-4 delay-100">
+              {groupedItems.map((group) => (
+                <section key={group.label} className="space-y-2">
+                  <h2 className="px-2 text-[11px] font-bold tracking-[0.14em] text-slate-500 uppercase">
+                    {group.label}
+                  </h2>
+                  {group.items.map((item) => (
+                    <NotificationRow
+                      key={item.id}
+                      item={item}
+                      onMarkRead={markRead}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </section>
+              ))}
+            </div>
           )}
-        </section>
+        </div>
       </div>
     </AdminShell>
   )

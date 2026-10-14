@@ -20,26 +20,26 @@ export const notificationCategoryMeta: Record<
   payment: {
     label: 'Payment',
     icon: CreditCard,
-    tone: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+    tone: 'bg-emerald-50 text-emerald-700',
   },
   schedule: {
     label: 'Schedule',
     icon: CalendarDays,
-    tone: 'bg-[#E8EEFF] text-[#1B2A5A] ring-[#C8D4F5]',
+    tone: 'bg-brand-100 text-brand-700',
   },
   student: {
     label: 'Student',
     icon: GraduationCap,
-    tone: 'bg-amber-50 text-amber-700 ring-amber-100',
+    tone: 'bg-amber-50 text-amber-700',
   },
   leave: {
     label: 'Leave',
     icon: Plane,
-    tone: 'bg-sky-50 text-sky-700 ring-sky-100',
+    tone: 'bg-brand-gray-soft text-ink',
   },
   system: {
     label: 'System',
     icon: Settings2,
-    tone: 'bg-slate-100 text-slate-600 ring-slate-200',
+    tone: 'bg-canvas text-slate-600',
   },
 }

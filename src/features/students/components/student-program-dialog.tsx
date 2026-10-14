@@ -150,13 +150,15 @@ export function StudentProgramDialog({
           noValidate
           className="flex max-h-[90vh] flex-col"
         >
-          <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="shrink-0 bg-canvas px-6 pt-6 pb-4">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white">
               <BookOpen className="size-5" />
             </div>
             <DialogHeader className="pr-0">
               <DialogTitle>
-                {isUpdate ? 'Program enrollment details' : 'Add program'}
+                {isUpdate
+                  ? enrollment?.title ?? 'Program enrollment'
+                  : 'Add program'}
               </DialogTitle>
               <DialogDescription>
                 {isUpdate
@@ -168,24 +170,22 @@ export function StudentProgramDialog({
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
             {enrollment ? (
-              <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <div className="rounded-3xl bg-canvas p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                      Session progress
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                    <p className="text-xs text-slate-500">Session progress</p>
+                    <p className="mt-0.5 text-sm font-semibold text-ink">
                       {enrollment.sessionsUsed} used of {enrollment.sessions}{' '}
                       sessions
                     </p>
                   </div>
-                  <p className="text-2xl font-bold tabular-nums text-[#1B2A5A]">
+                  <p className="text-2xl font-bold tabular-nums text-brand-700">
                     {Math.max(0, Math.min(100, enrollment.progressPercentage))}%
                   </p>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                   <div
-                    className="h-full rounded-full bg-[#253CA1]"
+                    className="h-full rounded-full bg-brand-500"
                     style={{
                       width: `${Math.max(0, Math.min(100, enrollment.progressPercentage))}%`,
                     }}
@@ -195,7 +195,9 @@ export function StudentProgramDialog({
             ) : null}
 
             <div className="space-y-2">
-              <Label htmlFor="student-program-id">Program</Label>
+              <Label htmlFor="student-program-id">
+                Program<span className="text-rose-500"> *</span>
+              </Label>
               <SearchableSelect
                 id="student-program-id"
                 value={values.programId}
@@ -205,6 +207,9 @@ export function StudentProgramDialog({
                 searchPlaceholder="Search programs..."
                 emptyMessage="No programs found"
               />
+              <p className="text-xs text-slate-400">
+                Only active programs are listed.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -220,15 +225,21 @@ export function StudentProgramDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="student-program-period">Period</Label>
+                <Label htmlFor="student-program-period">
+                  Period (months)
+                </Label>
                 <Input
                   id="student-program-period"
                   inputMode="numeric"
+                  placeholder="e.g. 6"
                   value={values.period}
                   onChange={(event) =>
                     updateField('period', event.target.value)
                   }
                 />
+                <p className="text-xs text-slate-400">
+                  How many months this program runs.
+                </p>
               </div>
             </div>
 
@@ -237,7 +248,6 @@ export function StudentProgramDialog({
               <Select
                 id="student-program-status"
                 containerClassName="w-full sm:w-full"
-                className="h-12"
                 value={values.status}
                 onChange={(event) =>
                   updateField(
@@ -268,10 +278,10 @@ export function StudentProgramDialog({
             </div>
           </div>
 
-          <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 px-6 py-4">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
@@ -280,7 +290,11 @@ export function StudentProgramDialog({
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting}>
               <BookOpen className="size-3.5" />
-              {isSubmitting ? 'Saving...' : isUpdate ? 'Update' : 'Add program'}
+              {isSubmitting
+                ? 'Saving...'
+                : isUpdate
+                  ? 'Save changes'
+                  : 'Add program'}
             </Button>
           </DialogFooter>
         </form>

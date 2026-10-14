@@ -1,13 +1,13 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { Building2, Phone, Star, Users } from 'lucide-react'
 
-import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
+import { cn } from '../../../shared/lib/cn'
 import type { BranchListItem } from '../types/branch'
 import { BranchActionsCell } from './branch-actions-cell'
 
 function formatDateTime(value: string) {
+  if (!value) return '-'
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -21,73 +21,79 @@ export const branchListColumns: ColumnDef<BranchListItem>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Branch Name" />
+      <DataTableColumnHeader column={column} title="Branch" />
     ),
     cell: ({ row }) => (
-      <div className="flex items-center gap-2 ps-1">
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.name}
-        </p>
-        {row.original.isMain ? (
-          <DataTableBadge tone="info">Main</DataTableBadge>
-        ) : null}
+      <div className="flex min-w-[16rem] items-center gap-3 py-0.5">
+        <span
+          className={cn(
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-2xl',
+            row.original.isMain
+              ? 'bg-ink text-white'
+              : 'bg-brand-50 text-brand-600',
+          )}
+        >
+          <Building2 className="size-4" strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {row.original.name}
+            </p>
+            {row.original.isMain ? (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
+                <Star className="size-3 fill-current" />
+                Main
+              </span>
+            ) : null}
+          </div>
+          <p
+            className="mt-0.5 max-w-80 truncate text-xs text-slate-500"
+            title={row.original.address || undefined}
+          >
+            {row.original.address || 'No address yet'}
+          </p>
+        </div>
       </div>
     ),
   },
   {
     accessorKey: 'phone',
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Phone Number"
-        align="center"
-      />
+      <DataTableColumnHeader column={column} title="Phone" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.phone || '-'}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'address',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Address" align="center" />
-    ),
-    cell: ({ row }) => (
-      <p className="mx-auto max-w-64 text-center text-xs text-slate-500">
-        {row.original.address || '-'}
-      </p>
+      <div className="text-center">
+        {row.original.phone ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+            <Phone className="size-3 text-slate-400" />
+            {row.original.phone}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
+        )}
+      </div>
     ),
   },
   {
     accessorKey: 'totalStudent',
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Total Student"
-        align="center"
-      />
+      <DataTableColumnHeader column={column} title="Students" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-semibold text-slate-800 tabular-nums">
-        {row.original.totalStudent}
-      </p>
-    ),
-  },
-  {
-    accessorKey: 'createdAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Created At"
-        align="center"
-      />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {formatDateTime(row.original.createdAt)}
-      </p>
+      <div className="text-center">
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums',
+            row.original.totalStudent > 0
+              ? 'bg-brand-50 text-brand-700'
+              : 'bg-canvas text-slate-500',
+          )}
+        >
+          <Users className="size-3" />
+          {row.original.totalStudent}
+        </span>
+      </div>
     ),
   },
   {
@@ -95,7 +101,7 @@ export const branchListColumns: ColumnDef<BranchListItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Updated At"
+        title="Last Updated"
         align="center"
       />
     ),
@@ -108,7 +114,7 @@ export const branchListColumns: ColumnDef<BranchListItem>[] = [
   {
     id: 'actions',
     enableSorting: false,
-    size: 96,
+    size: 120,
     meta: { sticky: 'right' },
     header: () => (
       <span className="block text-center text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">

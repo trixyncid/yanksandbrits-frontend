@@ -73,15 +73,15 @@ function CalendarDayButton({
       data-today={!selected && isToday ? 'true' : 'false'}
       className={cn(
         'relative mx-auto flex size-[1.75rem] flex-col items-center justify-center rounded-full border border-transparent bg-transparent text-[11px] leading-none font-medium text-slate-800 transition-colors duration-150',
-        'hover:bg-slate-100/70',
-        'data-[today=true]:border-[#253CA1] data-[today=true]:font-semibold data-[today=true]:text-[#253CA1]',
-        'data-[selected-single=true]:border-transparent data-[selected-single=true]:bg-[#253CA1] data-[selected-single=true]:font-semibold data-[selected-single=true]:text-white',
-        'data-[selected-single=true]:hover:bg-[#1f3190] data-[selected-single=true]:hover:text-white',
-        'group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-[#253CA1]/25',
+        'hover:bg-canvas',
+        'data-[today=true]:border-brand-500 data-[today=true]:font-semibold data-[today=true]:text-brand-500',
+        'data-[selected-single=true]:border-transparent data-[selected-single=true]:bg-brand-500 data-[selected-single=true]:font-semibold data-[selected-single=true]:text-white',
+        'data-[selected-single=true]:hover:bg-brand-600 data-[selected-single=true]:hover:text-white',
+        'group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-brand-500/25',
         defaultClassNames.day,
         className,
         selected &&
-          '!border-transparent !bg-[#253CA1] !font-semibold !text-white hover:!bg-[#1f3190] hover:!text-white',
+          '!border-transparent !bg-brand-500 !font-semibold !text-white hover:!bg-brand-600 hover:!text-white',
       )}
     >
       <span
@@ -99,7 +99,7 @@ function CalendarDayButton({
           hasSessions
             ? selected
               ? 'bg-white'
-              : 'bg-[#253CA1]'
+              : 'bg-brand-500'
             : 'bg-transparent',
         )}
         aria-hidden
@@ -167,7 +167,7 @@ export function TutorMonthCalendar({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-bold tracking-tight text-slate-900">
+        <p className="text-base font-bold tracking-tight text-ink">
           {format(month, 'MMMM yyyy')}
         </p>
         <div className="flex items-center gap-1.5">
@@ -179,7 +179,7 @@ export function TutorMonthCalendar({
                 new Date(month.getFullYear(), month.getMonth() - 1, 1),
               )
             }
-            className="inline-flex size-6 items-center justify-center rounded-full bg-[#EEF2F6] text-slate-600 transition hover:bg-[#E4EAF1] hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/30"
+            className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
             <ChevronLeft className="size-3.5" strokeWidth={2} />
           </button>
@@ -191,14 +191,14 @@ export function TutorMonthCalendar({
                 new Date(month.getFullYear(), month.getMonth() + 1, 1),
               )
             }
-            className="inline-flex size-6 items-center justify-center rounded-full bg-[#EEF2F6] text-slate-600 transition hover:bg-[#E4EAF1] hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#253CA1]/30"
+            className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
             <ChevronRight className="size-3.5" strokeWidth={2} />
           </button>
         </div>
       </div>
 
-      <div className="mt-2 border-t border-slate-200/80 pt-2">
+      <div className="mt-3 rounded-3xl bg-canvas/60 p-2">
         <DayPicker
           mode="single"
           month={month}

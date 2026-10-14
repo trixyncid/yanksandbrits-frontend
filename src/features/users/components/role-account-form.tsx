@@ -16,7 +16,7 @@ import {
   ChoiceTile,
   FormSectionCard,
 } from '../../../shared/components/feature-page'
-import { Button } from '../../../shared/components/ui/button'
+import { FormSaveBar, PageBackdrop } from '../../../shared/components/page'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
@@ -89,7 +89,7 @@ function SegmentedChoice<T extends string>({
       id={id}
       role="radiogroup"
       aria-label={label}
-      className="grid h-12 grid-cols-2 gap-1 rounded-full border border-slate-200/80 bg-slate-50 p-1 shadow-sm"
+      className="grid h-12 grid-cols-2 gap-1 rounded-full bg-canvas p-1"
     >
       {options.map((option) => {
         const selected = value === option.value
@@ -103,8 +103,8 @@ function SegmentedChoice<T extends string>({
             className={cn(
               'truncate rounded-full px-2 text-sm font-semibold transition',
               selected
-                ? 'bg-white text-[#253CA1] shadow-sm ring-1 ring-[#C8D4F5]'
-                : 'text-slate-500 hover:bg-white/70 hover:text-slate-800',
+                ? 'bg-ink text-white shadow-sm'
+                : 'text-slate-500 hover:bg-white/70 hover:text-ink',
             )}
           >
             {option.label}
@@ -250,6 +250,10 @@ export function RoleAccountForm({
     if (next !== 'FT' && next !== 'PT' && values.workingDaysPerWeek) {
       onChange('workingDaysPerWeek', '')
     }
+    // Freelancers have no paid leave.
+    if (next === 'FL') {
+      onChange('paidLeave', '0')
+    }
   }
 
   function toggleGroup(id: string, checked: boolean) {
@@ -267,14 +271,6 @@ export function RoleAccountForm({
     event.preventDefault()
     await onSubmit()
   }
-
-  const submitLabel = isSubmitting
-    ? mode === 'create'
-      ? 'Saving...'
-      : 'Updating...'
-    : mode === 'create'
-      ? `Add ${entityLabel}`
-      : `Update ${entityLabel}`
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit} noValidate>
@@ -348,7 +344,7 @@ export function RoleAccountForm({
                 </span>
                 <div
                   aria-hidden
-                  className="flex size-12 items-center justify-center rounded-2xl bg-[linear-gradient(160deg,#253CA1_0%,#1B2A5A_100%)] text-base font-bold tracking-wide text-white shadow-md shadow-[#253CA1]/25"
+                  className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-800 text-base font-bold tracking-wide text-white shadow-md shadow-brand-500/25"
                 >
                   {monogram}
                 </div>
@@ -481,6 +477,14 @@ export function RoleAccountForm({
                 />
               </Field>
 
+              {values.employmentType === 'FL' ? (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Paid leave</p>
+                  <p className="rounded-2xl bg-canvas px-4 py-3 text-sm text-slate-500">
+                    Freelancers don't have paid leave.
+                  </p>
+                </div>
+              ) : (
               <Field
                 label="Paid leave"
                 htmlFor="paidLeave"
@@ -498,6 +502,7 @@ export function RoleAccountForm({
                   placeholder="12"
                 />
               </Field>
+              )}
             </div>
 
             {isTutor ? (
@@ -516,24 +521,34 @@ export function RoleAccountForm({
                         key={option.value}
                         htmlFor={`subject-${option.value}`}
                         className={cn(
-                          'flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition duration-200',
+                          'flex cursor-pointer items-start gap-2.5 rounded-2xl border px-3.5 py-3 transition duration-200',
                           selected
-                            ? 'border-[#253CA1] bg-[linear-gradient(135deg,#F5F8FF_0%,#E8EEFF_100%)] shadow-sm shadow-[#253CA1]/10 ring-1 ring-[#253CA1]/20'
-                            : 'border-slate-200/90 bg-white hover:border-[#C8D4F5] hover:bg-[#F5F8FF]/80',
+                            ? 'border-transparent bg-ink text-white'
+                            : 'border-transparent bg-canvas hover:bg-canvas-deep',
                         )}
                       >
                         <input
                           id={`subject-${option.value}`}
                           type="checkbox"
-                          className="mt-0.5 size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+                          className="mt-0.5 size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                           checked={selected}
                           onChange={() => toggleSubject(option.value)}
                         />
                         <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-slate-800">
+                          <span
+                            className={cn(
+                              'block text-sm font-semibold',
+                              selected ? 'text-white' : 'text-ink',
+                            )}
+                          >
                             {option.label}
                           </span>
-                          <span className="mt-0.5 block text-xs text-slate-500">
+                          <span
+                            className={cn(
+                              'mt-0.5 block text-xs',
+                              selected ? 'text-white/70' : 'text-slate-500',
+                            )}
+                          >
                             {option.description}
                           </span>
                         </span>
@@ -550,7 +565,7 @@ export function RoleAccountForm({
                   label="Employment"
                   htmlFor="employmentType"
                   error={errors.employmentType}
-                  hint="Bonus tiers match full-time and part-time tutors."
+                  hint="Full-time and part-time tutors get a base salary, working hours, session bonus and paid leave. Freelancers are paid per session only."
                 >
                   <div id="employmentType" className="grid gap-2 sm:grid-cols-3">
                     {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
@@ -725,10 +740,17 @@ export function RoleAccountForm({
             delayClassName="delay-200"
           >
             {rolesQuery.isLoading ? (
-              <p className="text-sm text-slate-500">Loading roles…</p>
+              <div className="grid gap-2 sm:grid-cols-2" aria-busy="true">
+                {[0, 1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className="h-14 animate-pulse rounded-2xl bg-canvas"
+                  />
+                ))}
+              </div>
             ) : roleOptions.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No roles defined yet. Create them under Roles.
+              <p className="rounded-2xl bg-canvas px-4 py-4 text-sm text-slate-500">
+                No roles have been set up yet. Create them under Roles first.
               </p>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -740,16 +762,16 @@ export function RoleAccountForm({
                       key={role.id}
                       htmlFor={`role-${role.id}`}
                       className={cn(
-                        'flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition duration-200',
+                        'flex cursor-pointer items-start gap-3 rounded-2xl border px-3.5 py-3 transition duration-200',
                         checked
-                          ? 'border-[#253CA1] bg-[linear-gradient(135deg,#F5F8FF_0%,#E8EEFF_100%)] shadow-sm shadow-[#253CA1]/10 ring-1 ring-[#253CA1]/20'
-                          : 'border-slate-200/90 bg-white hover:border-[#C8D4F5] hover:bg-[#F5F8FF]/80',
+                          ? 'border-transparent bg-ink text-white'
+                          : 'border-transparent bg-canvas hover:bg-canvas-deep',
                       )}
                     >
                       <input
                         id={`role-${role.id}`}
                         type="checkbox"
-                        className="mt-0.5 size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
+                        className="mt-0.5 size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                         checked={checked}
                         onChange={(event) =>
                           toggleGroup(role.id, event.target.checked)
@@ -757,22 +779,28 @@ export function RoleAccountForm({
                       />
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
+                          <span
+                            className={cn(
+                              'text-sm font-semibold',
+                              checked ? 'text-white' : 'text-ink',
+                            )}
+                          >
                             {role.name}
                           </span>
                           {recommended ? (
-                            <span className="rounded-full bg-[#253CA1] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
+                            <span className="rounded-full bg-brand-500 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
                               Primary
                             </span>
                           ) : null}
                         </span>
                         {role.description ? (
-                          <span className="mt-0.5 block text-xs text-slate-500">
+                          <span
+                            className={cn(
+                              'mt-0.5 block text-xs',
+                              checked ? 'text-white/70' : 'text-slate-500',
+                            )}
+                          >
                             {role.description}
-                          </span>
-                        ) : role.code ? (
-                          <span className="mt-0.5 block text-xs text-slate-400">
-                            {role.code}
                           </span>
                         ) : null}
                       </span>
@@ -786,17 +814,14 @@ export function RoleAccountForm({
         </div>
 
         <aside className="xl:sticky xl:top-4 xl:self-start">
-          <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:rounded-3xl">
-            <div className="relative overflow-hidden bg-[linear-gradient(160deg,#1B2A5A_0%,#253CA1_55%,#3A56B8_100%)] px-5 py-5 text-white">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -top-8 -right-6 size-28 rounded-full bg-white/10"
-              />
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-white/70 uppercase">
+          <div className="animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-[1.75rem] bg-white delay-75">
+            <div className="relative isolate overflow-hidden px-5 py-5 text-white">
+              <PageBackdrop theme="harbor" pattern={isTutor ? 'dots' : 'waves'} />
+              <p className="relative text-[10px] font-semibold tracking-[0.14em] text-white/80 uppercase">
                 {isTutor ? 'Tutor list preview' : 'Counsellor list preview'}
               </p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold tracking-wide ring-1 ring-white/25">
+              <div className="relative mt-3 flex items-center gap-3">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white text-lg font-bold tracking-wide text-brand-700 ring-4 ring-white/20">
                   {monogram}
                 </div>
                 <div className="min-w-0">
@@ -817,17 +842,17 @@ export function RoleAccountForm({
               </div>
             </div>
 
-            <div className="space-y-3 p-4">
+            <div className="space-y-3 p-5">
               <dl className="space-y-2 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <dt className="text-slate-400">Branch</dt>
-                  <dd className="text-right font-medium text-slate-800">
+                  <dd className="text-right font-semibold text-ink">
                     {selectedBranch?.name ?? 'Not chosen'}
                   </dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <dt className="text-slate-400">Role</dt>
-                  <dd className="text-right font-medium text-slate-800">
+                  <dd className="text-right font-semibold text-ink">
                     {selectedRoles.length > 0
                       ? selectedRoles.map((role) => role.name).join(', ')
                       : 'None yet'}
@@ -836,7 +861,7 @@ export function RoleAccountForm({
                 {isTutor ? (
                   <div className="flex items-start justify-between gap-3">
                     <dt className="text-slate-400">Contract</dt>
-                    <dd className="text-right font-medium text-slate-800">
+                    <dd className="text-right font-semibold text-ink">
                       {values.employmentType
                         ? employmentTypeLabel(values.employmentType)
                         : 'Not set'}
@@ -848,25 +873,25 @@ export function RoleAccountForm({
                 ) : (
                   <div className="flex items-start justify-between gap-3">
                     <dt className="text-slate-400">Initials</dt>
-                    <dd className="text-right font-medium text-slate-800">
+                    <dd className="text-right font-semibold text-ink">
                       {values.initial.trim() || 'Needed for commission'}
                     </dd>
                   </div>
                 )}
                 <div className="flex items-start justify-between gap-3">
                   <dt className="text-slate-400">Sign-in</dt>
-                  <dd className="text-right font-medium text-slate-800">
+                  <dd className="text-right font-semibold text-ink">
                     {values.isActive ? 'Active' : 'Blocked'}
                   </dd>
                 </div>
               </dl>
 
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3">
+              <div className="rounded-2xl bg-canvas p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                     Ready to save
                   </p>
-                  <p className="text-xs font-semibold text-[#253CA1] tabular-nums">
+                  <p className="text-xs font-semibold text-brand-500 tabular-nums">
                     {readyCount}/{steps.length}
                   </p>
                 </div>
@@ -880,8 +905,8 @@ export function RoleAccountForm({
                         className={cn(
                           'inline-flex size-4 items-center justify-center rounded-full',
                           step.done
-                            ? 'bg-[#253CA1] text-white'
-                            : 'border border-slate-300 bg-white',
+                            ? 'bg-brand-500 text-white'
+                            : 'bg-white ring-1 ring-slate-300',
                         )}
                       >
                         {step.done ? <Check className="size-2.5" /> : null}
@@ -902,38 +927,22 @@ export function RoleAccountForm({
                 ) : null}
               </div>
 
-              <div className="hidden flex-col gap-2 xl:flex">
-                <Button type="submit" disabled={isSubmitting}>
-                  {submitLabel}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={onCancel}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-              </div>
             </div>
           </div>
         </aside>
       </div>
 
-      <div className="sticky bottom-3 z-10 flex gap-2 rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-lg backdrop-blur xl:hidden">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {submitLabel}
-        </Button>
-      </div>
+      <FormSaveBar
+        mode={mode}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        submitLabel={
+          mode === 'create'
+            ? `Create ${entityLabel.toLowerCase()}`
+            : 'Save changes'
+        }
+        hint="Fields marked * are required. The checklist shows what's left."
+      />
     </form>
   )
 }

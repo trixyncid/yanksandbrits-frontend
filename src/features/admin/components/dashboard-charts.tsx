@@ -1,6 +1,7 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 
 import { cn } from '../../../shared/lib/cn'
+import { BRAND_CHART } from './dashboard-palette'
 
 export type ChartDatum = {
   label: string
@@ -12,6 +13,7 @@ export type DonutSegment = {
   value: number
   color: string
 }
+
 
 function smoothLine(points: { x: number; y: number }[]) {
   if (points.length === 0) return ''
@@ -52,7 +54,7 @@ function toPoints(
 
 export function DashboardSparkline({
   values,
-  color = '#93B8E8',
+  color = BRAND_CHART.brand300,
   className,
 }: {
   values: number[]
@@ -79,7 +81,7 @@ export function DashboardSparkline({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.45" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -88,16 +90,19 @@ export function DashboardSparkline({
         d={line}
         fill="none"
         stroke={color}
-        strokeWidth="2.25"
+        strokeWidth="2"
         strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   )
 }
 
+/** Smooth area chart with a hover crosshair and tooltip. */
 export function DashboardAreaChart({
   data,
-  color = '#253CA1',
+  color = BRAND_CHART.brand500,
   formatTick,
   className,
 }: {
@@ -107,11 +112,12 @@ export function DashboardAreaChart({
   className?: string
 }) {
   const gradientId = gradientSafeId(useId())
+  const [hovered, setHovered] = useState<number | null>(null)
   const width = 640
   const height = 220
-  const padX = 8
+  const padX = 12
   const padTop = 18
-  const padBottom = 28
+  const padBottom = 18
   const values = data.map((item) => item.value)
   const max = Math.max(...values, 1)
   const points = toPoints(values, width, height, padX, padTop, padBottom)
@@ -121,159 +127,114 @@ export function DashboardAreaChart({
     : ''
   const hasData = values.some((value) => value > 0)
   const tick = formatTick ?? String
+  const last = points.length - 1
+  const active = hovered ?? last
+  const activePoint = points[active]
 
   if (!hasData) return null
 
   return (
-    <div className={cn('relative min-h-[260px] flex-1', className)}>
-      <p className="mb-1 text-right text-[11px] font-semibold text-slate-400 tabular-nums">
-        {tick(max)}
-      </p>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-[220px] w-full"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Trend chart"
-      >
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        {[0.25, 0.5, 0.75].map((lineY) => (
-          <line
-            key={lineY}
-            x1={padX}
-            x2={width - padX}
-            y1={padTop + (height - padTop - padBottom) * lineY}
-            y2={padTop + (height - padTop - padBottom) * lineY}
-            stroke="#E8EEF5"
-            strokeDasharray="4 6"
-          />
-        ))}
-        <path d={area} fill={`url(#${gradientId})`} />
-        <path
-          d={line}
-          fill="none"
-          stroke={color}
-          strokeWidth="2.75"
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="mt-1 flex justify-between px-1 text-[11px] font-medium text-slate-400">
-        {data.map((item) => (
-          <span key={item.label} className="min-w-0 truncate text-center">
-            {item.label}
-          </span>
-        ))}
+    <div className={cn('relative flex flex-col justify-end', className)}>
+      <div className="relative mt-6 h-[220px]">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex flex-col justify-between py-2.5 text-[11px] font-medium text-slate-400 tabular-nums">
+          <span>{tick(max)}</span>
+          <span>{tick(Math.round(max / 2))}</span>
+          <span>0</span>
+        </div>
+        <div className="relative ml-12 h-full">
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="h-[220px] w-full"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`Trend: ${data.map((item) => `${item.label} ${tick(item.value)}`).join(', ')}`}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+                <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            {[0, 0.5, 1].map((lineY) => (
+              <line
+                key={lineY}
+                x1={0}
+                x2={width}
+                y1={padTop + (height - padTop - padBottom) * lineY}
+                y2={padTop + (height - padTop - padBottom) * lineY}
+                stroke={BRAND_CHART.canvas}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            {activePoint ? (
+              <line
+                x1={activePoint.x}
+                x2={activePoint.x}
+                y1={padTop}
+                y2={height - padBottom}
+                stroke={BRAND_CHART.brand200}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            ) : null}
+            <path d={area} fill={`url(#${gradientId})`} />
+            <path
+              d={line}
+              fill="none"
+              stroke={color}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+
+          {activePoint ? (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
+                style={{
+                  left: `${(activePoint.x / width) * 100}%`,
+                  top: `${(activePoint.y / height) * 220}px`,
+                  backgroundColor: color,
+                }}
+              />
+              <span
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-full bg-ink px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-white tabular-nums shadow-md"
+                style={{
+                  left: `${Math.min(Math.max((activePoint.x / width) * 100, 12), 88)}%`,
+                  top: `${(activePoint.y / height) * 220 - 12}px`,
+                }}
+              >
+                {data[active]?.label} · {tick(data[active]?.value ?? 0)}
+              </span>
+            </>
+          ) : null}
+
+          <div className="absolute inset-0 flex" onMouseLeave={() => setHovered(null)}>
+            {data.map((item, index) => (
+              <button
+                key={item.label}
+                type="button"
+                className="h-full flex-1 cursor-crosshair focus:outline-none"
+                aria-label={`${item.label}: ${tick(item.value)}`}
+                onMouseEnter={() => setHovered(index)}
+                onFocus={() => setHovered(index)}
+                onBlur={() => setHovered(null)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-  )
-}
-
-export function DashboardColumnChart({
-  data,
-  formatValue,
-  barClassName = 'bg-[#253CA1]',
-  mutedBarClassName = 'bg-slate-200/90',
-  highlightBarClassName = 'bg-[#253CA1]',
-  highlightIndex,
-  showValueOnHighlight = false,
-  className,
-}: {
-  data: ChartDatum[]
-  formatValue?: (value: number) => string
-  barClassName?: string
-  mutedBarClassName?: string
-  highlightBarClassName?: string
-  /** When set, only this bar uses the primary/highlight color; others use muted. */
-  highlightIndex?: number
-  showValueOnHighlight?: boolean
-  className?: string
-}) {
-  const max = Math.max(...data.map((item) => item.value), 1)
-  const hasData = data.some((item) => item.value > 0)
-  const resolvedHighlight =
-    highlightIndex ??
-    data.reduce(
-      (best, item, index) =>
-        item.value > (data[best]?.value ?? -1) ? index : best,
-      0,
-    )
-
-  if (data.length === 0) return null
-
-  return (
-    <div className={cn('flex min-h-[260px] flex-1 flex-col', className)}>
-      <p className="mb-1 text-right text-[11px] font-semibold text-slate-400 tabular-nums">
-        {hasData ? (formatValue?.(max) ?? max) : 0}
-      </p>
-      <div className="flex h-[220px] items-end gap-2 sm:gap-3">
-        {data.map((item, index) => {
-          const height = hasData
-            ? Math.max((item.value / max) * 100, item.value > 0 ? 6 : 0)
-            : 10
-          const isHighlighted =
-            hasData &&
-            (highlightIndex != null || showValueOnHighlight
-              ? index === resolvedHighlight
-              : true)
-
-          return (
-            <div
-              key={item.label}
-              className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
-            >
-              {hasData &&
-              item.value > 0 &&
-              (!showValueOnHighlight || isHighlighted) ? (
-                <span
-                  className={cn(
-                    'mb-1.5 text-[10px] font-semibold tabular-nums',
-                    isHighlighted && showValueOnHighlight
-                      ? 'rounded-full bg-[#253CA1] px-2 py-0.5 text-white shadow-sm'
-                      : 'text-slate-500',
-                  )}
-                >
-                  {formatValue?.(item.value) ?? item.value}
-                </span>
-              ) : (
-                <span className="mb-1.5 h-[18px]" />
-              )}
-              <div className="flex min-h-0 w-full flex-1 items-end justify-center">
-                <div
-                  className={cn(
-                    'w-[62%] max-w-10 rounded-t-xl transition-all duration-700 ease-out',
-                    !hasData
-                      ? 'bg-slate-100'
-                      : highlightIndex != null
-                        ? isHighlighted
-                          ? highlightBarClassName
-                          : mutedBarClassName
-                        : barClassName,
-                  )}
-                  style={{
-                    height: `${height}%`,
-                    transitionDelay:
-                      highlightIndex != null && isHighlighted ? '120ms' : '0ms',
-                  }}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="mt-1 flex gap-2 sm:gap-3">
+      <div className="mt-2 ml-12 flex justify-between text-[11px] font-medium text-slate-400">
         {data.map((item, index) => (
           <span
             key={item.label}
             className={cn(
-              'min-w-0 flex-1 truncate text-center text-[11px] font-medium',
-              hasData && highlightIndex != null && index === resolvedHighlight
-                ? 'font-semibold text-[#253CA1]'
-                : 'text-slate-400',
+              'min-w-0 truncate text-center',
+              index === active && 'font-semibold text-ink',
             )}
           >
             {item.label}
@@ -284,6 +245,140 @@ export function DashboardColumnChart({
   )
 }
 
+/** Rounded pill columns on a soft track; hover shows the exact value. */
+export function DashboardColumnChart({
+  data,
+  formatValue,
+  barClassName = 'bg-brand-500',
+  mutedBarClassName = 'bg-brand-200',
+  highlightBarClassName = 'bg-brand-500',
+  highlightIndex,
+  showValueOnHighlight = false,
+  inverted = false,
+  className,
+}: {
+  data: ChartDatum[]
+  formatValue?: (value: number) => string
+  barClassName?: string
+  mutedBarClassName?: string
+  highlightBarClassName?: string
+  /** When set, only this bar uses the primary/highlight color; others use muted. */
+  highlightIndex?: number
+  showValueOnHighlight?: boolean
+  /** For use on a dark card. */
+  inverted?: boolean
+  className?: string
+}) {
+  const [hovered, setHovered] = useState<number | null>(null)
+  const max = Math.max(...data.map((item) => item.value), 1)
+  const hasData = data.some((item) => item.value > 0)
+  const resolvedHighlight =
+    highlightIndex ??
+    data.reduce(
+      (best, item, index) =>
+        item.value > (data[best]?.value ?? -1) ? index : best,
+      0,
+    )
+  const format = (value: number) => formatValue?.(value) ?? String(value)
+
+  if (data.length === 0) return null
+
+  return (
+    <div className={cn('flex min-h-[260px] flex-1 flex-col', className)}>
+      <div
+        className="flex h-[220px] items-end gap-1.5 sm:gap-3"
+        onMouseLeave={() => setHovered(null)}
+      >
+        {data.map((item, index) => {
+          const height = hasData
+            ? Math.max((item.value / max) * 100, item.value > 0 ? 8 : 0)
+            : 0
+          const isHighlighted =
+            hasData &&
+            (highlightIndex != null || showValueOnHighlight
+              ? index === resolvedHighlight
+              : true)
+          const showLabel =
+            hasData &&
+            item.value > 0 &&
+            (hovered === index ||
+              (hovered == null && (!showValueOnHighlight || isHighlighted)))
+
+          return (
+            <button
+              key={item.label}
+              type="button"
+              aria-label={`${item.label}: ${format(item.value)}`}
+              onMouseEnter={() => setHovered(index)}
+              onFocus={() => setHovered(index)}
+              onBlur={() => setHovered(null)}
+              className="group flex h-full min-w-0 flex-1 cursor-default flex-col items-center justify-end focus:outline-none"
+            >
+              <span
+                className={cn(
+                  'mb-1.5 h-6 rounded-full px-2 text-[11px] leading-6 font-semibold whitespace-nowrap tabular-nums transition',
+                  !showLabel && 'invisible',
+                  isHighlighted && showValueOnHighlight
+                    ? inverted
+                      ? 'bg-white text-ink'
+                      : 'bg-ink text-white shadow-sm'
+                    : inverted
+                      ? 'text-white/70'
+                      : 'text-slate-500',
+                )}
+              >
+                {format(item.value)}
+              </span>
+              <div
+                className={cn(
+                  'relative flex min-h-0 w-full max-w-9 flex-1 items-end overflow-hidden rounded-full sm:w-[62%]',
+                  inverted ? 'bg-white/8' : 'bg-canvas',
+                  'group-focus-visible:ring-2 group-focus-visible:ring-brand-300',
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-full rounded-full transition-all duration-700 ease-out',
+                    !hasData
+                      ? 'bg-transparent'
+                      : highlightIndex != null
+                        ? isHighlighted
+                          ? highlightBarClassName
+                          : mutedBarClassName
+                        : barClassName,
+                    hovered === index && 'brightness-110',
+                  )}
+                  style={{ height: `${height}%` }}
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <div className="mt-2 flex gap-1.5 sm:gap-3">
+        {data.map((item, index) => (
+          <span
+            key={item.label}
+            className={cn(
+              'min-w-0 flex-1 truncate text-center text-[11px] font-medium',
+              hasData && highlightIndex != null && index === resolvedHighlight
+                ? inverted
+                  ? 'font-semibold text-white'
+                  : 'font-semibold text-ink'
+                : inverted
+                  ? 'text-white/55'
+                  : 'text-slate-400',
+            )}
+          >
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Horizontal paired bars per item with a legend. */
 export function DashboardGroupedColumns({
   items,
   series,
@@ -299,52 +394,62 @@ export function DashboardGroupedColumns({
   )
 
   return (
-    <div className={cn('flex-1 space-y-2.5', className)}>
-      {items.map((item) => (
-        <div key={item.label} className="space-y-1.5">
-          <p className="truncate text-sm font-semibold text-slate-700">
-            {item.label}
-          </p>
-          <div className="flex h-9 items-end gap-1.5">
-            {series.map((entry) => {
-              const value = item.values[entry.key] ?? 0
-              const width = Math.max((value / max) * 100, value > 0 ? 8 : 0)
-
-              return (
-                <div key={entry.key} className="min-w-0 flex-1">
-                  <div className="mb-1 text-right text-[10px] font-semibold text-slate-500 tabular-nums">
-                    {value || ''}
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={cn('h-full rounded-full', entry.className)}
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-      <div className="flex gap-4 text-[11px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+    <div className={cn('flex flex-1 flex-col gap-3', className)}>
+      <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
         {series.map((entry) => (
           <span key={entry.key} className="inline-flex items-center gap-1.5">
-            <span className={cn('size-2 rounded-full', entry.className)} />
+            <span className={cn('size-2.5 rounded-full', entry.className)} />
             {entry.label}
           </span>
         ))}
       </div>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item.label} className="rounded-2xl bg-canvas/70 px-3.5 py-3">
+            <p className="truncate text-sm font-semibold text-ink">{item.label}</p>
+            <div className="mt-2 space-y-1.5">
+              {series.map((entry) => {
+                const value = item.values[entry.key] ?? 0
+                const width = Math.max((value / max) * 100, value > 0 ? 4 : 0)
+
+                return (
+                  <div
+                    key={entry.key}
+                    className="flex items-center gap-2"
+                    title={`${entry.label}: ${value}`}
+                  >
+                    <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-700 ease-out',
+                          entry.className,
+                        )}
+                        style={{ width: `${width}%` }}
+                      />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-xs font-semibold text-slate-600 tabular-nums">
+                      {value}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
 
+/** Ring chart with a 2px gap between segments and hover titles. */
 export function DashboardDonutChart({
   segments,
   size = 168,
   strokeWidth = 18,
   centerValue,
   centerLabel,
+  trackColor = BRAND_CHART.canvas,
+  inverted = false,
   className,
 }: {
   segments: DonutSegment[]
@@ -352,12 +457,15 @@ export function DashboardDonutChart({
   strokeWidth?: number
   centerValue?: ReactNode
   centerLabel?: string
+  trackColor?: string
+  inverted?: boolean
   className?: string
 }) {
   const total = segments.reduce((sum, item) => sum + item.value, 0)
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
-  const gap = total > 0 && segments.filter((item) => item.value > 0).length > 1 ? 3 : 0
+  const gap =
+    total > 0 && segments.filter((item) => item.value > 0).length > 1 ? 3 : 0
   let offset = 0
 
   return (
@@ -370,20 +478,24 @@ export function DashboardDonutChart({
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="-rotate-90"
-        aria-hidden="true"
+        role="img"
+        aria-label={segments
+          .map((segment) => `${segment.label} ${segment.value}`)
+          .join(', ')}
       >
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#E8EEF5"
+          stroke={trackColor}
           strokeWidth={strokeWidth}
         />
         {total > 0
           ? segments.map((segment) => {
               if (segment.value <= 0) return null
               const length = (segment.value / total) * circumference - gap
+              const share = Math.round((segment.value / total) * 100)
               const circle = (
                 <circle
                   key={segment.label}
@@ -396,21 +508,34 @@ export function DashboardDonutChart({
                   strokeDasharray={`${Math.max(length, 0)} ${circumference}`}
                   strokeDashoffset={-offset}
                   strokeLinecap="butt"
-                />
+                  className="transition-opacity hover:opacity-80"
+                >
+                  <title>{`${segment.label}: ${segment.value} (${share}%)`}</title>
+                </circle>
               )
               offset += (segment.value / total) * circumference
               return circle
             })
           : null}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        {centerValue ? (
-          <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        {centerValue != null ? (
+          <p
+            className={cn(
+              'text-2xl font-bold tracking-tight tabular-nums',
+              inverted ? 'text-white' : 'text-ink',
+            )}
+          >
             {centerValue}
           </p>
         ) : null}
         {centerLabel ? (
-          <p className="mt-0.5 max-w-[6.5rem] text-[11px] font-medium text-slate-400">
+          <p
+            className={cn(
+              'mt-0.5 max-w-[6.5rem] text-[11px] font-medium',
+              inverted ? 'text-white/60' : 'text-slate-500',
+            )}
+          >
             {centerLabel}
           </p>
         ) : null}
@@ -419,14 +544,16 @@ export function DashboardDonutChart({
   )
 }
 
+/** Single-value ring gauge (0–100%). */
 export function DashboardGauge({
   value,
   size = 112,
   strokeWidth = 10,
-  color = '#253CA1',
-  trackColor = '#E8EEF5',
+  color = BRAND_CHART.brand500,
+  trackColor,
   label,
   emptyLabel = '—',
+  inverted = false,
   className,
 }: {
   value: number | null
@@ -436,11 +563,16 @@ export function DashboardGauge({
   trackColor?: string
   label?: string
   emptyLabel?: string
+  inverted?: boolean
   className?: string
 }) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const pct = value == null ? 0 : Math.min(Math.max(value, 0), 100)
+  const track =
+    trackColor ?? (inverted ? 'rgba(255,255,255,0.12)' : BRAND_CHART.brand100)
+  const display =
+    value == null ? emptyLabel : `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`
 
   return (
     <div
@@ -452,33 +584,48 @@ export function DashboardGauge({
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="-rotate-90"
-        aria-hidden="true"
+        role="img"
+        aria-label={`${label ?? 'Progress'}: ${display}`}
       >
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={trackColor}
+          stroke={track}
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
-          strokeLinecap="round"
-        />
+        {pct > 0 ? (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
+            strokeLinecap="round"
+            className="transition-all duration-700 ease-out"
+          />
+        ) : null}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
-          {value == null ? emptyLabel : `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <p
+          className={cn(
+            'font-bold tracking-tight tabular-nums',
+            size >= 100 ? 'text-2xl' : 'text-base',
+            inverted ? 'text-white' : 'text-ink',
+          )}
+        >
+          {display}
         </p>
         {label ? (
-          <p className="mt-0.5 text-[10px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+          <p
+            className={cn(
+              'mt-0.5 text-[10px] font-semibold tracking-[0.08em] uppercase',
+              inverted ? 'text-white/55' : 'text-slate-400',
+            )}
+          >
             {label}
           </p>
         ) : null}
@@ -487,6 +634,7 @@ export function DashboardGauge({
   )
 }
 
+/** Tapered stage bars; each row shows its count and share. */
 export function DashboardFunnelChart({
   items,
   className,
@@ -499,26 +647,33 @@ export function DashboardFunnelChart({
 
   return (
     <div className={cn('flex w-full flex-1 flex-col justify-center gap-2', className)}>
-      {items.map((item, index) => {
-        const countWidth = 58 + (item.value / max) * 42
-        const taper = Math.max(countWidth - index * 1.5, 42)
+      {items.map((item) => {
+        const width = 44 + (item.value / max) * 56
         const share = total > 0 ? Math.round((item.value / total) * 100) : 0
 
         return (
-          <div key={item.label} className="flex justify-center">
-            <div
-              className={cn(
-                'flex h-10 items-center justify-between gap-3 rounded-lg px-3.5 text-white shadow-sm transition-all duration-500',
-                item.tone,
-              )}
-              style={{ width: `${taper}%` }}
-            >
-              <span className="truncate text-xs font-semibold">{item.label}</span>
-              <span className="shrink-0 text-xs font-bold tabular-nums">
-                {item.value}
-                <span className="ml-1.5 font-medium text-white/70">{share}%</span>
-              </span>
+          <div
+            key={item.label}
+            className="flex items-center gap-3"
+            title={`${item.label}: ${item.value} (${share}%)`}
+          >
+            <div className="min-w-0 flex-1">
+              <div
+                className={cn(
+                  'flex h-11 items-center justify-between gap-2 rounded-full px-4 text-white transition-all duration-700 ease-out',
+                  item.tone,
+                )}
+                style={{ width: `${width}%` }}
+              >
+                <span className="truncate text-xs font-semibold">{item.label}</span>
+                <span className="shrink-0 text-sm font-bold tabular-nums">
+                  {item.value}
+                </span>
+              </div>
             </div>
+            <span className="w-10 shrink-0 text-right text-xs font-semibold text-slate-500 tabular-nums">
+              {share}%
+            </span>
           </div>
         )
       })}

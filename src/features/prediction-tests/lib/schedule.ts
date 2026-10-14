@@ -22,6 +22,7 @@ export type SessionsPerWeek =
 const WEEKDAY_SLOTS = [
   { code: '09_11', label: '9-11 am' },
   { code: '11_13', label: '11-1 pm' },
+  { code: '13_15', label: '1-3 pm' },
   { code: '14_16', label: '2-4 pm' },
   { code: '16_18', label: '4-6 pm' },
   { code: '18_20', label: '6-8 pm' },

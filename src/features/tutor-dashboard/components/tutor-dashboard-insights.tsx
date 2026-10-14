@@ -1,8 +1,21 @@
-import { Gift, Target, Timer } from 'lucide-react'
+import {
+  BarChart3,
+  CalendarX2,
+  Gift,
+  Target,
+  Timer,
+  Trophy,
+} from 'lucide-react'
 
 import { formatCurrencyCompact } from '../../../shared/lib/currency'
-import { DashboardColumnChart } from '../../admin/components/dashboard-charts'
 import {
+  DashboardColumnChart,
+  DashboardGauge,
+} from '../../admin/components/dashboard-charts'
+import { BRAND_CHART } from '../../admin/components/dashboard-palette'
+import { DashboardChip } from '../../admin/components/dashboard-kit'
+import {
+  DashboardCardHeader,
   DashboardEmptyState,
   DashboardPanel,
 } from '../../admin/components/dashboard-section'
@@ -21,85 +34,78 @@ function highlightWeekIndex(
 
 export function TutorDashboardInsights({
   metrics,
+  className,
 }: {
   metrics: TutorPerformanceMetrics
+  className?: string
 }) {
   const weeklyData = metrics.weeklyTrend.map((item) => ({
     label: item.label.replace(/–.*/, '').trim(),
     value: item.sessions,
   }))
   const peakIndex = highlightWeekIndex(weeklyData)
+  const hasSessions = weeklyData.some((item) => item.value > 0)
 
   const programItems = metrics.programMix.slice(0, 4)
 
   return (
-    <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-      <DashboardPanel
-        variant="plump"
-        className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both [animation-delay:200ms] lg:col-span-7"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-base font-bold text-slate-900">
-              Weekly sessions
-            </p>
-            <p className="mt-0.5 text-sm text-slate-400">
-              Finished teaching volume across this period
-            </p>
-          </div>
-          {weeklyData.some((item) => item.value > 0) ? (
-            <span className="rounded-full bg-[#E8EEFF] px-3 py-1 text-xs font-semibold text-[#253CA1]">
-              Peak {weeklyData[peakIndex]?.label}: {weeklyData[peakIndex]?.value}
-            </span>
-          ) : null}
+    <DashboardPanel variant="plump" className={className}>
+      <DashboardCardHeader
+        title="Sessions each week"
+        description="Classes you finished across this period."
+        icon={<BarChart3 className="size-4" />}
+        action={
+          hasSessions ? (
+            <DashboardChip tone="brand">
+              Busiest {weeklyData[peakIndex]?.label}: {weeklyData[peakIndex]?.value}
+            </DashboardChip>
+          ) : null
+        }
+      />
+
+      <div className="flex flex-1 flex-col justify-end">
+        {hasSessions ? (
+          <DashboardColumnChart
+            data={weeklyData}
+            highlightIndex={peakIndex}
+            showValueOnHighlight
+            className="min-h-[240px]"
+          />
+        ) : (
+          <DashboardEmptyState message="No finished sessions yet. Your weekly numbers show up once classes are marked finished." />
+        )}
+      </div>
+
+      {programItems.length > 0 ? (
+        <div className="mt-5">
+          <p className="text-xs font-semibold text-slate-500">Programs you teach most</p>
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {programItems.map((item) => (
+              <li
+                key={`${item.programId ?? item.title}`}
+                className="flex items-center justify-between gap-2 rounded-2xl bg-canvas/70 px-3.5 py-2.5"
+              >
+                <span className="min-w-0 truncate text-sm font-semibold text-ink">
+                  {item.title}
+                </span>
+                <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 tabular-nums">
+                  {item.sessions} · {item.hours}h
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-
-        <div className="mt-4">
-          {weeklyData.some((item) => item.value > 0) ? (
-            <DashboardColumnChart
-              data={weeklyData}
-              highlightIndex={peakIndex}
-              showValueOnHighlight
-              className="min-h-[240px]"
-            />
-          ) : (
-            <DashboardEmptyState message="No finished sessions yet. Weekly volume will appear once classes are marked finished." />
-          )}
-        </div>
-
-        {programItems.length > 0 ? (
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
-              Top programs
-            </p>
-            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-              {programItems.map((item) => (
-                <li
-                  key={`${item.programId ?? item.title}`}
-                  className="flex items-center justify-between gap-2 rounded-2xl bg-slate-50 px-3 py-2"
-                >
-                  <span className="min-w-0 truncate text-sm font-medium text-slate-700">
-                    {item.title}
-                  </span>
-                  <span className="shrink-0 text-xs font-semibold tabular-nums text-[#253CA1]">
-                    {item.sessions} · {item.hours}h
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </DashboardPanel>
-
-      <TutorDashboardGoals metrics={metrics} />
-    </div>
+      ) : null}
+    </DashboardPanel>
   )
 }
 
 export function TutorDashboardGoals({
   metrics,
+  className,
 }: {
   metrics: TutorPerformanceMetrics
+  className?: string
 }) {
   const { kpis, workload, earnings } = metrics
   const bonus = kpis.bonusProgress
@@ -116,7 +122,7 @@ export function TutorDashboardGoals({
   const goals = [
     {
       id: 'bonus',
-      icon: <Gift className="size-4" />,
+      icon: <Gift className="size-3.5" />,
       label: 'Bonus tier',
       pct: bonusPct,
       detail:
@@ -132,7 +138,7 @@ export function TutorDashboardGoals({
     },
     {
       id: 'remaining',
-      icon: <Target className="size-4" />,
+      icon: <Target className="size-3.5" />,
       label: 'Next tier',
       pct:
         bonus.nextTierMin != null && bonus.nextTierMin > 0
@@ -153,7 +159,7 @@ export function TutorDashboardGoals({
     },
     {
       id: 'workload',
-      icon: <Timer className="size-4" />,
+      icon: <Timer className="size-3.5" />,
       label: 'Regular vs OT',
       pct: regularShare,
       detail: `${workload.regularSessions} regular · ${workload.overtimeSessions} OT`,
@@ -162,54 +168,38 @@ export function TutorDashboardGoals({
   ]
 
   return (
-    <DashboardPanel
-      variant="navy"
-      className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both [animation-delay:260ms] lg:col-span-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-base font-bold text-white">Teaching goals</p>
-          <p className="mt-0.5 text-sm text-white/60">
-            Bonus progress and workload mix
-          </p>
-        </div>
-        <span className="inline-flex size-9 items-center justify-center rounded-2xl bg-white/10 text-white">
-          <Target className="size-4" />
-        </span>
-      </div>
+    <DashboardPanel className={className}>
+      <DashboardCardHeader
+        title="Teaching goals"
+        description="Bonus progress and how your sessions split."
+        icon={<Trophy className="size-4" />}
+      />
 
-      <ul className="mt-6 space-y-5">
+      <ul className="flex flex-1 flex-col gap-2">
         {goals.map((goal) => (
-          <li key={goal.id}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
-                  {goal.icon}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">
-                    {goal.label}
-                  </p>
-                  <p className="truncate text-xs text-white/55">{goal.detail}</p>
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-bold tabular-nums text-white">
-                  {goal.pct}%
-                </p>
-                {goal.amount ? (
-                  <p className="text-[11px] font-medium text-white/55">
-                    {goal.amount}
-                  </p>
-                ) : null}
-              </div>
+          <li
+            key={goal.id}
+            className="flex items-center gap-4 rounded-3xl bg-canvas/70 px-3 py-3"
+          >
+            <DashboardGauge
+              value={goal.pct}
+              size={64}
+              strokeWidth={7}
+              color={BRAND_CHART.brand500}
+              trackColor={BRAND_CHART.brand100}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <span className="text-brand-600">{goal.icon}</span>
+                {goal.label}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-slate-500">{goal.detail}</p>
             </div>
-            <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-[#7B93E8] transition-all duration-700 ease-out"
-                style={{ width: `${goal.pct}%` }}
-              />
-            </div>
+            {goal.amount ? (
+              <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-700 tabular-nums">
+                {goal.amount}
+              </span>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -219,46 +209,48 @@ export function TutorDashboardGoals({
 
 export function TutorDashboardCancellations({
   metrics,
+  className,
 }: {
   metrics: TutorPerformanceMetrics
+  className?: string
 }) {
   return (
-    <DashboardPanel
-      variant="plump"
-      className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both gap-0 overflow-hidden p-0 [animation-delay:340ms]"
-    >
-      <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
-        <p className="text-base font-bold text-slate-900">
-          Recent cancellations
-        </p>
-        <p className="mt-0.5 text-sm text-slate-400">
-          Latest cancelled classes assigned to you
-        </p>
-      </div>
+    <DashboardPanel className={className}>
+      <DashboardCardHeader
+        title="Recent cancellations"
+        description="Your latest classes that were cancelled."
+        icon={<CalendarX2 className="size-4" />}
+        action={
+          metrics.cancellations.length > 0 ? (
+            <DashboardChip>{metrics.cancellations.length} shown</DashboardChip>
+          ) : null
+        }
+      />
       {metrics.cancellations.length === 0 ? (
-        <div className="px-4 py-6 sm:px-5">
-          <DashboardEmptyState message="No cancellations in this window." />
-        </div>
+        <DashboardEmptyState message="No cancelled classes in this period." />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="space-y-2">
           {metrics.cancellations.map((item) => (
             <li
               key={item.id}
-              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:px-5"
+              className="flex items-center gap-3 rounded-3xl bg-canvas/70 px-3 py-2.5"
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-rose-500">
+                <CalendarX2 className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">
                   {item.program}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-slate-400">
+                <p className="mt-0.5 truncate text-xs text-slate-500">
                   {item.subject}
                   {item.subjectType === 'group' ? ' (group)' : ''}
                   {item.startTime ? ` · ${item.startTime}` : ''}
                 </p>
               </div>
-              <p className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-slate-600">
+              <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 tabular-nums">
                 {item.date}
-              </p>
+              </span>
             </li>
           ))}
         </ul>

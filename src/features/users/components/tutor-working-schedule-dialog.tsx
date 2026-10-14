@@ -82,6 +82,8 @@ type TutorWorkingScheduleDialogProps = {
   tutorName: string
   schedule: TutorWorkingSchedule | null
   mode?: 'full' | 'salary'
+  /** Freelancers only have a per-session rate: no hours, base salary or overtime. */
+  freelance?: boolean
 }
 
 export function TutorWorkingScheduleDialog({
@@ -91,6 +93,7 @@ export function TutorWorkingScheduleDialog({
   tutorName,
   schedule,
   mode = 'full',
+  freelance = false,
 }: TutorWorkingScheduleDialogProps) {
   const queryClient = useQueryClient()
   const [values, setValues] = useState<TutorWorkingScheduleFormValues>(
@@ -163,32 +166,37 @@ export function TutorWorkingScheduleDialog({
           noValidate
           className="flex max-h-[90vh] flex-col"
         >
-          <div className="shrink-0 bg-[linear-gradient(135deg,#E8EEFF_0%,#FFFFFF_55%)] px-6 pt-6 pb-2">
-            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1] ring-1 ring-[#C8D4F5]">
+          <div className="shrink-0 bg-gradient-to-br from-brand-50 via-white to-white px-6 pt-6 pb-2">
+            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
               <CalendarClock className="size-5" />
             </div>
             <DialogHeader className="pr-0">
               <DialogTitle>
-                {mode === 'salary'
+                {freelance
+                  ? 'Set per-session rate'
+                  : mode === 'salary'
                   ? isUpdate
-                    ? 'Update tutor salary'
-                    : 'Record tutor salary'
+                    ? 'Update tutor pay'
+                    : 'Record tutor pay'
                   : isUpdate
-                    ? 'Update working schedule'
-                    : 'Record working schedule'}
+                    ? 'Update working hours'
+                    : 'Set working hours'}
               </DialogTitle>
               <DialogDescription>
-                {mode === 'salary'
-                  ? `Set compensation rates for ${tutorName}.`
-                  : `Set weekly hours and rates for ${tutorName}.`}
+                {freelance
+                  ? `${tutorName} is freelance: paid per session only, with no working hours, base salary or overtime.`
+                  : mode === 'salary'
+                  ? `The base rates ${tutorName} is paid for every program.`
+                  : `The days and hours ${tutorName} works, plus their base pay. Leave a day empty for a day off.`}
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className={freelance ? 'grid gap-4' : 'grid gap-4 sm:grid-cols-3'}>
+              {freelance ? null : (
               <div className="space-y-2">
-                <Label htmlFor="mainSalary">Main salary</Label>
+                <Label htmlFor="mainSalary">Main salary (IDR)</Label>
                 <Input
                   id="mainSalary"
                   inputMode="numeric"
@@ -198,8 +206,9 @@ export function TutorWorkingScheduleDialog({
                   }
                 />
               </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="salaryPerSession">Per session</Label>
+                <Label htmlFor="salaryPerSession">Per session (IDR)</Label>
                 <Input
                   id="salaryPerSession"
                   inputMode="numeric"
@@ -209,6 +218,7 @@ export function TutorWorkingScheduleDialog({
                   }
                 />
               </div>
+              {freelance ? null : (
               <div className="space-y-2">
                 <Label htmlFor="overtimeMultiplier">Overtime multiplier</Label>
                 <Input
@@ -220,15 +230,16 @@ export function TutorWorkingScheduleDialog({
                   }
                 />
               </div>
+              )}
             </div>
 
-            {mode === 'full' ? (
+            {mode === 'full' && !freelance ? (
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-ink">
                   Weekly hours
                 </p>
                 <div className="space-y-2.5">
-                  <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3 px-0.5">
+                  <div className="grid grid-cols-[4.5rem_1fr_1fr] sm:grid-cols-[6.5rem_1fr_1fr] items-center gap-3 px-0.5">
                     <span className="text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
                       Day
                     </span>
@@ -242,7 +253,7 @@ export function TutorWorkingScheduleDialog({
                   {WEEKDAY_FIELDS.map((day) => (
                     <div
                       key={day.label}
-                      className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3"
+                      className="grid grid-cols-[4.5rem_1fr_1fr] sm:grid-cols-[6.5rem_1fr_1fr] items-center gap-3"
                     >
                       <span className="text-sm font-medium text-slate-600">
                         {day.label}
@@ -266,10 +277,10 @@ export function TutorWorkingScheduleDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="mt-0 shrink-0 bg-canvas/70 px-6 py-4">
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
@@ -280,9 +291,11 @@ export function TutorWorkingScheduleDialog({
               <CalendarClock className="size-3.5" />
               {isSubmitting
                 ? 'Saving...'
-                : isUpdate
-                  ? 'Update'
-                  : 'Record'}
+                : freelance
+                  ? 'Save rate'
+                  : mode === 'salary'
+                  ? 'Save pay'
+                  : 'Save working hours'}
             </Button>
           </DialogFooter>
         </form>

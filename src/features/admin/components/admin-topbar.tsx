@@ -2,12 +2,12 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Bell,
   CalendarDays,
-  ChevronDown,
   LogOut,
   Menu,
+  Search,
   UserRound,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   Popover,
@@ -16,10 +16,13 @@ import {
 } from '../../../shared/components/ui/popover'
 import { cn } from '../../../shared/lib/cn'
 import { useLogoutConfirm } from '../../auth/hooks/use-logout-confirm'
+import { filterNavigationForUser } from '../../auth/lib/navigation-access'
 import { useAuthStore } from '../../auth/store/auth-store'
 import { useNotificationsStore } from '../../notifications/store/notifications-store'
 import { getUserInitials } from '../../profile/data/current-user-placeholder'
 import { getAuthPosition } from '../../profile/lib/build-current-user-profile'
+import { isMacPlatform, searchablePages } from '../lib/page-search'
+import { AdminCommandSearch } from './admin-command-search'
 
 type AdminTopbarProps = {
   onOpenSidebar: () => void
@@ -45,9 +48,13 @@ function getFirstName(fullName: string) {
   return trimmed.split(/\s+/)[0] ?? trimmed
 }
 
+const roundIconButton =
+  'relative inline-flex size-11 items-center justify-center rounded-full bg-white text-ink transition hover:bg-brand-50 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:outline-none'
+
 export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const { requestLogout, logoutDialog } = useLogoutConfirm()
   const authUser = useAuthStore((state) => state.user)
   const displayName = authUser?.full_name?.trim() || authUser?.email || 'Staff'
@@ -57,54 +64,81 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
   const unreadCount = useNotificationsStore(
     (state) => state.items.filter((item) => !item.read).length,
   )
-
-  const formattedDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }).format(new Date()),
-    [],
+  const navigation = useMemo(() => filterNavigationForUser(authUser), [authUser])
+  const canOpenSchedule = useMemo(
+    () => searchablePages(navigation).some(({ item }) => item.to === '/full-schedule'),
+    [navigation],
   )
+  const shortcutLabel = isMacPlatform() ? '⌘ K' : 'Ctrl K'
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-[#F7F9FC]/85 backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              aria-label="Open sidebar"
-              onClick={onOpenSidebar}
-              className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-600 shadow-sm shadow-slate-200/40 transition hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#253CA1] lg:hidden"
-            >
-              <Menu className="size-4" />
-            </button>
+      <header className="sticky top-0 z-20 bg-canvas/85 backdrop-blur-xl">
+        <div className="flex items-center gap-3 px-3 py-3 sm:px-5">
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={onOpenSidebar}
+            className={cn(roundIconButton, 'lg:hidden')}
+          >
+            <Menu className="size-4" />
+          </button>
 
-            <div className="min-w-0 animate-in fade-in slide-in-from-left-1 duration-300">
-              <p className="text-[11px] font-medium tracking-[0.04em] text-slate-400">
-                {getGreeting()}
-              </p>
-              <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-                  {firstName}
-                </h1>
-                <span className="inline-flex items-center rounded-full border border-[#C8D4F5]/80 bg-[#E8EEFF]/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#253CA1] uppercase">
-                  {displayPosition}
-                </span>
-              </div>
-            </div>
+          <div className="min-w-0 flex-1 animate-in fade-in slide-in-from-left-1 duration-300 md:flex-none md:basis-56 xl:basis-72">
+            <p className="text-xs font-medium text-slate-500">
+              {getGreeting()},
+            </p>
+            <h1 className="truncate text-xl font-bold tracking-tight text-ink">
+              {firstName}
+            </h1>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-            <div className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-slate-500 shadow-sm shadow-slate-200/30 md:flex">
-              <CalendarDays className="size-3.5 text-[#253CA1]" />
-              <time className="text-xs font-medium text-slate-600">
-                {formattedDate}
-              </time>
-            </div>
+          <div className="hidden flex-1 justify-center md:flex">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex h-12 w-full max-w-xl items-center gap-3 rounded-full bg-white px-5 text-left text-sm text-slate-400 transition hover:ring-2 hover:ring-ink/5"
+            >
+              <Search className="size-4 shrink-0 text-ink" />
+              <span className="flex-1 truncate">Search pages</span>
+              <kbd className="rounded-md bg-canvas px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                {shortcutLabel}
+              </kbd>
+            </button>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label="Search pages"
+              onClick={() => setSearchOpen(true)}
+              className={cn(roundIconButton, 'md:hidden')}
+            >
+              <Search className="size-4" />
+            </button>
+
+            {canOpenSchedule ? (
+              <button
+                type="button"
+                aria-label="Open full schedule"
+                title="Full schedule"
+                onClick={() => void navigate({ to: '/full-schedule' })}
+                className={cn(roundIconButton, 'hidden sm:inline-flex')}
+              >
+                <CalendarDays className="size-[1.1rem]" strokeWidth={1.9} />
+              </button>
+            ) : null}
 
             <button
               type="button"
@@ -113,15 +147,13 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                   ? `Notifications, ${unreadCount} unread`
                   : 'Notifications'
               }
+              title="Notifications"
               onClick={() => void navigate({ to: '/notifications' })}
-              className={cn(
-                'relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 shadow-sm shadow-slate-200/30 transition',
-                'hover:border-[#C8D4F5] hover:bg-[#E8EEFF] hover:text-[#253CA1]',
-              )}
+              className={roundIconButton}
             >
-              <Bell className="size-4" />
+              <Bell className="size-[1.1rem]" strokeWidth={1.9} />
               {unreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-[#3D56C4] to-[#253CA1] px-1 text-[9px] font-bold text-white shadow-sm shadow-[#253CA1]/30">
+                <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[9px] font-bold text-white ring-2 ring-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               ) : null}
@@ -134,47 +166,31 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                   aria-label="Open profile menu"
                   aria-expanded={menuOpen}
                   className={cn(
-                    'inline-flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white py-1.5 pr-2.5 pl-1.5 shadow-sm shadow-slate-200/30 transition',
-                    'hover:border-[#C8D4F5] hover:bg-[#E8EEFF]',
-                    menuOpen && 'border-[#C8D4F5] bg-[#E8EEFF] ring-2 ring-[#253CA1]/15',
+                    'inline-flex size-11 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white ring-2 ring-white transition hover:ring-brand-200',
+                    menuOpen && 'ring-brand-300',
                   )}
                 >
-                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#3D56C4] via-[#253CA1] to-[#1B2A5A] text-[11px] font-semibold text-white shadow-sm shadow-[#253CA1]/25">
-                    {getUserInitials(displayName)}
-                  </span>
-                  <span className="hidden min-w-0 text-left sm:block">
-                    <span className="block max-w-[9rem] truncate text-xs font-semibold text-slate-800">
-                      {displayName}
-                    </span>
-                    <span className="block max-w-[9rem] truncate text-[10px] text-slate-400">
-                      {displayEmail}
-                    </span>
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      'hidden size-3.5 text-slate-400 transition duration-200 sm:block',
-                      menuOpen && 'rotate-180 text-[#253CA1]',
-                    )}
-                  />
+                  {getUserInitials(displayName)}
                 </button>
               </PopoverTrigger>
               <PopoverContent
                 align="end"
-                className="w-64 overflow-hidden rounded-2xl border-slate-200/80 p-0 shadow-xl shadow-slate-200/50"
+                sideOffset={10}
+                className="w-64 overflow-hidden rounded-3xl border-0 p-0 shadow-[0_24px_48px_-16px_rgba(18,18,18,0.22)]"
               >
-                <div className="border-b border-slate-100 bg-gradient-to-b from-[#E8EEFF] to-white px-4 py-3.5">
+                <div className="bg-brand-50 px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#3D56C4] via-[#253CA1] to-[#1B2A5A] text-xs font-semibold text-white shadow-md shadow-[#253CA1]/25">
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
                       {getUserInitials(displayName)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
+                      <p className="truncate text-sm font-bold text-ink">
                         {displayName}
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                      <p className="mt-0.5 truncate text-xs text-slate-600">
                         {displayEmail}
                       </p>
-                      <p className="mt-1.5 inline-flex rounded-full bg-[#E8EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#253CA1]">
+                      <p className="mt-1.5 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-ink">
                         {displayPosition}
                       </p>
                     </div>
@@ -188,9 +204,9 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                       setMenuOpen(false)
                       void navigate({ to: '/profile' })
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#E8EEFF] hover:text-[#253CA1]"
+                    className="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-canvas hover:text-ink"
                   >
-                    <span className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#253CA1]">
+                    <span className="inline-flex size-8 items-center justify-center rounded-full bg-canvas text-ink">
                       <UserRound className="size-3.5" />
                     </span>
                     View profile
@@ -201,9 +217,9 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
                       setMenuOpen(false)
                       requestLogout()
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                    className="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
-                    <span className="inline-flex size-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-500">
+                    <span className="inline-flex size-8 items-center justify-center rounded-full bg-rose-50 text-rose-500">
                       <LogOut className="size-3.5" />
                     </span>
                     Sign out
@@ -214,6 +230,11 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
           </div>
         </div>
       </header>
+      <AdminCommandSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        navigation={navigation}
+      />
       {logoutDialog}
     </>
   )

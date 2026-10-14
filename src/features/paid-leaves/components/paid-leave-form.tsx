@@ -1,12 +1,21 @@
 import { parseISO } from 'date-fns'
-import { FilePlus } from 'lucide-react'
+import {
+  CalendarDays,
+  ClipboardCheck,
+  FilePlus,
+  FileText,
+  UserRound,
+} from 'lucide-react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { Button } from '../../../shared/components/ui/button'
+import { FormSectionCard } from '../../../shared/components/feature-page'
+import { FormSaveBar } from '../../../shared/components/page'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
+import { cn } from '../../../shared/lib/cn'
+import { PersonAvatar } from '../../users/components/people-ui'
 import { useCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
   PaidLeaveFormErrors,
@@ -51,22 +60,53 @@ function Field({
   error,
   children,
   hint,
+  required,
 }: {
   label: string
   htmlFor: string
   error?: string
   children: ReactNode
   hint?: string
+  required?: boolean
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
       <FieldError message={error} />
     </div>
   )
 }
+
+const STATUS_CHOICES: {
+  value: PaidLeaveFormValues['status']
+  label: string
+  hint: string
+  dot: string
+}[] = [
+  {
+    value: 'pending',
+    label: 'Pending',
+    hint: 'Waiting for a decision',
+    dot: 'bg-amber-500',
+  },
+  {
+    value: 'approved',
+    label: 'Approved',
+    hint: 'Counts against their balance',
+    dot: 'bg-emerald-500',
+  },
+  {
+    value: 'void',
+    label: 'Void',
+    hint: 'Cancelled or turned down',
+    dot: 'bg-slate-400',
+  },
+]
 
 type PaidLeaveFormProps = {
   mode: 'create' | 'edit'
@@ -107,207 +147,265 @@ export function PaidLeaveForm({
   onDelete,
 }: PaidLeaveFormProps) {
   const staffQuery = useCounsellorOptionsQuery()
-  const staff = staffQuery.data ?? []
+  // Freelancers have no paid leave, so they can't be picked (an existing
+  // record keeps showing its saved name).
+  const staff = (staffQuery.data ?? []).filter(
+    (option) => option.employmentType !== 'FL' || option.id === values.userId,
+  )
 
   const fileLabel = values.filesFile
     ? values.filesFile.name
     : meta?.fileUrl
       ? 'PDF on file — choose a file to replace'
-      : 'Upload supporting PDF (optional)'
+      : 'Choose a PDF to attach (optional)'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit()
   }
 
+  const selectedStaff = staff.find((option) => option.id === values.userId)
+  const staffName = selectedStaff?.fullName ?? meta?.staffName ?? ''
+
   return (
-    <form className="space-y-8" onSubmit={handleSubmit} noValidate>
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">Leave Details</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Record a staff paid leave request with dates, status, and optional
-            PDF.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Staff Member" htmlFor="userId" error={errors.userId}>
-            <Select
-              id="userId"
-              containerClassName="w-full sm:w-full"
-              value={values.userId}
-              onChange={(event) => onChange('userId', event.target.value)}
-              disabled={staffQuery.isLoading}
+    <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-3">
+          <FormSectionCard
+            icon={UserRound}
+            title="Who"
+            description="The staff member or tutor taking the leave."
+          >
+            <Field
+              label="Person"
+              htmlFor="userId"
+              error={errors.userId}
+              required
             >
-              <option value="">Select staff...</option>
-              {staff.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.pin} | {option.fullName}
+              <Select
+                id="userId"
+                containerClassName="w-full sm:w-full"
+                value={values.userId}
+                onChange={(event) => onChange('userId', event.target.value)}
+                disabled={staffQuery.isLoading}
+              >
+                <option value="">
+                  {staffQuery.isLoading ? 'Loading people...' : 'Select a person...'}
                 </option>
-              ))}
-            </Select>
-          </Field>
+                {staff.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.pin} | {option.fullName}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </FormSectionCard>
 
-          <Field
-            label="Approval Status"
-            htmlFor="status"
-            error={errors.status}
+          <FormSectionCard
+            icon={CalendarDays}
+            title="When"
+            description="The first and last day they are away. Use the same date for a single day."
+            delayClassName="delay-75"
           >
-            <Select
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="First day"
+                htmlFor="startDate"
+                error={errors.startDate}
+                required
+              >
+                <DatePicker
+                  value={parseDateValue(values.startDate)}
+                  onChange={(date) => onChange('startDate', toDateString(date))}
+                  placeholder="Pick start date"
+                  title="Start date"
+                  className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
+                  align="start"
+                />
+              </Field>
+
+              <Field
+                label="Last day"
+                htmlFor="endDate"
+                error={errors.endDate}
+                required
+              >
+                <DatePicker
+                  value={parseDateValue(values.endDate)}
+                  onChange={(date) => onChange('endDate', toDateString(date))}
+                  placeholder="Pick end date"
+                  title="End date"
+                  className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
+                  align="start"
+                />
+              </Field>
+            </div>
+          </FormSectionCard>
+
+          <FormSectionCard
+            icon={FileText}
+            title="Notes and document"
+            description="Anything worth remembering, plus a signed form or doctor's note if you have one."
+            delayClassName="delay-100"
+          >
+            <Field label="Notes" htmlFor="notes" error={errors.notes}>
+              <Textarea
+                id="notes"
+                value={values.notes}
+                onChange={(event) => onChange('notes', event.target.value)}
+                placeholder="Optional, e.g. family event, medical leave"
+              />
+            </Field>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="filesFile">Supporting PDF</Label>
+              <label
+                htmlFor="filesFile"
+                className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-canvas/60 px-4 py-3 text-sm text-slate-600 transition hover:border-brand-300 hover:bg-brand-50"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-600">
+                  <FilePlus className="size-4" />
+                </span>
+                <span className="flex-1 truncate">{fileLabel}</span>
+                <input
+                  id="filesFile"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="sr-only"
+                  onChange={(event) =>
+                    onChange('filesFile', event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              {meta?.fileUrl && !values.filesFile ? (
+                <a
+                  href={meta.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-xs font-semibold text-brand-600 hover:underline"
+                >
+                  Open current PDF
+                </a>
+              ) : null}
+              <FieldError message={errors.filesFile} />
+            </div>
+          </FormSectionCard>
+        </div>
+
+        <div className="space-y-3 lg:sticky lg:top-4">
+          <FormSectionCard
+            icon={ClipboardCheck}
+            title="Decision"
+            description="Only approved leave counts against their balance."
+            delayClassName="delay-75"
+          >
+            <div
               id="status"
-              containerClassName="w-full sm:w-full"
-              value={values.status}
-              onChange={(event) =>
-                onChange(
-                  'status',
-                  event.target.value as PaidLeaveFormValues['status'],
+              role="radiogroup"
+              aria-label="Approval status"
+              className="grid gap-1.5"
+            >
+              {STATUS_CHOICES.map((choice) => {
+                const selected = values.status === choice.value
+                return (
+                  <button
+                    key={choice.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => onChange('status', choice.value)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left transition',
+                      selected
+                        ? 'bg-ink text-white'
+                        : 'bg-canvas text-slate-600 hover:bg-canvas-deep',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn('size-2 shrink-0 rounded-full', choice.dot)}
+                    />
+                    <span className="min-w-0">
+                      <span
+                        className={cn(
+                          'block text-sm font-semibold',
+                          selected ? 'text-white' : 'text-ink',
+                        )}
+                      >
+                        {choice.label}
+                      </span>
+                      <span
+                        className={cn(
+                          'block text-xs',
+                          selected ? 'text-white/70' : 'text-slate-500',
+                        )}
+                      >
+                        {choice.hint}
+                      </span>
+                    </span>
+                  </button>
                 )
-              }
-            >
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="void">Void</option>
-            </Select>
-          </Field>
+              })}
+            </div>
+            <FieldError message={errors.status} />
+          </FormSectionCard>
 
-          <Field
-            label="Start Date"
-            htmlFor="startDate"
-            error={errors.startDate}
+          <FormSectionCard
+            icon={CalendarDays}
+            title="Summary"
+            description="Updates as you fill in the form."
+            delayClassName="delay-100"
           >
-            <DatePicker
-              value={parseDateValue(values.startDate)}
-              onChange={(date) => onChange('startDate', toDateString(date))}
-              placeholder="Pick start date"
-              title="Start date"
-              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
-              align="start"
-            />
-          </Field>
-
-          <Field label="End Date" htmlFor="endDate" error={errors.endDate}>
-            <DatePicker
-              value={parseDateValue(values.endDate)}
-              onChange={(date) => onChange('endDate', toDateString(date))}
-              placeholder="Pick end date"
-              title="End date"
-              className="h-12 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
-              align="start"
-            />
-          </Field>
-        </div>
-
-        <Field label="Notes" htmlFor="notes" error={errors.notes}>
-          <Textarea
-            id="notes"
-            value={values.notes}
-            onChange={(event) => onChange('notes', event.target.value)}
-            placeholder="Optional notes about this leave request"
-          />
-        </Field>
-
-        <div className="space-y-2">
-          <Label htmlFor="filesFile">Supporting Document</Label>
-          <label
-            htmlFor="filesFile"
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 text-sm text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF]"
-          >
-            <FilePlus className="size-4 shrink-0 text-[#253CA1]" />
-            <span className="flex-1 truncate">{fileLabel}</span>
-            <input
-              id="filesFile"
-              type="file"
-              accept="application/pdf,.pdf"
-              className="sr-only"
-              onChange={(event) =>
-                onChange('filesFile', event.target.files?.[0] ?? null)
-              }
-            />
-          </label>
-          {meta?.fileUrl && !values.filesFile ? (
-            <a
-              href={meta.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-medium text-[#253CA1] hover:underline"
-            >
-              View current PDF
-            </a>
-          ) : null}
-          <FieldError message={errors.filesFile} />
-        </div>
-      </section>
-
-      {mode === 'edit' && meta ? (
-        <>
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-          <section className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-            <h3 className="text-sm font-bold text-slate-900">Record Info</h3>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-slate-400">Staff</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {meta.staffName}
-                </dd>
+            <div className="flex items-center gap-3 rounded-2xl bg-canvas px-3.5 py-3">
+              {staffName ? (
+                <PersonAvatar name={staffName} seed={values.userId} />
+              ) : (
+                <span className="inline-flex size-10 items-center justify-center rounded-full bg-white text-slate-400">
+                  <UserRound className="size-4" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-ink">
+                  {staffName || 'No one picked yet'}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {values.startDate
+                    ? values.endDate && values.endDate !== values.startDate
+                      ? `${formatDate(values.startDate)} – ${formatDate(values.endDate)}`
+                      : formatDate(values.startDate)
+                    : 'Dates not set'}
+                </p>
               </div>
-              <div>
-                <dt className="text-xs text-slate-400">Branch</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {meta.branch}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Total days</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {meta.totalDays}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-slate-400">Period</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
-                  {formatDate(values.startDate)} – {formatDate(values.endDate)}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
-        <div>
-          {mode === 'edit' && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              onClick={onDelete}
-              disabled={isSubmitting}
-            >
-              Delete Data
-            </Button>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? mode === 'create'
-                ? 'Saving...'
-                : 'Updating...'
-              : mode === 'create'
-                ? 'Submit Data'
-                : 'Update Data'}
-          </Button>
+            </div>
+            {mode === 'edit' && meta ? (
+              <dl className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Branch</dt>
+                  <dd className="mt-0.5 truncate text-sm font-semibold text-ink">
+                    {meta.branch}
+                  </dd>
+                </div>
+                <div className="rounded-2xl bg-canvas px-3.5 py-2.5">
+                  <dt className="text-xs text-slate-500">Saved length</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
+                    {meta.totalDays} {meta.totalDays === 1 ? 'day' : 'days'}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+          </FormSectionCard>
         </div>
       </div>
+
+      <FormSaveBar
+        mode={mode}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onDelete={onDelete}
+        deleteLabel="Delete leave"
+        submitLabel={mode === 'create' ? 'Record leave' : 'Save changes'}
+        hint="Fields marked * are required."
+      />
     </form>
   )
 }

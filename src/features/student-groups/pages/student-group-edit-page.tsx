@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Users } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { EmptyState, PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -31,42 +32,38 @@ export default function StudentGroupEditPage() {
 
   if (groupQuery.isLoading) {
     return (
-      <AdminShell>
-        <StudentGroupListLoadingState />
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl">
+          <StudentGroupListLoadingState />
+        </div>
       </AdminShell>
     )
   }
 
   if (groupQuery.isError || !groupQuery.data) {
     return (
-      <AdminShell>
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">Group not found</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This student group may have been removed or the link is invalid.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void navigate({ to: '/student-groups' })}
-            >
-              <ArrowLeft className="size-3.5" />
-              Back to student groups
-            </Button>
-            {groupQuery.isError ? (
-              <Button size="sm" onClick={() => void groupQuery.refetch()}>
-                Retry
-              </Button>
-            ) : null}
-          </div>
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-2xl space-y-3">
           {groupQuery.isError ? (
-            <div className="mt-8 w-full">
-              <StudentGroupListErrorState
-                onRetry={() => void groupQuery.refetch()}
-              />
-            </div>
-          ) : null}
+            <StudentGroupListErrorState
+              onRetry={() => void groupQuery.refetch()}
+            />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="Group not found"
+              description="This student group may have been removed or the link is out of date."
+              action={
+                <Button
+                  variant="ink"
+                  onClick={() => void navigate({ to: '/student-groups' })}
+                >
+                  <ArrowLeft className="size-4" />
+                  Back to student groups
+                </Button>
+              }
+            />
+          )}
         </div>
       </AdminShell>
     )
@@ -97,8 +94,13 @@ function StudentGroupEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete group?',
-      description: `This will permanently remove ${group.groupName}. This action cannot be undone.`,
+      title: `Delete ${group.groupName}?`,
+      description: `This permanently removes the group ${group.groupName}${
+        group.members.length > 0
+          ? ` and its list of ${group.members.length} ${group.members.length === 1 ? 'student' : 'students'}`
+          : ''
+      }. The students themselves are not deleted. This cannot be undone.`,
+      confirmLabel: 'Delete group',
       onConfirm: () => {
         void (async () => {
           try {
@@ -122,48 +124,58 @@ function StudentGroupEditForm({
     })
   }
 
-  return (
-    <AdminShell>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/student-groups"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Student Groups
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Update Student Group
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Edit members and status for {group.groupName}.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+  const isActive = group.status === 'active'
 
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <StudentGroupForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            meta={{
-              createdAt: group.createdAt,
-              updatedAt: group.updatedAt,
-              createdBy: group.createdBy,
-              branch: group.branch,
-            }}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+  return (
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/student-groups"
+          backLabel="Student Groups"
+          title={group.groupName}
+          description={`Editing members and status · ${group.members.length} ${
+            group.members.length === 1 ? 'student' : 'students'
+          }`}
+          icon={Users}
+          theme="sky"
+          pattern="rings"
+          badge={
+            <span
+              className={
+                isActive
+                  ? 'inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-brand-700'
+                  : 'inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500'
+              }
+            >
+              <span
+                aria-hidden
+                className={
+                  isActive
+                    ? 'size-1.5 rounded-full bg-brand-500'
+                    : 'size-1.5 rounded-full bg-slate-400'
+                }
+              />
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          }
+        />
+
+        <StudentGroupForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          meta={{
+            createdAt: group.createdAt,
+            updatedAt: group.updatedAt,
+            createdBy: group.createdBy,
+            branch: group.branch,
+          }}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={handleDelete}
+        />
       </div>
     </AdminShell>
   )

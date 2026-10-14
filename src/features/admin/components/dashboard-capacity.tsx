@@ -1,24 +1,33 @@
+import { BookOpen, DoorOpen, GraduationCap, ShieldCheck } from 'lucide-react'
+
 import { cn } from '../../../shared/lib/cn'
 import type { DashboardMetrics } from '../types/dashboard'
-import { DashboardGauge, DashboardGroupedColumns } from './dashboard-charts'
+import {
+  DashboardGauge,
+  DashboardGroupedColumns,
+} from './dashboard-charts'
+import { BRAND_CHART } from './dashboard-palette'
+import { DashboardChip, DashboardMeter } from './dashboard-kit'
 import {
   DashboardCardHeader,
   DashboardEmptyState,
   DashboardPanel,
 } from './dashboard-section'
 
-function attendanceColor(rate: number | null) {
-  if (rate == null) return '#94A3B8'
-  if (rate >= 90) return '#3D9B6E'
-  if (rate >= 75) return '#D97706'
-  return '#C45B6E'
+/** Attendance is a status: good / watch / low. */
+function attendanceStatus(rate: number | null) {
+  if (rate == null) return { label: 'No records', chip: 'bg-canvas text-slate-500' }
+  if (rate >= 90) return { label: 'Healthy', chip: 'bg-emerald-50 text-emerald-700' }
+  if (rate >= 75) return { label: 'Keep an eye on it', chip: 'bg-amber-50 text-amber-700' }
+  return { label: 'Low', chip: 'bg-rose-50 text-rose-700' }
 }
 
+/** Utilization reads as a sequential brand ramp: busier rooms are darker. */
 function utilizationBarClass(rate: number) {
-  if (rate >= 70) return 'bg-[#3D9B6E]'
-  if (rate >= 40) return 'bg-[#253CA1]'
-  if (rate >= 20) return 'bg-[#D97706]'
-  return 'bg-slate-300'
+  if (rate >= 70) return 'bg-brand-700'
+  if (rate >= 40) return 'bg-brand-500'
+  if (rate >= 20) return 'bg-brand-300'
+  return 'bg-brand-gray'
 }
 
 function initials(name: string) {
@@ -39,52 +48,57 @@ export function DashboardDeliveryOverview({
   className?: string
 }) {
   const { delivery } = metrics
+  const status = attendanceStatus(delivery.attendanceRate)
 
   return (
     <DashboardPanel variant="tint" className={className}>
       <DashboardCardHeader
-        title="Delivery quality"
-        description="Attendance and scheduling gaps."
+        title="Attendance"
+        description="Students who showed up."
+        icon={<ShieldCheck className="size-4" />}
       />
 
       <div className="flex flex-1 flex-col items-center gap-3">
         <DashboardGauge
           value={delivery.attendanceRate}
-          size={120}
-          strokeWidth={11}
-          color={attendanceColor(delivery.attendanceRate)}
-          label="Attendance"
+          size={136}
+          strokeWidth={14}
+          color={BRAND_CHART.brand500}
+          trackColor={BRAND_CHART.brand100}
+          label="Present"
         />
+        <span
+          className={cn(
+            'rounded-full px-2.5 py-1 text-[11px] font-semibold',
+            status.chip,
+          )}
+        >
+          {status.label}
+        </span>
         <p className="text-center text-xs text-slate-500">
           {delivery.attendanceTotal > 0
-            ? `${delivery.attendancePresent} of ${delivery.attendanceTotal} present`
-            : 'No attendance records'}
+            ? `${delivery.attendancePresent} of ${delivery.attendanceTotal} check-ins were present`
+            : 'No attendance has been taken yet'}
         </p>
 
-        <dl className="grid w-full grid-cols-2 gap-2">
-          <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-[#D8E6FA]">
-            <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-              Overtime
-            </dt>
+        <dl className="mt-auto grid w-full grid-cols-2 gap-2">
+          <div className="rounded-2xl bg-white px-3 py-2.5">
+            <dt className="text-[11px] font-semibold text-slate-500">Overtime</dt>
             <dd
               className={cn(
                 'mt-0.5 text-xl font-bold tabular-nums',
-                delivery.overtimeSessions > 0 ? 'text-[#9A3412]' : 'text-slate-900',
+                delivery.overtimeSessions > 0 ? 'text-amber-700' : 'text-ink',
               )}
             >
               {delivery.overtimeSessions.toLocaleString('en-US')}
             </dd>
           </div>
-          <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-[#D8E6FA]">
-            <dt className="text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-              Unassigned
-            </dt>
+          <div className="rounded-2xl bg-white px-3 py-2.5">
+            <dt className="text-[11px] font-semibold text-slate-500">No tutor yet</dt>
             <dd
               className={cn(
                 'mt-0.5 text-xl font-bold tabular-nums',
-                delivery.unassignedTutorSessions > 0
-                  ? 'text-[#6E2433]'
-                  : 'text-slate-900',
+                delivery.unassignedTutorSessions > 0 ? 'text-rose-700' : 'text-ink',
               )}
             >
               {delivery.unassignedTutorSessions.toLocaleString('en-US')}
@@ -98,38 +112,43 @@ export function DashboardDeliveryOverview({
 
 export function DashboardProgramDemand({
   metrics,
+  className,
 }: {
   metrics: DashboardMetrics
+  className?: string
 }) {
   const items = metrics.delivery.programDemand
 
   return (
-    <DashboardPanel>
+    <DashboardPanel className={className}>
       <DashboardCardHeader
         title="Program demand"
-        description="Sessions delivered and new program enrollments."
+        description="Sessions taught and new enrollments per program."
+        icon={<BookOpen className="size-4" />}
       />
 
       {items.length === 0 ? (
         <DashboardEmptyState message="No program activity in this period." />
       ) : (
-        <DashboardGroupedColumns
-          items={items.map((item) => ({
-            label: item.title,
-            values: {
-              sessions: item.sessions,
-              enrollments: item.enrollments,
-            },
-          }))}
-          series={[
-            { key: 'sessions', label: 'Sessions', className: 'bg-[#253CA1]' },
-            {
-              key: 'enrollments',
-              label: 'Enrollments',
-              className: 'bg-[#3D9B6E]',
-            },
-          ]}
-        />
+        <div className="max-h-[26rem] overflow-y-auto pr-1">
+          <DashboardGroupedColumns
+            items={items.map((item) => ({
+              label: item.title,
+              values: {
+                sessions: item.sessions,
+                enrollments: item.enrollments,
+              },
+            }))}
+            series={[
+              { key: 'sessions', label: 'Sessions', className: 'bg-brand-500' },
+              {
+                key: 'enrollments',
+                label: 'Enrollments',
+                className: 'bg-brand-300',
+              },
+            ]}
+          />
+        </div>
       )}
     </DashboardPanel>
   )
@@ -137,47 +156,60 @@ export function DashboardProgramDemand({
 
 export function DashboardTutorUtilization({
   metrics,
+  className,
 }: {
   metrics: DashboardMetrics
+  className?: string
 }) {
   const items = metrics.delivery.tutorUtilization
   const maxHours = Math.max(...items.map((item) => item.hours), 1)
+  const totalHours = items.reduce((sum, item) => sum + item.hours, 0)
 
   return (
-    <DashboardPanel variant="quiet">
+    <DashboardPanel className={className}>
       <DashboardCardHeader
-        title="Tutor utilization"
-        description="Finished sessions and teaching hours by tutor."
+        title="Tutor workload"
+        description="Finished sessions and teaching hours per tutor."
+        icon={<GraduationCap className="size-4" />}
+        action={
+          items.length > 0 ? (
+            <DashboardChip tone="brand">
+              {totalHours.toFixed(1)}h in total
+            </DashboardChip>
+          ) : null
+        }
       />
 
       {items.length === 0 ? (
         <DashboardEmptyState message="No tutor sessions delivered in this period." />
       ) : (
-        <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+        <ul className="grid max-h-[28rem] gap-2 overflow-y-auto pr-1 md:grid-cols-2">
           {items.map((item) => {
-            const width = Math.max((item.hours / maxHours) * 100, item.hours > 0 ? 8 : 0)
+            const width = Math.max((item.hours / maxHours) * 100, item.hours > 0 ? 6 : 0)
 
             return (
-              <li key={item.tutorId ?? item.name} className="flex items-center gap-3">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#E8EEFF] text-xs font-bold text-[#1B2A5A]">
+              <li
+                key={item.tutorId ?? item.name}
+                className="flex items-center gap-3 rounded-3xl bg-canvas/70 px-3 py-2.5"
+              >
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-brand-700">
                   {initials(item.name)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-3">
-                    <p className="truncate text-sm font-semibold text-slate-900">
+                    <p className="truncate text-sm font-semibold text-ink">
                       {item.name}
                     </p>
-                    <p className="shrink-0 text-sm font-bold text-slate-900 tabular-nums">
+                    <p className="shrink-0 text-sm font-bold text-ink tabular-nums">
                       {item.hours.toFixed(1)}h
                     </p>
                   </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full bg-[#3A56B8]"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-400 tabular-nums">
+                  <DashboardMeter
+                    className="mt-1.5"
+                    value={width}
+                    trackClassName="bg-white"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500 tabular-nums">
                     {item.sessions.toLocaleString('en-US')} session
                     {item.sessions === 1 ? '' : 's'}
                   </p>
@@ -193,49 +225,51 @@ export function DashboardTutorUtilization({
 
 export function DashboardClassroomUtilization({
   metrics,
+  className,
 }: {
   metrics: DashboardMetrics
+  className?: string
 }) {
   const items = metrics.delivery.classroomUtilization
 
   return (
-    <DashboardPanel>
+    <DashboardPanel className={className}>
       <DashboardCardHeader
-        title="Room utilization"
-        description="Booked hours vs operating capacity (8am–9pm daily)."
+        title="Room use"
+        description="Booked hours out of opening hours (8am–9pm)."
+        icon={<DoorOpen className="size-4" />}
       />
 
       {items.length === 0 ? (
-        <DashboardEmptyState message="No classroom usage in this period." />
+        <DashboardEmptyState message="No classroom bookings in this period." />
       ) : (
-        <div className="space-y-2.5">
+        <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
           {items.map((item) => (
-            <div key={item.classroomId ?? item.name} className="space-y-2">
+            <li
+              key={item.classroomId ?? item.name}
+              className="rounded-2xl bg-canvas/70 px-3.5 py-2.5"
+              title={`${item.name}: ${item.utilizationRate.toFixed(1)}% booked`}
+            >
               <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-slate-700">{item.name}</span>
-                <div className="text-right">
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {item.utilizationRate.toFixed(1)}%
-                  </span>
-                  <span className="ml-2 text-xs font-medium text-slate-400 tabular-nums">
-                    {item.bookedHours.toFixed(1)}h · {item.sessions} sessions
-                  </span>
-                </div>
+                <span className="min-w-0 truncate font-semibold text-ink">
+                  {item.name}
+                </span>
+                <span className="shrink-0 font-bold text-ink tabular-nums">
+                  {item.utilizationRate.toFixed(1)}%
+                </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className={cn(
-                    'h-full rounded-full transition-all duration-500',
-                    utilizationBarClass(item.utilizationRate),
-                  )}
-                  style={{
-                    width: `${Math.min(Math.max(item.utilizationRate, item.utilizationRate > 0 ? 4 : 0), 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
+              <DashboardMeter
+                className="mt-2"
+                value={Math.max(item.utilizationRate, item.utilizationRate > 0 ? 4 : 0)}
+                trackClassName="bg-white"
+                barClassName={utilizationBarClass(item.utilizationRate)}
+              />
+              <p className="mt-1 text-[11px] text-slate-500 tabular-nums">
+                {item.bookedHours.toFixed(1)}h booked · {item.sessions} sessions
+              </p>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </DashboardPanel>
   )

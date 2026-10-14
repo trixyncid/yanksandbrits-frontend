@@ -26,7 +26,7 @@ export function ProgramActionsCell({ program }: { program: ProgramListItem }) {
               params: { programId: program.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -60,7 +60,7 @@ export function ProgramActionsCell({ program }: { program: ProgramListItem }) {
             },
           })
         }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+        className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
       >
         <Trash2 className="size-3.5" />
         </button>

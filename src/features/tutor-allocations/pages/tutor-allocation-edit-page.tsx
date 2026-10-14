@@ -1,22 +1,30 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, SearchX, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { DataTableBadge } from '../../../shared/components/data-table'
+import { EmptyState, PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
-import { useCanApproveTutorAllocation } from '../../auth/hooks/use-permissions'
+import {
+  useCanApproveTutorAllocation,
+  useCanAssignAllocatedPrograms,
+  useModulePermissions,
+} from '../../auth/hooks/use-permissions'
+import { studentQueryKeys } from '../../students/api/student-query-keys'
 import {
   approveTutorAllocation,
+  assignTutorAllocationPrograms,
   deleteTutorAllocation,
   tutorAllocationToFormValues,
 } from '../api/tutor-allocations-api'
 import { tutorAllocationQueryKeys } from '../api/tutor-allocation-query-keys'
+import { AllocationStagePill } from '../components/allocation-stage-pill'
 import { TutorAllocationApprovalPanel } from '../components/tutor-allocation-approval-panel'
+import { TutorAllocationHandoffPanel } from '../components/tutor-allocation-handoff-panel'
 import { TutorAllocationForm } from '../components/tutor-allocation-form'
 import {
   TutorAllocationListErrorState,
@@ -24,6 +32,8 @@ import {
 } from '../components/tutor-allocation-list-states'
 import { useTutorAllocationForm } from '../hooks/use-tutor-allocation-form'
 import { useTutorAllocationQuery } from '../hooks/use-tutor-allocation-query'
+import { allocationStage } from '../lib/allocation-status'
+import { programLabel } from '../lib/programs'
 import type {
   TutorAllocationFormValues,
   TutorAllocationListItem,
@@ -38,42 +48,54 @@ export default function TutorAllocationEditPage() {
 
   if (allocationQuery.isLoading) {
     return (
-      <AdminShell>
-        <TutorAllocationListLoadingState />
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl">
+          <TutorAllocationListLoadingState />
+        </div>
       </AdminShell>
     )
   }
 
-  if (allocationQuery.isError || !allocationQuery.data) {
+  if (allocationQuery.isError) {
     return (
-      <AdminShell>
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">Class not found</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This class may have been removed or the link is invalid.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-2xl space-y-3">
+          <TutorAllocationListErrorState
+            onRetry={() => void allocationQuery.refetch()}
+          />
+          <div className="text-center">
             <Button
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={() => void navigate({ to: '/tutor-allocations' })}
             >
               <ArrowLeft className="size-3.5" />
               Back to tutor allocation
             </Button>
-            {allocationQuery.isError ? (
-              <Button size="sm" onClick={() => void allocationQuery.refetch()}>
-                Retry
-              </Button>
-            ) : null}
           </div>
-          {allocationQuery.isError ? (
-            <div className="mt-8 w-full">
-              <TutorAllocationListErrorState
-                onRetry={() => void allocationQuery.refetch()}
-              />
-            </div>
-          ) : null}
+        </div>
+      </AdminShell>
+    )
+  }
+
+  if (!allocationQuery.data) {
+    return (
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-2xl">
+          <EmptyState
+            icon={SearchX}
+            title="Class not found"
+            description="This class may have been removed or the link is out of date."
+            action={
+              <Button
+                variant="ink"
+                onClick={() => void navigate({ to: '/tutor-allocations' })}
+              >
+                <ArrowLeft className="size-4" />
+                Back to tutor allocation
+              </Button>
+            }
+          />
         </div>
       </AdminShell>
     )
@@ -97,12 +119,34 @@ function TutorAllocationEditForm({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const canApprove = useCanApproveTutorAllocation()
+  const canAssign = useCanAssignAllocatedPrograms()
+  const { canDelete } = useModulePermissions('tutorAllocations')
   const [current, setCurrent] = useState(allocation)
   const [isApproving, setIsApproving] = useState(false)
+  const [isAssigning, setIsAssigning] = useState(false)
   const form = useTutorAllocationForm({
     mode: 'edit',
     allocationId: allocation.id,
     initialValues,
+    onUpdated: (updated) => {
+      setCurrent(updated)
+      const tutorsReady = updated.tutorsAllocated && !updated.programsAssigned
+      if (!tutorsReady) return
+      if (canAssign) {
+        notify('success', {
+          title: 'Ready to start classes',
+          description: 'Assign the program to the students so their sessions can begin.',
+        })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return { stay: true, notified: true }
+      }
+      notify('success', {
+        title: 'All tutors assigned',
+        description:
+          "You're all done with this class. The counsellor will take it from here.",
+      })
+      return { notified: true }
+    },
   })
 
   async function handleApprove() {
@@ -127,11 +171,37 @@ function TutorAllocationEditForm({
     }
   }
 
+  async function handleAssign() {
+    setIsAssigning(true)
+    try {
+      const updated = await assignTutorAllocationPrograms(current.id)
+      setCurrent(updated)
+      await queryClient.invalidateQueries({
+        queryKey: tutorAllocationQueryKeys.all,
+      })
+      await queryClient.invalidateQueries({
+        queryKey: studentQueryKeys.all,
+      })
+      notify('success', {
+        title: 'Program assigned',
+        description:
+          'Students have the program and sessions. Tutors have received their sessions.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to assign program',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
   function handleDelete() {
     const names = current.members.map((member) => member.studentName).join(', ')
     requestDeleteConfirm({
-      title: 'Delete tutor allocation?',
-      description: `This will permanently remove this class${names ? ` for ${names}` : ''}. This action cannot be undone.`,
+      title: names ? `Delete the class for ${names}?` : 'Delete this class?',
+      description: `This permanently removes the ${current.classType === 'private' ? 'private class' : `group class of ${current.groupSize}`}${names ? ` for ${names}` : ''}, with its tutors and weekly schedule. This can't be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -140,13 +210,15 @@ function TutorAllocationEditForm({
               queryKey: tutorAllocationQueryKeys.all,
             })
             notify('success', {
-              title: 'Tutor allocation deleted',
-              description: 'The class has been removed.',
+              title: 'Class deleted',
+              description: names
+                ? `The class for ${names} has been removed.`
+                : 'The class has been removed.',
             })
             void navigate({ to: '/tutor-allocations' })
           } catch (error) {
             notify('error', {
-              title: 'Unable to delete tutor allocation',
+              title: 'Unable to delete class',
               description: getApiErrorMessage(error),
             })
           }
@@ -155,56 +227,55 @@ function TutorAllocationEditForm({
     })
   }
 
+  const studentNames = current.members
+    .map((member) => member.studentName)
+    .filter(Boolean)
+  const headerFacts = [
+    current.classType === 'private'
+      ? 'Private class'
+      : `Group of ${current.groupSize}`,
+    current.program ? programLabel(current.program) : '',
+    current.branchName,
+  ].filter(Boolean)
+
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/tutor-allocations"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Tutor Allocation
-            </Link>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                Student Record & Tutor Allocation
-              </h2>
-              <DataTableBadge tone={current.approved ? 'success' : 'warning'}>
-                {current.approved ? 'Approved' : 'Awaiting approval'}
-              </DataTableBadge>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">
-              Scores stay on each student’s prediction test. Tutors and the
-              schedule belong to this class.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/tutor-allocations"
+          backLabel="Tutor Allocation"
+          title={studentNames.length > 0 ? studentNames.join(', ') : 'Class'}
+          description={headerFacts.join(' · ')}
+          icon={UsersRound}
+          theme="harbor"
+          pattern="ribbons"
+          badge={<AllocationStagePill stage={allocationStage(current)} />}
+        />
         <TutorAllocationApprovalPanel
           allocation={current}
           canApprove={canApprove}
           isApproving={isApproving}
           onApprove={() => void handleApprove()}
         />
-        <div className="animate-in fade-in slide-in-from-bottom-2 rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <TutorAllocationForm
-            mode="edit"
-            values={form.values}
-            errors={form.errors}
-            isSubmitting={form.isSubmitting}
-            approved={current.approved}
-            savedMembers={current.members}
-            tutorNames={current}
-            onChange={form.updateField}
-            onSubmit={form.submit}
-            onCancel={form.cancel}
-            onDelete={handleDelete}
-          />
-        </div>
+        <TutorAllocationHandoffPanel
+          allocation={current}
+          canAssign={canAssign}
+          isAssigning={isAssigning}
+          onAssign={() => void handleAssign()}
+        />
+        <TutorAllocationForm
+          mode="edit"
+          values={form.values}
+          errors={form.errors}
+          isSubmitting={form.isSubmitting}
+          approved={current.approved}
+          savedMembers={current.members}
+          tutorNames={current}
+          onChange={form.updateField}
+          onSubmit={form.submit}
+          onCancel={form.cancel}
+          onDelete={canDelete ? handleDelete : undefined}
+        />
       </div>
     </AdminShell>
   )

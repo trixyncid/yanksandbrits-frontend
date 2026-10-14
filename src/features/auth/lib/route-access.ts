@@ -5,12 +5,8 @@ import {
   isTutorUser,
   type AuthUser,
 } from '../types/auth'
-import {
-  PAGE_VIEW_PERMISSIONS,
-  PERMISSION_MODULES,
-  type PermissionModule,
-  type PermissionModuleKey,
-} from './permission-catalog'
+import { PERMISSION_MODULES, type PermissionModuleKey } from './permission-catalog'
+import { pageDataPermissions, pageForPath } from './page-catalog'
 
 export type RouteRequirement = {
   view?: string
@@ -21,47 +17,13 @@ export type RouteRequirement = {
 
 type RoutePrefixRule = {
   prefix: string
-  module?: PermissionModuleKey
   managerOnly?: boolean
-  viewPermission?: string
 }
 
+// Pages are looked up in the page catalog; only the Roles page is gated by
+// role instead of a permission.
 const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
-  { prefix: '/dashboard', viewPermission: PAGE_VIEW_PERMISSIONS.dashboard },
-  {
-    prefix: '/marketing-dashboard',
-    viewPermission: PAGE_VIEW_PERMISSIONS.marketingDashboard,
-  },
-  { prefix: '/students', module: 'students' },
-  { prefix: '/student-groups', module: 'studentGroups' },
-  { prefix: '/student-payments', module: 'studentPayments' },
-  {
-    prefix: '/student-report',
-    viewPermission: PAGE_VIEW_PERMISSIONS.studentReport,
-  },
-  { prefix: '/prospective-students', module: 'prospectiveStudents' },
-  { prefix: '/prediction-tests', module: 'predictionTests' },
-  { prefix: '/programs', module: 'programs' },
-  { prefix: '/classrooms', module: 'classrooms' },
-  { prefix: '/tutor-allocations', module: 'tutorAllocations' },
-  { prefix: '/full-schedule', module: 'schedules' },
-  {
-    prefix: '/appointment-by-tutor',
-    viewPermission: PAGE_VIEW_PERMISSIONS.appointmentByTutor,
-  },
-  { prefix: '/users', module: 'users' },
-  { prefix: '/tutors', module: 'users' },
-  { prefix: '/marketings', module: 'users' },
   { prefix: '/staff-permissions', managerOnly: true },
-  { prefix: '/paid-leaves', module: 'paidLeaves' },
-  { prefix: '/branches', module: 'branches' },
-  { prefix: '/institutions', module: 'institutions' },
-  { prefix: '/occupations', module: 'occupations' },
-  { prefix: '/resources', module: 'resources' },
-  { prefix: '/bookkeeping', module: 'bookkeeping' },
-  { prefix: '/tutor-report', module: 'tutorSalary' },
-  { prefix: '/tutor-salary-bonus', module: 'tutorSalaryBonus' },
-  { prefix: '/marketing-report', module: 'marketingSalary' },
 ]
 
 const PUBLIC_PATHS = new Set(['/profile', '/notifications', '/forbidden'])
@@ -73,44 +35,30 @@ function ruleForPath(pathname: string): RoutePrefixRule | null {
   return sorted.find((rule) => pathname.startsWith(rule.prefix)) ?? null
 }
 
-function moduleForRule(rule: RoutePrefixRule): PermissionModule | null {
-  if (!rule.module) {
-    return null
-  }
-  return PERMISSION_MODULES[rule.module]
-}
-
 export function resolveRouteRequirement(pathname: string): RouteRequirement | null {
   if (PUBLIC_PATHS.has(pathname)) {
     return null
   }
 
   const rule = ruleForPath(pathname)
-  if (!rule) {
-    return null
-  }
-
-  if (rule.managerOnly) {
+  if (rule?.managerOnly) {
     return { managerOnly: true }
   }
 
-  const module = moduleForRule(rule)
-  if (!module) {
-    if (rule.viewPermission) {
-      return { view: rule.viewPermission }
-    }
+  // Opening a page is its own permission; create / edit screens also need
+  // the matching data permission.
+  const page = pageForPath(pathname)
+  if (!page) {
     return null
   }
-
-  if (pathname.endsWith('/new')) {
-    return { add: module.add }
+  const data = pageDataPermissions(page)
+  if (data && pathname.endsWith('/new')) {
+    return { view: page.openPermission, add: data.add }
   }
-
-  if (pathname.includes('/edit')) {
-    return { change: module.change }
+  if (data && pathname.includes('/edit')) {
+    return { view: page.openPermission, change: data.change }
   }
-
-  return { view: module.view }
+  return { view: page.openPermission }
 }
 
 export function canAccessRoute(
@@ -178,18 +126,15 @@ export function canAccessRoute(
     )
   }
 
-  if (requirement.add) {
-    return hasAuthPermission(user, requirement.add)
+  if (requirement.view && !hasAuthPermission(user, requirement.view)) {
+    return false
   }
-
-  if (requirement.change) {
-    return hasAuthPermission(user, requirement.change)
+  if (requirement.add && !hasAuthPermission(user, requirement.add)) {
+    return false
   }
-
-  if (requirement.view) {
-    return hasAuthPermission(user, requirement.view)
+  if (requirement.change && !hasAuthPermission(user, requirement.change)) {
+    return false
   }
-
   return true
 }
 

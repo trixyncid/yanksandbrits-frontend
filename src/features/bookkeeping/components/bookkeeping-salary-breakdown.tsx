@@ -2,6 +2,11 @@ import { ChevronDown, Search, Wallet } from 'lucide-react'
 import { useMemo, useState, type CSSProperties } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import {
+  EmptyState,
+  ListErrorState,
+  ListLoadingState,
+} from '../../../shared/components/page'
 import { cn } from '../../../shared/lib/cn'
 import { formatCurrencyAmount } from '../../../shared/lib/currency'
 import { useBookkeepingSalaryBreakdownQuery } from '../hooks/use-bookkeeping-query'
@@ -15,12 +20,12 @@ import {
 } from './salary-breakdown-parts'
 
 const listSurfaceStyle = {
-  '--sb-ink': '#1a2b42',
+  '--sb-ink': '#141B3A',
   '--sb-muted': '#64748b',
-  '--sb-line': 'rgba(66, 116, 185, 0.16)',
+  '--sb-line': 'rgba(37, 60, 161, 0.14)',
   '--sb-blue': '#253CA1',
-  '--sb-blue-deep': '#1B2A5A',
-  '--sb-wash': '#F4F8FC',
+  '--sb-blue-deep': '#15225A',
+  '--sb-wash': '#EEF1FB',
 } as CSSProperties
 
 type BookkeepingSalaryBreakdownProps = {
@@ -42,10 +47,10 @@ function MarketerBreakdownCard({
   return (
     <article
       className={cn(
-        'overflow-hidden border transition duration-300',
+        'overflow-hidden rounded-3xl bg-white transition duration-300',
         open
-          ? 'border-[var(--sb-blue)]/30 bg-white'
-          : 'border-slate-200/90 bg-white/90 hover:border-slate-300',
+          ? 'shadow-[0_16px_32px_-20px_rgba(20,27,58,0.35)] ring-1 ring-[var(--sb-blue)]/20'
+          : 'hover:ring-1 hover:ring-slate-200',
       )}
     >
       <button
@@ -54,7 +59,7 @@ function MarketerBreakdownCard({
         className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-[var(--sb-wash)]/60"
         aria-expanded={open}
       >
-        <div className="flex size-11 shrink-0 items-center justify-center border border-[var(--sb-line)] bg-[linear-gradient(145deg,#3A56B8,#1B2A5A)] text-sm font-semibold text-white">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
           {initial}
         </div>
 
@@ -70,7 +75,9 @@ function MarketerBreakdownCard({
           <p className="mt-0.5 truncate text-xs text-slate-500">{marketer.email}</p>
           <p className="mt-2 text-[11px] text-slate-500">
             <span className="font-medium text-[var(--sb-blue-deep)]">
-              {formatCommissionPercentage(marketer.commissionPercentage)}
+              {marketer.branchRanges.length > 1
+                ? `${marketer.branchRanges.length} branch rates`
+                : formatCommissionPercentage(marketer.commissionPercentage)}
             </span>
             <span className="mx-1.5 text-slate-300">·</span>
             {periodTypeLabel(marketer.periodType)}
@@ -89,7 +96,7 @@ function MarketerBreakdownCard({
           <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
             Expected
           </p>
-          <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--sb-blue-deep)]">
+          <p className="mt-1 text-lg font-bold tabular-nums text-ink">
             {formatCurrencyAmount(marketer.expectedSalary)}
           </p>
         </div>
@@ -149,18 +156,16 @@ export function BookkeepingSalaryBreakdown({
   }, [query.data?.data, search])
 
   if (query.isLoading) {
-    return (
-      <div className="animate-pulse border border-slate-200/80 bg-white px-6 py-14 text-center text-sm text-slate-500">
-        Loading salary breakdown...
-      </div>
-    )
+    return <ListLoadingState rows={4} />
   }
 
   if (query.isError) {
     return (
-      <div className="border border-rose-200/80 bg-rose-50/60 px-6 py-12 text-center text-sm text-rose-600">
-        {getApiErrorMessage(query.error)}
-      </div>
+      <ListErrorState
+        title="Unable to load the pay breakdown"
+        description={getApiErrorMessage(query.error)}
+        onRetry={() => void query.refetch()}
+      />
     )
   }
 
@@ -169,20 +174,16 @@ export function BookkeepingSalaryBreakdown({
 
   if (!meta || marketers.length === 0) {
     return (
-      <div className="border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-        <Wallet className="mx-auto size-9 text-slate-300" />
-        <p className="mt-4 text-sm font-semibold text-slate-800">
-          No salary profiles for this period
-        </p>
-        <p className="mt-1 text-sm text-slate-500">
-          Marketers need a configured base salary to appear in the breakdown.
-        </p>
-      </div>
+      <EmptyState
+        icon={Wallet}
+        title="No salary profiles for this period"
+        description="Education counsellors need a base salary set up to appear in the breakdown."
+      />
     )
   }
 
   return (
-    <div className="space-y-5" style={listSurfaceStyle}>
+    <div className="space-y-3" style={listSurfaceStyle}>
       <SalaryBreakdownSurface className="animate-in fade-in slide-in-from-bottom-1 p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -203,7 +204,7 @@ export function BookkeepingSalaryBreakdown({
         />
       </SalaryBreakdownSurface>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-full bg-white py-1.5 pr-1.5 pl-4">
         <p className="text-sm text-slate-500">
           Showing{' '}
           <span className="font-semibold text-slate-700">{filtered.length}</span>{' '}
@@ -216,14 +217,15 @@ export function BookkeepingSalaryBreakdown({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search name, PIN, email…"
-            className="w-full border border-slate-200 bg-white py-2.5 pr-3 pl-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[var(--sb-blue)]/50 focus:ring-2 focus:ring-[var(--sb-blue)]/10"
+            aria-label="Search education counsellors"
+            className="h-10 w-full rounded-full bg-canvas pr-4 pl-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500/20"
           />
         </label>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          No marketers match “{search.trim()}”.
+        <div className="rounded-[1.75rem] bg-white px-6 py-12 text-center text-sm text-slate-500">
+          No education counsellors match “{search.trim()}”.
         </div>
       ) : (
         <div className="space-y-2.5">

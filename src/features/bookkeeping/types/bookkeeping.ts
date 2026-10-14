@@ -68,6 +68,42 @@ export type SalaryBreakdownEnrollmentFee = {
   amount: number
 }
 
+export type SalaryBreakdownBranchRange = {
+  branchId: number
+  branchName: string
+  rangeAmount: number
+  payoutAmount: number
+  commissionPercentage: number
+  commissionBonus: number
+}
+
+/** Order in which items leave a Branch Manager's full team range. */
+export type TeamRangeStep = 'prediction_test' | 'first_installment' | 'whole_plan'
+
+/** A Branch Manager's team range: money from them and their counsellors, up to a cap. Picks only the tier bonus. */
+export type TeamRange = {
+  /** From the top bonus tier's max; null means no cap. */
+  cap: number | null
+  rangeAmount: number
+  /** Everything collected before anything was taken out. */
+  rawAmount: number
+  teamSize: number
+  contributions: { ownerName: string; isManager: boolean; amount: number }[]
+  removed: {
+    key: string
+    kind: 'prediction_test' | 'installment'
+    ownerName: string
+    isManager: boolean
+    paymentTitle: string
+    studentName: string
+    amount: number
+    date: string | null
+    step: TeamRangeStep
+  }[]
+  /** Flat tier bonus this range earns. Commission is not affected. */
+  tierBonus: number
+}
+
 export type SalaryBreakdownMarketer = {
   marketerId: string
   marketerPin: string
@@ -94,6 +130,9 @@ export type SalaryBreakdownMarketer = {
   bonusTierMinAmount: number | null
   bonusTierMaxAmount: number | null
   expectedSalary: number
+  branchRanges: SalaryBreakdownBranchRange[]
+  /** Only set for Branch Managers. */
+  teamRange: TeamRange | null
   consults: SalaryBreakdownConsultFee[]
   enrollments: SalaryBreakdownEnrollmentFee[]
 }

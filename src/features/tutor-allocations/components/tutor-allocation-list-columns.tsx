@@ -1,11 +1,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+  ALLOCATION_STAGE_HINT,
+  ALLOCATION_STAGE_LABEL,
+  allocationStage,
+} from '../lib/allocation-status'
 import { programLabel } from '../lib/programs'
 import type { TutorAllocationListItem } from '../types/tutor-allocation'
+import { AllocationStagePill } from './allocation-stage-pill'
 import { TutorAllocationActionsCell } from './tutor-allocation-actions-cell'
 
 function formatDateTime(value: string) {
@@ -47,17 +50,29 @@ export const tutorAllocationListColumns: ColumnDef<TutorAllocationListItem>[] = 
           ? 'Private'
           : `Group of ${row.original.groupSize}`
 
+      const extra = Math.max(names.length - 1, 0)
+
       return (
-        <div className="flex min-w-[14rem] items-center gap-2.5 py-0.5">
-          <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#253CA1] text-[11px] font-bold tracking-wide text-white shadow-sm shadow-[#253CA1]/20">
-            {getInitials(names[0] ?? label)}
+        <div className="flex min-w-[15rem] items-center gap-3 py-0.5">
+          {/* Stacked avatars hint at group size at a glance. */}
+          <div className="relative shrink-0">
+            <div className="inline-flex size-10 items-center justify-center rounded-full bg-brand-500 text-[11px] font-bold tracking-wide text-white ring-2 ring-white">
+              {getInitials(names[0] ?? label)}
+            </div>
+            {extra > 0 ? (
+              <span className="absolute -right-1.5 -bottom-1 inline-flex size-5 items-center justify-center rounded-full bg-ink text-[10px] font-bold text-white ring-2 ring-white">
+                +{extra}
+              </span>
+            ) : null}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="max-w-[16rem] truncate text-sm font-semibold text-ink">
                 {label}
               </p>
-              <DataTableBadge tone="neutral">{typeLabel}</DataTableBadge>
+              <span className="inline-flex rounded-full bg-canvas px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                {typeLabel}
+              </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {pins.length > 0 ? pins.join(', ') : '—'}
@@ -73,30 +88,81 @@ export const tutorAllocationListColumns: ColumnDef<TutorAllocationListItem>[] = 
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Program" align="center" />
     ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.program ? programLabel(row.original.program) : '—'}
-      </p>
-    ),
+    cell: ({ row }) => {
+      const catalog = [
+        ...row.original.computerSciencePrograms.map((line) =>
+          [line.programCode, line.programTitle].filter(Boolean).join(' · '),
+        ),
+        [row.original.listeningProgramCode, row.original.listeningProgramTitle],
+        [row.original.readingProgramCode, row.original.readingProgramTitle],
+        [row.original.writingProgramCode, row.original.writingProgramTitle],
+        [row.original.speakingProgramCode, row.original.speakingProgramTitle],
+        [row.original.mathProgramCode, row.original.mathProgramTitle],
+        [
+          row.original.generalEnglishUnit1ProgramCode,
+          row.original.generalEnglishUnit1ProgramTitle,
+        ],
+        [
+          row.original.generalEnglishUnit2ProgramCode,
+          row.original.generalEnglishUnit2ProgramTitle,
+        ],
+        [
+          row.original.generalEnglishGrammarProgramCode,
+          row.original.generalEnglishGrammarProgramTitle,
+        ],
+      ]
+        .map((parts) => (Array.isArray(parts) ? parts.filter(Boolean).join(' · ') : parts))
+        .filter(Boolean)
+        .filter((label, index, labels) => labels.indexOf(label) === index)
+        .join(', ')
+      return (
+        <div className="mx-auto max-w-[18rem] text-center">
+          {row.original.program ? (
+            <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
+              {programLabel(row.original.program)}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
+          {row.original.subjects.length > 0 ? (
+            <p className="mt-1 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+              {row.original.subjects.join(' · ')}
+            </p>
+          ) : null}
+          {catalog ? (
+            <p
+              className="mt-0.5 line-clamp-2 text-[11px] text-slate-400"
+              title={catalog}
+            >
+              {catalog}
+            </p>
+          ) : null}
+        </div>
+      )
+    },
   },
   {
     id: 'approval',
-    accessorFn: (row) => (row.approved ? 'Approved' : 'Awaiting approval'),
+    accessorFn: (row) => ALLOCATION_STAGE_LABEL[allocationStage(row)],
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Approval" align="center" />
+      <DataTableColumnHeader column={column} title="Status" align="center" />
     ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge tone={row.original.approved ? 'success' : 'warning'}>
-          {row.original.approved ? 'Approved' : 'Awaiting approval'}
-        </DataTableBadge>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const stage = allocationStage(row.original)
+      return (
+        <div className="text-center">
+          <AllocationStagePill stage={stage} />
+          <p className="mt-1 text-[11px] text-slate-400">
+            {ALLOCATION_STAGE_HINT[stage]}
+          </p>
+        </div>
+      )
+    },
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" align="center" />
+      <DataTableColumnHeader column={column} title="Added" align="center" />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
@@ -111,9 +177,15 @@ export const tutorAllocationListColumns: ColumnDef<TutorAllocationListItem>[] = 
       <DataTableColumnHeader column={column} title="Branch" align="center" />
     ),
     cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {row.original.branchName || '—'}
-      </p>
+      <div className="text-center">
+        {row.original.branchName ? (
+          <span className="inline-flex rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
+            {row.original.branchName}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
     ),
   },
   {

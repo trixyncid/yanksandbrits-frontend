@@ -26,49 +26,52 @@ export function PredictionTestActionsCell({
         <button
           type="button"
           aria-label={`Edit prediction test for ${test.studentName}`}
+          title="Edit prediction test"
           onClick={() =>
             void navigate({
               to: '/prediction-tests/$testId/edit',
               params: { testId: test.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
       </Can>
       <Can module="predictionTests" action="delete">
         <button
-        type="button"
-        aria-label={`Delete prediction test for ${test.studentName}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete prediction test?',
-            description: `This will permanently remove the prediction test for ${test.studentName}. This action cannot be undone.`,
-            onConfirm: () => {
-              void deletePredictionTest(test.id)
-                .then(async () => {
-                  await queryClient.invalidateQueries({
-                    queryKey: predictionTestQueryKeys.all,
+          type="button"
+          aria-label={`Delete prediction test for ${test.studentName}`}
+          title="Delete prediction test"
+          onClick={() =>
+            requestDeleteConfirm({
+              title: `Delete ${test.studentName}'s prediction test?`,
+              description: `This permanently removes the prediction test for ${test.studentName}, including its scores, payment record and uploaded proofs. This cannot be undone.`,
+              confirmLabel: 'Delete test',
+              onConfirm: () => {
+                void deletePredictionTest(test.id)
+                  .then(async () => {
+                    await queryClient.invalidateQueries({
+                      queryKey: predictionTestQueryKeys.all,
+                    })
+                    invalidateNavBadges()
+                    notify('success', {
+                      title: 'Prediction test deleted',
+                      description: `Prediction test for ${test.studentName} has been removed.`,
+                    })
                   })
-                  invalidateNavBadges()
-                  notify('success', {
-                    title: 'Prediction test deleted',
-                    description: `Prediction test for ${test.studentName} has been removed.`,
+                  .catch((error) => {
+                    notify('error', {
+                      title: 'Unable to delete prediction test',
+                      description: getApiErrorMessage(error),
+                    })
                   })
-                })
-                .catch((error) => {
-                  notify('error', {
-                    title: 'Unable to delete prediction test',
-                    description: getApiErrorMessage(error),
-                  })
-                })
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
+              },
+            })
+          }
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
+        >
+          <Trash2 className="size-3.5" />
         </button>
       </Can>
     </div>

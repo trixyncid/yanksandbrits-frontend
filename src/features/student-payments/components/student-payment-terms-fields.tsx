@@ -1,10 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ImagePlus, Plus, Trash2, X } from 'lucide-react'
+import {
+  CheckCircle2,
+  ChevronDown,
+  Hourglass,
+  ImagePlus,
+  Lock,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { parseISO } from 'date-fns'
 import { useEffect, useState, type ReactNode } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
-import { DataTableBadge } from '../../../shared/components/data-table'
 import { Button } from '../../../shared/components/ui/button'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
@@ -32,6 +40,7 @@ import {
   todayIsoDate,
   unallocatedPlanAmount,
 } from '../lib/payment-display'
+import { pillToneFor } from '../lib/payment-ui'
 import type {
   StudentPaymentFormErrors,
   StudentPaymentListItem,
@@ -39,10 +48,11 @@ import type {
   StudentPaymentTermFormValues,
   StudentPaymentTermStatus,
 } from '../types/student-payment'
+import { StatusPill } from './payment-ui'
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024
 const CHECKBOX_CLASS =
-  'size-4 rounded border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40'
+  'size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40'
 const EMPTY_FILES: File[] = []
 const SPLIT_PARTS = [1, 2] as const
 
@@ -51,7 +61,7 @@ const STATUS_OPTIONS: {
   label: string
   activeClass: string
 }[] = [
-  { value: 'pending', label: 'Pending', activeClass: 'bg-[#253CA1] text-white shadow-sm' },
+  { value: 'pending', label: 'Pending', activeClass: 'bg-brand-500 text-white shadow-sm' },
   {
     value: 'approved',
     label: 'Approved',
@@ -146,7 +156,8 @@ function InstallmentPlanNotice({
   const savedAndApproved = approved
   if (savedAndApproved) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+      <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+        <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
         2-payment plan approved
         {approvedBy ? ` by ${approvedBy}` : ''}.
       </div>
@@ -155,14 +166,15 @@ function InstallmentPlanNotice({
 
   if (canApprove && savedTermCount >= 1 && onApprove) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 px-4 py-3">
         <p className="text-sm text-amber-950">
-          This 2-payment plan is waiting for approval from finance, a branch
-          manager, or a system admin. Installments stay pending until then.
+          This 2-payment plan is waiting for approval. Payments stay pending
+          until it is approved.
         </p>
         <Button
           type="button"
           size="sm"
+          variant="ink"
           disabled={isApproving}
           onClick={onApprove}
         >
@@ -172,11 +184,26 @@ function InstallmentPlanNotice({
     )
   }
 
+  if (canApprove) {
+    return (
+      <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        Saving approves this 2-payment plan. Enter each payment amount yourself.
+        They do not have to match.
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-      {canApprove
-        ? 'Saving approves this 2-payment plan. Enter each payment amount yourself — they do not have to match.'
-        : 'Payment amounts stay blank until finance, a branch manager, or a system admin approves this plan. The two payments can be different amounts.'}
+    <div className="rounded-2xl bg-amber-50 px-4 py-3 text-amber-950">
+      <p className="flex items-center gap-2 text-sm font-semibold">
+        <Hourglass className="size-4 text-amber-600" />
+        Needs manager approval
+      </p>
+      <p className="mt-0.5 text-sm">
+        Save this plan to send it for approval. Once a manager approves it,
+        you can come back and enter the two payments. They can be different
+        amounts.
+      </p>
     </div>
   )
 }
@@ -195,6 +222,7 @@ export function StudentPaymentTermsFields({
   installmentPlanApproved = false,
   installmentPlanApprovedBy = '',
   canApproveInstallmentPlan = false,
+  canEditApprovedPayment = true,
   isApprovingInstallmentPlan = false,
   savedTermCount = 0,
   onApproveInstallmentPlan,
@@ -217,6 +245,8 @@ export function StudentPaymentTermsFields({
   installmentPlanApproved?: boolean
   installmentPlanApprovedBy?: string
   canApproveInstallmentPlan?: boolean
+  /** False for counsellors: approved installments and the plan choice turn read-only. */
+  canEditApprovedPayment?: boolean
   isApprovingInstallmentPlan?: boolean
   savedTermCount?: number
   onApproveInstallmentPlan?: () => void
@@ -243,6 +273,11 @@ export function StudentPaymentTermsFields({
   const [explicitPlan, setExplicitPlan] = useState<1 | 2 | null>(null)
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false)
+  const isApprovedLocked = (term: StudentPaymentTermFormValues) =>
+    !canEditApprovedPayment &&
+    savedTerms?.find((item) => item.id === term.id)?.status === 'approved'
+  // Once anything on the plan is approved, its shape is fixed for counsellors.
+  const planLocked = terms.some(isApprovedLocked)
   const amountsLocked =
     installmentPlan === 'two' &&
     !installmentPlanApproved &&
@@ -352,7 +387,13 @@ export function StudentPaymentTermsFields({
     setIsBulkSubmitting(true)
     try {
       for (const term of terms) {
-        if (!selectedKeys.includes(term.key) || term.status === status) continue
+        if (
+          !selectedKeys.includes(term.key) ||
+          term.status === status ||
+          isApprovedLocked(term)
+        ) {
+          continue
+        }
         onChange(term.key, { status })
       }
       const label =
@@ -432,27 +473,37 @@ export function StudentPaymentTermsFields({
                   type="button"
                   aria-pressed={isActive}
                   data-active={isActive ? 'true' : 'false'}
-                  disabled={planned <= 0 || lockedFull}
+                  disabled={planned <= 0 || lockedFull || planLocked}
                   onClick={() => selectPlan(parts)}
                   className={cn(
-                    'rounded-2xl border px-3 py-2.5 text-left transition',
+                    'rounded-2xl px-4 py-3 text-left transition',
                     isActive
-                      ? 'border-[#253CA1] bg-[#F5F8FF] ring-2 ring-[#253CA1]'
-                      : 'border-slate-200 bg-white hover:border-[#C8D4F5] hover:bg-[#F5F8FF]',
+                      ? 'bg-ink text-white shadow-[0_12px_24px_-14px_rgba(20,27,58,0.7)]'
+                      : 'bg-canvas hover:bg-canvas-deep',
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="block text-sm font-semibold text-slate-800">
+                    <span
+                      className={cn(
+                        'block text-sm font-semibold',
+                        isActive ? 'text-white' : 'text-ink',
+                      )}
+                    >
                       {splitLabel(parts)}
                     </span>
                     {isActive ? (
-                      <span className="text-[10px] font-semibold tracking-wide text-[#253CA1] uppercase">
+                      <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
                         Selected
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-slate-400">
+                  <span
+                    className={cn(
+                      'mt-0.5 block text-[11px]',
+                      isActive ? 'text-white/70' : 'text-slate-500',
+                    )}
+                  >
                     {splitHint(planned, parts)}
                   </span>
                 </button>
@@ -471,7 +522,7 @@ export function StudentPaymentTermsFields({
             />
           ) : null}
           {pendingSplit ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3">
               <p className="text-sm text-amber-900">
                 Replace this schedule with {splitLabel(pendingSplit).toLowerCase()}?
               </p>
@@ -479,7 +530,7 @@ export function StudentPaymentTermsFields({
                 <Button
                   type="button"
                   size="sm"
-                  variant="secondary"
+                  variant="soft"
                   onClick={() => setPendingSplit(null)}
                 >
                   Keep current
@@ -498,12 +549,10 @@ export function StudentPaymentTermsFields({
       ) : null}
 
       {!lockStatus && selectedKeys.length > 0 ? (
-        <div className="flex flex-col gap-3 rounded-2xl border border-[#C8D4F5] bg-[#F5F8FF] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-slate-700">
-            <span className="font-semibold text-[#1B2A5A]">
-              {selectedKeys.length}
-            </span>{' '}
-            selected
+        <div className="flex flex-col gap-3 rounded-2xl bg-ink px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-white/80">
+            <span className="font-bold text-white">{selectedKeys.length}</span>{' '}
+            selected · mark as
           </p>
           <div className="flex flex-wrap gap-2">
             {STATUS_OPTIONS.map((option) => (
@@ -512,6 +561,7 @@ export function StudentPaymentTermsFields({
                 type="button"
                 size="sm"
                 variant="secondary"
+                className="border-transparent"
                 disabled={isBulkSubmitting}
                 onClick={() => applyBulkStatus(option.value)}
               >
@@ -522,6 +572,7 @@ export function StudentPaymentTermsFields({
               type="button"
               size="sm"
               variant="ghost"
+              className="text-white hover:bg-white/15 hover:text-white"
               disabled={isBulkSubmitting}
               onClick={() => setSelectedKeys([])}
             >
@@ -531,9 +582,9 @@ export function StudentPaymentTermsFields({
         </div>
       ) : null}
 
-      {terms.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center">
-          <p className="text-sm font-semibold text-slate-800">
+      {amountsLocked ? null : terms.length === 0 ? (
+        <div className="rounded-3xl bg-canvas px-4 py-8 text-center">
+          <p className="text-sm font-semibold text-ink">
             No installments yet
           </p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
@@ -555,9 +606,10 @@ export function StudentPaymentTermsFields({
               selected={selectedKeys.includes(term.key)}
               lockStatus={lockStatus}
               lockAmount={amountsLocked}
+              readOnly={isApprovedLocked(term)}
               hideFillAmount={planChoice === 2 && index === 0}
               showSelection={!lockStatus && terms.length > 1}
-              canDelete={terms.length > 1}
+              canDelete={terms.length > 1 && !isApprovedLocked(term)}
               plannedAmount={plannedAmount}
               zeroIsCapped={zeroIsCapped}
               terms={terms}
@@ -575,12 +627,12 @@ export function StudentPaymentTermsFields({
         </ol>
       )}
 
-      {terms.length > 0 ? (
+      {terms.length > 0 && !amountsLocked ? (
         <div className="flex flex-wrap items-center gap-2">
-          {planChoice === 2 && terms.length === 1 && !amountsLocked ? (
+          {planChoice === 2 && terms.length === 1 ? (
             <Button
               type="button"
-              variant="secondary"
+              variant="soft"
               size="sm"
               onClick={addSecondPayment}
             >
@@ -596,7 +648,7 @@ export function StudentPaymentTermsFields({
                   allSelected ? [] : terms.map((term) => term.key),
                 )
               }
-              className="ml-auto text-xs font-semibold text-[#253CA1] hover:underline"
+              className="ml-auto text-xs font-semibold text-brand-500 hover:underline"
             >
               {allSelected ? 'Clear selection' : 'Select all'}
             </button>
@@ -616,6 +668,7 @@ function InstallmentCard({
   selected,
   lockStatus,
   lockAmount = false,
+  readOnly = false,
   hideFillAmount = false,
   showSelection,
   canDelete,
@@ -640,6 +693,8 @@ function InstallmentCard({
   selected: boolean
   lockStatus: boolean
   lockAmount?: boolean
+  /** Approved installment viewed by someone who cannot edit approved payments. */
+  readOnly?: boolean
   hideFillAmount?: boolean
   showSelection: boolean
   canDelete: boolean
@@ -682,10 +737,11 @@ function InstallmentCard({
   return (
     <li
       className={cn(
-        'overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm',
-        term.status === 'void' && 'bg-rose-50/30',
-        selected && 'border-[#C8D4F5] ring-1 ring-[#253CA1]/15',
-        hasError && 'border-rose-200',
+        'overflow-hidden rounded-3xl bg-canvas transition',
+        open && 'bg-white ring-1 ring-slate-200/80',
+        term.status === 'void' && !open && 'bg-rose-50/60',
+        selected && 'ring-2 ring-brand-500/40',
+        hasError && 'ring-2 ring-rose-300',
       )}
     >
       <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
@@ -706,34 +762,39 @@ function InstallmentCard({
         >
           <span
             className={cn(
-              'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+              'inline-flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
               term.status === 'approved'
                 ? 'bg-emerald-600'
                 : term.status === 'void'
                   ? 'bg-rose-400'
-                  : 'bg-[#253CA1]',
+                  : 'bg-brand-500',
             )}
           >
-            {index + 1}
+            {readOnly ? <Lock className="size-3.5" /> : index + 1}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  'text-sm font-bold tabular-nums text-slate-900',
+                  'text-base font-bold tabular-nums text-ink',
                   term.status === 'void' && 'text-slate-400 line-through',
                 )}
               >
                 {term.amount ? formatCurrencyAmount(amountValue) : 'Amount not set'}
               </span>
               {!open ? (
-                <DataTableBadge tone={termStatusTone(term.status)}>
+                <StatusPill tone={pillToneFor(termStatusTone(term.status))}>
                   {termStatusLabel(term.status)}
-                </DataTableBadge>
+                </StatusPill>
               ) : null}
               {!term.id ? (
-                <span className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
-                  New
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+                  New · not saved
+                </span>
+              ) : null}
+              {readOnly ? (
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Read-only
                 </span>
               ) : null}
             </span>
@@ -768,30 +829,33 @@ function InstallmentCard({
           title={
             canDelete
               ? `Delete installment ${index + 1}`
-              : 'Add another installment before deleting this one'
+              : readOnly
+                ? 'This payment has been approved and can no longer be deleted'
+                : 'Add another installment before deleting this one'
           }
           disabled={!canDelete}
           onClick={onDelete}
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-rose-500"
         >
           <Trash2 className="size-3.5" />
         </button>
       </div>
 
       {open ? (
-        <div className="space-y-4 border-t border-slate-100 px-3 py-4 sm:px-4">
+        <div className="space-y-4 border-t border-slate-100 px-3 py-4 sm:px-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor={`installment-amount-${term.key}`}>Amount</Label>
                 {!lockAmount &&
+                !readOnly &&
                 !hideFillAmount &&
                 term.status !== 'void' &&
                 room > 0 &&
                 amountValue !== room ? (
                   <button
                     type="button"
-                    className="text-xs font-semibold text-[#253CA1] hover:underline"
+                    className="text-xs font-semibold text-brand-500 hover:underline"
                     onClick={() => onChange({ amount: String(room) })}
                   >
                     Fill {formatCurrencyAmount(room)}
@@ -803,7 +867,7 @@ function InstallmentCard({
                 value={lockAmount ? '' : term.amount}
                 onValueChange={(digits) => onChange({ amount: digits })}
                 placeholder="0"
-                disabled={lockAmount}
+                disabled={lockAmount || readOnly}
                 aria-invalid={Boolean(errors?.amount) || exceeds}
               />
               {lockAmount ? (
@@ -826,8 +890,9 @@ function InstallmentCard({
                 onChange={(date) => onChange({ paymentDate: toDateString(date) })}
                 placeholder="Pick payment date"
                 title="Payment date"
-                className="h-12 w-full justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
+                className="h-11 w-full justify-start rounded-full px-4 font-medium"
                 align="start"
+                disabled={readOnly}
               />
               <FieldError message={errors?.paymentDate} />
             </div>
@@ -842,7 +907,7 @@ function InstallmentCard({
                 id={`installment-branch-${term.key}`}
                 containerClassName="w-full"
                 value={term.branchId}
-                disabled={branchesLoading}
+                disabled={branchesLoading || readOnly}
                 onChange={(event) => onChange({ branchId: event.target.value })}
               >
                 <option value="">Select branch...</option>
@@ -863,11 +928,16 @@ function InstallmentCard({
               </p>
               <StatusPicker
                 value={term.status}
-                disabled={lockStatus}
+                disabled={lockStatus || readOnly}
                 labelledBy={`installment-status-${term.key}`}
                 onChange={(status) => onChange({ status })}
               />
-              {lockStatus ? (
+              {readOnly ? (
+                <p className="text-xs text-slate-400">
+                  This payment has been approved, so it can no longer be
+                  changed. Contact Finance if something needs fixing.
+                </p>
+              ) : lockStatus ? (
                 <p className="text-xs text-slate-400">
                   You can view this status. Finance updates it.
                 </p>
@@ -882,6 +952,7 @@ function InstallmentCard({
               id={`installment-notes-${term.key}`}
               className="min-h-20"
               value={term.description}
+              disabled={readOnly}
               onChange={(event) => onChange({ description: event.target.value })}
               placeholder="Optional note, such as transfer reference"
             />
@@ -925,7 +996,7 @@ function StatusPicker({
     <div
       role="radiogroup"
       aria-labelledby={labelledBy}
-      className="grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1"
+      className="grid grid-cols-3 gap-1 rounded-full bg-canvas p-1"
     >
       {STATUS_OPTIONS.map((option) => {
         const selected = value === option.value
@@ -995,7 +1066,8 @@ function ProofEditor({
                 href={attachment.fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block aspect-square overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200"
+                title="Open proof in a new tab"
+                className="block aspect-square overflow-hidden rounded-2xl bg-canvas ring-1 ring-slate-200/70 transition hover:ring-2 hover:ring-brand-400"
               >
                 <img
                   src={attachment.fileUrl}
@@ -1012,9 +1084,9 @@ function ProofEditor({
         <>
           <label
             htmlFor={`installment-proof-${termKey}`}
-            className="flex h-12 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 text-sm text-slate-600 shadow-sm transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF]"
+            className="flex h-11 cursor-pointer items-center gap-3 rounded-full border border-dashed border-slate-300 bg-canvas px-4 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:bg-brand-50"
           >
-            <ImagePlus className="size-4 shrink-0 text-[#253CA1]" />
+            <ImagePlus className="size-4 shrink-0 text-brand-500" />
             <span className="flex-1 truncate">Add proof images</span>
             <input
               id={`installment-proof-${termKey}`}
@@ -1033,9 +1105,9 @@ function ProofEditor({
               {pending.map((file, fileIndex) => (
                 <li
                   key={`${file.name}-${file.size}-${file.lastModified}-${fileIndex}`}
-                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white"
+                  className="relative overflow-hidden rounded-2xl bg-canvas"
                 >
-                  <div className="aspect-square bg-slate-50">
+                  <div className="aspect-square bg-canvas">
                     {previewUrls[fileIndex] ? (
                       <img
                         src={previewUrls[fileIndex]}
@@ -1048,7 +1120,8 @@ function ProofEditor({
                     type="button"
                     aria-label={`Remove ${file.name}`}
                     onClick={() => onRemoveFile(fileIndex)}
-                    className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-500 shadow-sm hover:text-rose-600"
+                    title={`Remove ${file.name}`}
+                    className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm hover:bg-rose-500 hover:text-white"
                   >
                     <X className="size-3" />
                   </button>
@@ -1107,52 +1180,49 @@ export function PaymentCollectionSummary({
                 : 'Approved installments cover the amount due.'
 
   return (
-    <div className="space-y-3 rounded-2xl border border-[#D7E4F6] bg-[linear-gradient(180deg,#F5F8FF_0%,#FFFFFF_100%)] p-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+          <p className="text-[11px] font-bold tracking-[0.14em] text-white/70 uppercase">
             Collected
           </p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900">
+          <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
             {formatCurrencyAmount(summary.approved)}
-            <span className="ml-1 text-sm font-medium text-slate-400">
-              of {formatCurrencyAmount(summary.planned)} due
-            </span>
           </p>
         </div>
-        <p className="text-sm font-semibold tabular-nums text-[#253CA1]">
+        <p className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-white">
           {summary.percent}% approved
         </p>
       </div>
 
       <div
-        className="flex h-2.5 overflow-hidden rounded-full bg-slate-200/80"
+        className="flex h-2.5 overflow-hidden rounded-full bg-white/15"
         role="img"
         aria-label={`${summary.percent}% of the plan is approved`}
       >
         <div
-          className="h-full bg-emerald-500 transition-[width] duration-300"
+          className="h-full bg-emerald-400 transition-[width] duration-300"
           style={{ width: `${approvedPct}%` }}
         />
         <div
-          className="h-full bg-[#253CA1] transition-[width] duration-300"
+          className="h-full bg-brand-300 transition-[width] duration-300"
           style={{ width: `${pendingPct}%` }}
         />
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <LegendDot
-          color="bg-emerald-500"
+          color="bg-emerald-400"
           label="Approved"
           value={formatCurrencyAmount(summary.approved)}
         />
         <LegendDot
-          color="bg-[#253CA1]"
+          color="bg-brand-300"
           label="Pending"
           value={formatCurrencyAmount(summary.pending)}
         />
         <LegendDot
-          color={overScheduled > 0 ? 'bg-rose-400' : 'bg-slate-300'}
+          color={overScheduled > 0 ? 'bg-rose-400' : 'bg-white/40'}
           label={overScheduled > 0 ? 'Over' : 'Unscheduled'}
           value={formatCurrencyAmount(
             overScheduled > 0 ? overScheduled : unscheduled,
@@ -1160,7 +1230,9 @@ export function PaymentCollectionSummary({
         />
       </div>
 
-      <p className="text-sm text-slate-500">{message}</p>
+      <p className="rounded-2xl bg-white/10 px-3 py-2.5 text-xs leading-relaxed text-white/85">
+        {message}
+      </p>
     </div>
   )
 }
@@ -1176,11 +1248,11 @@ function LegendDot({
 }) {
   return (
     <div className="min-w-0">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-white/65 uppercase">
         <span className={cn('size-2 rounded-full', color)} />
         {label}
       </p>
-      <p className="mt-0.5 truncate text-xs font-semibold tabular-nums text-slate-700">
+      <p className="mt-0.5 truncate text-xs font-semibold tabular-nums text-white">
         {value}
       </p>
     </div>
@@ -1242,7 +1314,7 @@ export function PaymentProgress({
         <div
           className={cn(
             'h-full rounded-full transition-[width] duration-300',
-            pct >= 100 ? 'bg-[#3D9B6E]' : 'bg-[#253CA1]',
+            pct >= 100 ? 'bg-emerald-500' : 'bg-brand-500',
           )}
           style={{ width: `${pct}%` }}
         />

@@ -8,10 +8,10 @@ export function Input({ className, ...props }: InputProps) {
   return (
     <input
       className={cn(
-        'flex h-12 w-full rounded-full border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm',
+        'flex h-12 w-full rounded-full border border-transparent bg-canvas/70 px-4 text-sm font-medium text-slate-800 ',
         'placeholder:font-normal placeholder:text-slate-400',
-        'transition-colors hover:border-slate-300',
-        'focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
+        'transition-colors hover:bg-canvas',
+        'focus:border-brand-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}

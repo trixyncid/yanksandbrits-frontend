@@ -1,10 +1,16 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { useMemo } from 'react'
 
-import { DataTable } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
+import {
+  ClearListFiltersButton,
+  DataTable,
+  ListFilterSelect,
+  ListToolbarFilters,
+} from '../../../shared/components/data-table'
+import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
-import { Can } from '../../auth/components/can'
+import { STAFF_TYPE_OPTIONS } from '../../users/api/users-api'
+import { ProgramHero } from '../components/program-hero'
 import { programListColumns } from '../components/program-list-columns'
 import {
   ProgramListErrorState,
@@ -14,53 +20,146 @@ import { useProgramsQuery } from '../hooks/use-programs-query'
 import type { ProgramListItem } from '../types/program'
 
 function filterProgram(row: ProgramListItem, search: string) {
-  const haystack = [
-    row.code,
-    row.title,
-    row.description,
-    row.isActive ? 'active' : 'inactive',
-  ]
+  return [row.code, row.title, row.description, row.subject]
     .join(' ')
     .toLowerCase()
-
-  return haystack.includes(search)
+    .includes(search)
 }
+
+type ProgramListFilterState = {
+  subject: string
+  status: string
+}
+
+const EMPTY_FILTERS: ProgramListFilterState = { subject: '', status: '' }
+
+const SUBJECT_FILTER_OPTIONS = [
+  { value: '', label: 'All subjects' },
+  ...STAFF_TYPE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+  })),
+  { value: 'none', label: 'No subject' },
+]
+
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
+
 
 export default function ProgramListPage() {
   const navigate = useNavigate()
+  const [filters, setFilters] = useSessionState<ProgramListFilterState>(
+    'list-filters:programs',
+    { ...EMPTY_FILTERS },
+  )
   const programsQuery = useProgramsQuery()
+  const allPrograms = useMemo(
+    () => programsQuery.data?.data ?? [],
+    [programsQuery.data?.data],
+  )
+  const hasActiveFilters = Boolean(filters.subject || filters.status)
+
+  const programs = useMemo(
+    () =>
+      allPrograms.filter((program) => {
+        if (filters.subject === 'none' && program.subject) return false
+        if (
+          filters.subject &&
+          filters.subject !== 'none' &&
+          program.subject !== filters.subject
+        ) {
+          return false
+        }
+        if (filters.status === 'active' && !program.isActive) return false
+        if (filters.status === 'inactive' && program.isActive) return false
+        return true
+      }),
+    [allPrograms, filters.subject, filters.status],
+  )
+
+  const loaded = programsQuery.isSuccess
+  const stat = (count: number) => (loaded ? count : '–')
+
+  const listFilters = (
+    <ListToolbarFilters>
+      <ListFilterSelect
+        label="Subject"
+        ariaLabel="Filter by subject"
+        value={filters.subject}
+        onChange={(subject) =>
+          setFilters((current) => ({ ...current, subject }))
+        }
+        options={SUBJECT_FILTER_OPTIONS}
+      />
+      <ListFilterSelect
+        label="Status"
+        ariaLabel="Filter by status"
+        value={filters.status}
+        onChange={(status) => setFilters((current) => ({ ...current, status }))}
+        options={STATUS_FILTER_OPTIONS}
+      />
+      <ClearListFiltersButton
+        visible={hasActiveFilters}
+        onClear={() => setFilters({ ...EMPTY_FILTERS })}
+        className="h-10 rounded-full border-transparent bg-ink text-white hover:bg-ink-soft hover:text-white"
+      />
+    </ListToolbarFilters>
+  )
 
   return (
-    <AdminShell>
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <ProgramHero
+          total={stat(allPrograms.length)}
+          active={stat(allPrograms.filter((program) => program.isActive).length)}
+          withoutSubject={stat(
+            allPrograms.filter((program) => !program.subject).length,
+          )}
+          statusFilter={filters.status}
+          subjectFilter={filters.subject}
+          onShowAll={() => setFilters({ ...EMPTY_FILTERS })}
+          onShowActive={() => setFilters({ subject: '', status: 'active' })}
+          onShowWithoutSubject={() =>
+            setFilters({ subject: 'none', status: '' })
+          }
+          onAdd={() => void navigate({ to: '/programs/new' })}
+        />
+
         {programsQuery.isLoading ? <ProgramListLoadingState /> : null}
 
         {programsQuery.isError ? (
-          <ProgramListErrorState
-            onRetry={() => void programsQuery.refetch()}
-          />
+          <div className="space-y-2">
+            {listFilters}
+            <ProgramListErrorState
+              onRetry={() => void programsQuery.refetch()}
+            />
+          </div>
         ) : null}
 
-        {programsQuery.isSuccess ? (
-          <DataTable
-            title="Program List"
-            description="Manage academic programs and course packages."
-            totalLabel="programs"
-            columns={programListColumns}
-            data={programsQuery.data.data}
-            searchPlaceholder="Search by code, title, description..."
-            globalFilterFn={filterProgram}
-            initialPageSize={10}
-            emptyMessage="No programs found"
-            toolbarActions={
-              <Can module="programs" action="add">
-                <Button onClick={() => void navigate({ to: '/programs/new' })}>
-                  <Plus className="size-4" />
-                  Add New Program
-                </Button>
-              </Can>
-            }
-          />
+        {loaded ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
+            <DataTable
+              variant="soft"
+              title="Program Catalog"
+              description="Search, filter, and manage every program."
+              totalLabel="programs"
+              columns={programListColumns}
+              data={programs}
+              searchPlaceholder="Search by code, title, or subject..."
+              searchVariant="pill"
+              globalFilterFn={filterProgram}
+              initialPageSize={10}
+              emptyMessage={
+                hasActiveFilters
+                  ? 'No programs match these filters'
+                  : 'No programs yet'
+              }
+              toolbarFilters={listFilters}
+            />
+          </div>
         ) : null}
       </div>
     </AdminShell>

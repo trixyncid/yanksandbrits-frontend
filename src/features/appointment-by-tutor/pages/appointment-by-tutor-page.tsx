@@ -91,7 +91,7 @@ export default function AppointmentByTutorPage() {
       })
       notify('success', {
         title: 'PDF downloaded',
-        description: 'Tutor sessions report has been saved.',
+        description: `Sessions for ${selectedTutorLabel} have been saved as a PDF.`,
       })
     } catch (error) {
       notify('error', {
@@ -106,11 +106,14 @@ export default function AppointmentByTutorPage() {
   return (
     <ReportGeneratorLayout
       title="Tutor Sessions"
-      description="Generate a PDF of finished sessions a tutor has taught over a selected period and branch."
+      description="Download a PDF of the finished sessions one tutor taught in a period, for checking hours or pay."
+      eyebrow="Academics"
+      theme="dawn"
+      pattern="rings"
       ready={ready}
       isDownloading={isDownloading}
       onDownload={() => void handleDownload()}
-      readyHint="Select a date range and tutor to enable download."
+      readyHint="Pick a date range and a tutor to download the PDF."
       summaryItems={[
         { label: 'Period', value: formatPeriod(dateRange) },
         { label: 'Branch', value: selectedBranchName },
@@ -132,6 +135,9 @@ export default function AppointmentByTutorPage() {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="appointment-branch">Branch</Label>
+            <p className="-mt-1 text-xs text-slate-500">
+              Narrows the tutor list and the sessions in the report.
+            </p>
             <Select
               id="appointment-branch"
               value={branchId}
@@ -159,7 +165,7 @@ export default function AppointmentByTutorPage() {
               onChange={setTutorId}
               placeholder="Select tutor…"
               searchPlaceholder="Search by PIN or name…"
-              emptyMessage="No tutors match the current branch or search."
+              emptyMessage="No tutors at this branch match your search."
               disabled={tutorsQuery.isLoading}
               clearable
             />

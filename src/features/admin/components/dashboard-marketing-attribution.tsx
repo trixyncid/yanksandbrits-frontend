@@ -1,4 +1,7 @@
+import { Megaphone } from 'lucide-react'
+
 import type { DashboardMetrics } from '../types/dashboard'
+import { DashboardMeter } from './dashboard-kit'
 import {
   DashboardCardHeader,
   DashboardEmptyState,
@@ -17,58 +20,57 @@ function initials(name: string) {
 
 export function DashboardMarketingAttribution({
   metrics,
+  className,
 }: {
   metrics: DashboardMetrics
+  className?: string
 }) {
   const items = metrics.marketingAttribution
   const maxLeads = Math.max(...items.map((item) => item.leads), 1)
 
   return (
-    <DashboardPanel variant="tint">
+    <DashboardPanel className={className}>
       <DashboardCardHeader
-        title="Marketing attribution"
-        description="Lead volume and enrollment conversion by assigned marketer."
+        title="Education counsellors"
+        description="Leads handled and how many enrolled, per counsellor."
+        icon={<Megaphone className="size-4" />}
       />
 
       {items.length === 0 ? (
-        <DashboardEmptyState message="No marketing attribution data in this period." />
+        <DashboardEmptyState message="No counsellor activity in this period." />
       ) : (
-        <ol className="space-y-2">
+        <ol className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item, index) => {
-            const width = Math.max((item.leads / maxLeads) * 100, item.leads > 0 ? 8 : 0)
+            const width = Math.max((item.leads / maxLeads) * 100, item.leads > 0 ? 6 : 0)
 
             return (
               <li
                 key={item.marketingId ?? item.name}
-                className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#D8E6FA]"
+                className="flex items-center gap-3 rounded-3xl bg-canvas/70 px-3 py-3"
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-5 shrink-0 text-right text-xs font-bold text-slate-300 tabular-nums">
+                <span className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-brand-700">
+                  {initials(item.name)}
+                  <span className="absolute -top-1 -right-1 inline-flex size-5 items-center justify-center rounded-full bg-ink text-[10px] font-bold text-white tabular-nums">
                     {index + 1}
                   </span>
-                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#E8EEFF] text-[11px] font-bold text-[#1B2A5A]">
-                    {initials(item.name)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {item.name}
-                      </p>
-                      <span className="inline-flex rounded-full bg-[#E8EEFF] px-2.5 py-0.5 text-xs font-semibold text-[#1B2A5A] tabular-nums">
-                        {item.conversionRate.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-[#253CA1]"
-                        style={{ width: `${width}%` }}
-                      />
-                    </div>
-                    <p className="mt-1 text-[11px] text-slate-400 tabular-nums">
-                      {item.leads.toLocaleString('en-US')} leads ·{' '}
-                      {item.enrolled.toLocaleString('en-US')} enrolled
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {item.name}
                     </p>
+                    <span
+                      className="inline-flex shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 tabular-nums"
+                      title="Share of leads that enrolled"
+                    >
+                      {item.conversionRate.toFixed(1)}%
+                    </span>
                   </div>
+                  <DashboardMeter className="mt-1.5" value={width} trackClassName="bg-white" />
+                  <p className="mt-1 text-[11px] text-slate-500 tabular-nums">
+                    {item.leads.toLocaleString('en-US')} leads ·{' '}
+                    {item.enrolled.toLocaleString('en-US')} enrolled
+                  </p>
                 </div>
               </li>
             )

@@ -1,13 +1,16 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
+import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import {
-  DataTableBadge,
-  DataTableColumnHeader,
-} from '../../../shared/components/data-table'
+  ActionColumnHeader,
+  PersonIdentityCell,
+  SoftPill,
+} from '../../users/components/people-ui'
 import type {
   PaidLeaveListItem,
   PaidLeaveStatus,
 } from '../types/paid-leave'
+import { LeaveDateTile } from './leave-date-tile'
 import { PaidLeaveActionsCell } from './paid-leave-actions-cell'
 
 function formatDate(value: string) {
@@ -28,26 +31,10 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
-function formatDuration(row: PaidLeaveListItem) {
-  const dayLabel = row.totalDays === 1 ? 'day' : 'days'
-
-  if (row.startDate === row.endDate) {
-    return `${formatDate(row.startDate)} (${row.totalDays} ${dayLabel})`
-  }
-
-  return `${formatDate(row.startDate)} - ${formatDate(row.endDate)} (${row.totalDays} ${dayLabel})`
-}
-
 function statusTone(status: PaidLeaveStatus) {
-  if (status === 'approved') {
-    return 'success' as const
-  }
-
-  if (status === 'pending') {
-    return 'info' as const
-  }
-
-  return 'danger' as const
+  if (status === 'approved') return 'emerald' as const
+  if (status === 'pending') return 'amber' as const
+  return 'muted' as const
 }
 
 function statusLabel(status: PaidLeaveStatus) {
@@ -67,16 +54,50 @@ export const paidLeaveListColumns: ColumnDef<PaidLeaveListItem>[] = [
     id: 'staffDetail',
     accessorFn: (row) => `${row.staffPin} ${row.staffName} ${row.staffEmail}`,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Staff Detail" />
+      <DataTableColumnHeader column={column} title="Person" />
     ),
     cell: ({ row }) => (
-      <div>
-        <p className="text-sm font-semibold text-slate-900">
-          {row.original.staffPin} | {row.original.staffName}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">
-          {row.original.staffEmail}
-        </p>
+      <PersonIdentityCell
+        name={row.original.staffName}
+        seed={row.original.userId}
+        pin={row.original.staffPin}
+        lines={[row.original.staffEmail]}
+      />
+    ),
+  },
+  {
+    id: 'duration',
+    accessorFn: (row) => `${row.startDate} ${row.endDate} ${row.totalDays}`,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="When" />
+    ),
+    cell: ({ row }) => (
+      <div className="flex min-w-[12rem] items-center gap-2.5">
+        <LeaveDateTile value={row.original.startDate} />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink">
+            {row.original.totalDays}{' '}
+            {row.original.totalDays === 1 ? 'day' : 'days'}
+          </p>
+          <p className="text-xs text-slate-500">
+            {row.original.startDate === row.original.endDate
+              ? formatDate(row.original.startDate)
+              : `${formatDate(row.original.startDate)} – ${formatDate(row.original.endDate)}`}
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" align="center" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        <SoftPill tone={statusTone(row.original.status)}>
+          {statusLabel(row.original.status)}
+        </SoftPill>
       </div>
     ),
   },
@@ -92,49 +113,23 @@ export const paidLeaveListColumns: ColumnDef<PaidLeaveListItem>[] = [
     ),
   },
   {
-    id: 'duration',
-    accessorFn: (row) => `${row.startDate} ${row.endDate} ${row.totalDays}`,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Duration" align="center" />
-    ),
-    cell: ({ row }) => (
-      <p className="text-center text-xs font-medium text-slate-600">
-        {formatDuration(row.original)}
-      </p>
-    ),
-  },
-  {
     accessorKey: 'notes',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Notes" align="center" />
+      <DataTableColumnHeader column={column} title="Notes" />
     ),
     cell: ({ row }) => (
-      <p className="mx-auto max-w-52 text-center text-xs text-slate-500">
-        {row.original.notes || '-'}
+      <p
+        className="line-clamp-2 max-w-60 text-xs text-slate-500"
+        title={row.original.notes || undefined}
+      >
+        {row.original.notes || '—'}
       </p>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" align="center" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <DataTableBadge tone={statusTone(row.original.status)}>
-          {statusLabel(row.original.status)}
-        </DataTableBadge>
-      </div>
     ),
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="Created At"
-        align="center"
-      />
+      <DataTableColumnHeader column={column} title="Recorded" align="center" />
     ),
     cell: ({ row }) => (
       <p className="text-center text-xs font-medium text-slate-600">
@@ -147,11 +142,7 @@ export const paidLeaveListColumns: ColumnDef<PaidLeaveListItem>[] = [
     enableSorting: false,
     size: 148,
     meta: { sticky: 'right' },
-    header: () => (
-      <span className="block text-center text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-        Action
-      </span>
-    ),
+    header: () => <ActionColumnHeader />,
     cell: ({ row }) => <PaidLeaveActionsCell leave={row.original} />,
   },
 ]

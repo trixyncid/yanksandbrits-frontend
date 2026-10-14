@@ -1,7 +1,14 @@
 import { parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarPlus, Pencil, Trash2 } from 'lucide-react'
-import { useMemo, type FormEvent, type ReactNode } from 'react'
+import {
+  CalendarPlus,
+  Clock3,
+  NotebookPen,
+  Pencil,
+  Trash2,
+  UsersRound,
+} from 'lucide-react'
+import { useCallback, useMemo, type FormEvent, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import { DatePicker } from '../../../shared/components/ui/date-picker'
@@ -18,6 +25,7 @@ import { useFilteredProgramsQuery } from '../../programs/hooks/use-filtered-prog
 import { useStudentGroupsQuery } from '../../student-groups/hooks/use-student-groups-query'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import { useTutorOptionsQuery } from '../../users/hooks/use-user-options'
+import { BookingTutorField } from './booking-tutor-field'
 import {
   SCHEDULE_STATUS_OPTIONS,
   type ScheduleFormErrors,
@@ -38,16 +46,21 @@ function Field({
   error,
   children,
   hint,
+  required,
 }: {
   label: string
   htmlFor: string
   error?: string
   children: ReactNode
   hint?: string
+  required?: boolean
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
       <FieldError message={error} />
@@ -76,6 +89,35 @@ function toDateString(date: Date | undefined) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function FormGroup({
+  icon: Icon,
+  title,
+  tone = 'plain',
+  children,
+}: {
+  icon: typeof Clock3
+  title: string
+  tone?: 'plain' | 'brand'
+  children: ReactNode
+}) {
+  return (
+    <section
+      className={cn(
+        'space-y-4 rounded-3xl p-4',
+        tone === 'brand' ? 'bg-brand-50' : 'bg-canvas/70',
+      )}
+    >
+      <p className="flex items-center gap-2 text-sm font-bold text-ink">
+        <span className="inline-flex size-7 items-center justify-center rounded-full bg-white text-brand-600">
+          <Icon className="size-3.5" />
+        </span>
+        {title}
+      </p>
+      {children}
+    </section>
+  )
 }
 
 const TIME_OPTIONS = Array.from({ length: 14 * 2 }, (_, index) => {
@@ -175,6 +217,11 @@ export function ScheduleForm({
     values.programId,
   ])
 
+  const handleTutorChange = useCallback(
+    (next: string) => onChange('tutorId', next),
+    [onChange],
+  )
+
   const tutorOptions = useMemo(
     () =>
       (tutorsQuery.data ?? []).map((tutor) => ({
@@ -225,12 +272,74 @@ export function ScheduleForm({
       onSubmit={handleSubmit}
       noValidate
     >
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <FormGroup icon={Clock3} title="When and where" tone="brand">
+          <div className="grid items-start gap-4 sm:grid-cols-3">
+            <Field label="Date" htmlFor="date" error={errors.date} required>
+              <DatePicker
+                value={parseDateValue(values.date)}
+                onChange={(date) => onChange('date', toDateString(date))}
+                placeholder="Pick date"
+                title="Session date"
+                className="h-11 w-full min-w-0 justify-start rounded-full border-transparent bg-white px-4 font-medium shadow-sm"
+                align="start"
+              />
+            </Field>
+
+            <Field
+              label="Starts"
+              htmlFor="startTime"
+              error={errors.startTime}
+              required
+            >
+              <Select
+                id="startTime"
+                containerClassName="w-full sm:w-full"
+                className="h-11"
+                value={values.startTime}
+                onChange={(event) => onChange('startTime', event.target.value)}
+              >
+                {TIME_OPTIONS.includes(values.startTime) ? null : (
+                  <option value={values.startTime}>{values.startTime}</option>
+                )}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field
+              label="Ends"
+              htmlFor="endTime"
+              error={errors.endTime}
+              required
+            >
+              <Select
+                id="endTime"
+                containerClassName="w-full sm:w-full"
+                className="h-11"
+                value={values.endTime}
+                onChange={(event) => onChange('endTime', event.target.value)}
+              >
+                {TIME_OPTIONS.includes(values.endTime) ? null : (
+                  <option value={values.endTime}>{values.endTime}</option>
+                )}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+
           <Field
             label="Classroom"
             htmlFor="classroomId"
             error={errors.classroomId}
+            required
           >
             <Select
               id="classroomId"
@@ -246,20 +355,136 @@ export function ScheduleForm({
               ))}
             </Select>
           </Field>
+        </FormGroup>
 
-          <Field label="Tutor" htmlFor="tutorId" error={errors.tutorId}>
-            <SearchableSelect
-              id="tutorId"
+        <FormGroup icon={UsersRound} title="Who and what">
+          <div
+            role="radiogroup"
+            aria-label="Participant"
+            className="grid grid-cols-2 gap-1 rounded-full bg-white p-1"
+          >
+            <label
+              className={cn(
+                'flex h-10 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-semibold transition focus-within:ring-2 focus-within:ring-brand-500/40',
+                values.participantType === 'student'
+                  ? 'bg-ink text-white'
+                  : 'text-slate-600 hover:text-ink',
+              )}
+            >
+              <input
+                type="radio"
+                name="participantType"
+                className="sr-only"
+                checked={values.participantType === 'student'}
+                onChange={() => onChange('participantType', 'student')}
+              />
+              One student
+            </label>
+            <label
+              className={cn(
+                'flex h-10 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-semibold transition focus-within:ring-2 focus-within:ring-brand-500/40',
+                values.participantType === 'group'
+                  ? 'bg-ink text-white'
+                  : 'text-slate-600 hover:text-ink',
+              )}
+            >
+              <input
+                type="radio"
+                name="participantType"
+                className="sr-only"
+                checked={values.participantType === 'group'}
+                onChange={() => onChange('participantType', 'group')}
+              />
+              Student group
+            </label>
+          </div>
+
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            {values.participantType === 'student' ? (
+              <Field
+                label="Student"
+                htmlFor="studentId"
+                error={errors.studentId}
+                required
+              >
+                <SearchableSelect
+                  id="studentId"
+                  value={values.studentId}
+                  options={studentOptions}
+                  onChange={(next) => onChange('studentId', next)}
+                  placeholder="Select student"
+                  searchPlaceholder="Search students..."
+                  disabled={studentsQuery.isLoading}
+                />
+              </Field>
+            ) : (
+              <Field
+                label="Student group"
+                htmlFor="studentGroupId"
+                error={errors.studentGroupId}
+                required
+              >
+                <SearchableSelect
+                  id="studentGroupId"
+                  value={values.studentGroupId}
+                  options={groupOptions}
+                  onChange={(next) => onChange('studentGroupId', next)}
+                  placeholder="Select group"
+                  searchPlaceholder="Search groups..."
+                  disabled={groupsQuery.isLoading}
+                />
+              </Field>
+            )}
+
+            <Field
+              label="Program"
+              htmlFor="programId"
+              error={errors.programId}
+              hint={programHint}
+              required
+            >
+              <SearchableSelect
+                id="programId"
+                value={values.programId}
+                options={programOptions}
+                onChange={(next) => onChange('programId', next)}
+                placeholder={
+                  !hasParticipant
+                    ? values.participantType === 'student'
+                      ? 'Select a student first'
+                      : 'Select a group first'
+                    : 'Select program'
+                }
+                searchPlaceholder="Search enrolled programs..."
+                disabled={!hasParticipant || filteredProgramsQuery.isLoading}
+                emptyMessage={
+                  values.participantType === 'student'
+                    ? 'No open enrollments for this student'
+                    : 'No shared open enrollments for this group'
+                }
+              />
+            </Field>
+          </div>
+
+          <Field
+            label="Tutor"
+            htmlFor="tutorId"
+            error={errors.tutorId}
+            hint="Comes from the tutor allocation for this student and program."
+          >
+            <BookingTutorField
+              mode={mode}
+              studentId={selectedStudentId}
+              studentGroupId={selectedGroupId}
+              programId={values.programId}
               value={values.tutorId}
-              options={tutorOptions}
-              onChange={(next) => onChange('tutorId', next)}
-              placeholder="Optional tutor"
-              searchPlaceholder="Search tutors..."
-              disabled={tutorsQuery.isLoading}
-              clearable
+              onChange={handleTutorChange}
+              allTutorOptions={tutorOptions}
             />
           </Field>
+        </FormGroup>
 
+        <FormGroup icon={NotebookPen} title="Status and notes">
           <Field
             label="Status"
             htmlFor="schedule-status"
@@ -269,7 +494,7 @@ export function ScheduleForm({
               id="schedule-status"
               role="radiogroup"
               aria-label="Session status"
-              className="grid grid-cols-3 gap-2"
+              className="grid grid-cols-3 gap-1 rounded-full bg-white p-1"
             >
               {SCHEDULE_STATUS_OPTIONS.map((option) => {
                 const selected = values.status === option.value
@@ -282,10 +507,14 @@ export function ScheduleForm({
                     disabled={isSubmitting}
                     onClick={() => onChange('status', option.value)}
                     className={cn(
-                      'h-12 rounded-full border text-sm font-semibold transition',
+                      'inline-flex h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition',
                       selected
-                        ? 'border-[#253CA1] bg-[#E8EEFF] text-[#253CA1] shadow-sm shadow-[#253CA1]/15'
-                        : 'border-slate-200/80 bg-white text-slate-600 shadow-sm hover:border-slate-300',
+                        ? option.value === 'cancelled'
+                          ? 'bg-rose-500 text-white'
+                          : option.value === 'finished'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-brand-500 text-white'
+                        : 'text-slate-600 hover:text-ink',
                       'disabled:cursor-not-allowed disabled:opacity-60',
                     )}
                   >
@@ -295,172 +524,23 @@ export function ScheduleForm({
               })}
             </div>
           </Field>
-        </div>
 
-        <div className="space-y-2">
-          <Label>Participant</Label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label
-              className={cn(
-                'flex h-12 cursor-pointer items-center gap-3 rounded-full border px-4 text-sm shadow-sm transition',
-                values.participantType === 'student'
-                  ? 'border-[#253CA1] bg-[#E8EEFF] text-[#253CA1] shadow-[#253CA1]/10'
-                  : 'border-slate-200/80 bg-white text-slate-600 hover:border-slate-300',
-              )}
-            >
-              <input
-                type="radio"
-                name="participantType"
-                className="size-4 border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
-                checked={values.participantType === 'student'}
-                onChange={() => onChange('participantType', 'student')}
-              />
-              <span className="font-medium">Individual student</span>
-            </label>
-            <label
-              className={cn(
-                'flex h-12 cursor-pointer items-center gap-3 rounded-full border px-4 text-sm shadow-sm transition',
-                values.participantType === 'group'
-                  ? 'border-[#253CA1] bg-[#E8EEFF] text-[#253CA1] shadow-[#253CA1]/10'
-                  : 'border-slate-200/80 bg-white text-slate-600 hover:border-slate-300',
-              )}
-            >
-              <input
-                type="radio"
-                name="participantType"
-                className="size-4 border-slate-300 text-[#253CA1] focus:ring-[#253CA1]/40"
-                checked={values.participantType === 'group'}
-                onChange={() => onChange('participantType', 'group')}
-              />
-              <span className="font-medium">Student group</span>
-            </label>
-          </div>
-        </div>
-
-        {values.participantType === 'student' ? (
-          <Field label="Student" htmlFor="studentId" error={errors.studentId}>
-            <SearchableSelect
-              id="studentId"
-              value={values.studentId}
-              options={studentOptions}
-              onChange={(next) => onChange('studentId', next)}
-              placeholder="Select student"
-              searchPlaceholder="Search students..."
-              disabled={studentsQuery.isLoading}
-            />
-          </Field>
-        ) : (
           <Field
-            label="Student group"
-            htmlFor="studentGroupId"
-            error={errors.studentGroupId}
+            label="Notes"
+            htmlFor="description"
+            error={errors.description}
           >
-            <SearchableSelect
-              id="studentGroupId"
-              value={values.studentGroupId}
-              options={groupOptions}
-              onChange={(next) => onChange('studentGroupId', next)}
-              placeholder="Select group"
-              searchPlaceholder="Search groups..."
-              disabled={groupsQuery.isLoading}
+            <Textarea
+              id="description"
+              value={values.description}
+              onChange={(event) => onChange('description', event.target.value)}
+              placeholder="Anything the tutor or front desk should know (optional)"
             />
           </Field>
-        )}
-
-        <Field
-          label="Program"
-          htmlFor="programId"
-          error={errors.programId}
-          hint={programHint}
-        >
-          <SearchableSelect
-            id="programId"
-            value={values.programId}
-            options={programOptions}
-            onChange={(next) => onChange('programId', next)}
-            placeholder={
-              !hasParticipant
-                ? values.participantType === 'student'
-                  ? 'Select a student first'
-                  : 'Select a group first'
-                : 'Select program'
-            }
-            searchPlaceholder="Search enrolled programs..."
-            disabled={!hasParticipant || filteredProgramsQuery.isLoading}
-            emptyMessage={
-              values.participantType === 'student'
-                ? 'No open enrollments for this student'
-                : 'No shared open enrollments for this group'
-            }
-          />
-        </Field>
-
-        <div className="grid items-start gap-4 sm:grid-cols-3">
-          <Field label="Date" htmlFor="date" error={errors.date}>
-            <DatePicker
-              value={parseDateValue(values.date)}
-              onChange={(date) => onChange('date', toDateString(date))}
-              placeholder="Pick date"
-              title="Session date"
-              className="h-11 w-full min-w-0 justify-start rounded-full border-slate-200/80 bg-white px-4 font-medium shadow-sm"
-              align="start"
-            />
-          </Field>
-
-          <Field label="Start Time" htmlFor="startTime" error={errors.startTime}>
-            <Select
-              id="startTime"
-              containerClassName="w-full sm:w-full"
-              className="h-11"
-              value={values.startTime}
-              onChange={(event) => onChange('startTime', event.target.value)}
-            >
-              {TIME_OPTIONS.includes(values.startTime) ? null : (
-                <option value={values.startTime}>{values.startTime}</option>
-              )}
-              {TIME_OPTIONS.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="End Time" htmlFor="endTime" error={errors.endTime}>
-            <Select
-              id="endTime"
-              containerClassName="w-full sm:w-full"
-              className="h-11"
-              value={values.endTime}
-              onChange={(event) => onChange('endTime', event.target.value)}
-            >
-              {TIME_OPTIONS.includes(values.endTime) ? null : (
-                <option value={values.endTime}>{values.endTime}</option>
-              )}
-              {TIME_OPTIONS.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-
-        <Field
-          label="Description"
-          htmlFor="description"
-          error={errors.description}
-        >
-          <Textarea
-            id="description"
-            value={values.description}
-            onChange={(event) => onChange('description', event.target.value)}
-            placeholder="Optional notes for this session"
-          />
-        </Field>
+        </FormGroup>
       </div>
 
-      <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4 sm:justify-between">
+      <DialogFooter className="mt-0 shrink-0 border-t border-slate-100 bg-white px-4 py-3 sm:justify-between sm:px-6">
         {mode === 'edit' && onDelete ? (
           <Button
             type="button"
@@ -471,7 +551,7 @@ export function ScheduleForm({
             disabled={isSubmitting}
           >
             <Trash2 className="size-3.5" />
-            Delete
+            Delete session
           </Button>
         ) : (
           <span />
@@ -479,19 +559,13 @@ export function ScheduleForm({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
+            variant="soft"
             onClick={onCancel}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isSubmitting}
-            className="border-transparent bg-[#253CA1] bg-none text-white shadow-lg shadow-[#253CA1]/20 hover:bg-[#1f3190] hover:brightness-100"
-          >
+          <Button type="submit" disabled={isSubmitting} className="min-w-36">
             {mode === 'create' ? (
               <CalendarPlus className="size-3.5" />
             ) : (
@@ -502,8 +576,8 @@ export function ScheduleForm({
                 ? 'Saving...'
                 : 'Updating...'
               : mode === 'create'
-                ? 'Create Session'
-                : 'Update Session'}
+                ? 'Book session'
+                : 'Save changes'}
           </Button>
         </div>
       </DialogFooter>

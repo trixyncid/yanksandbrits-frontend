@@ -17,20 +17,22 @@ export function StudentGroupActionsCell({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const memberCount = group.members.length
 
   return (
     <div className="flex items-center justify-center gap-2">
       <Can module="studentGroups" action="change">
         <button
           type="button"
-          aria-label={`Edit ${group.groupName}`}
+          aria-label={`Edit group ${group.groupName}`}
+          title="Edit group"
           onClick={() =>
             void navigate({
               to: '/student-groups/$groupId/edit',
               params: { groupId: group.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -38,11 +40,17 @@ export function StudentGroupActionsCell({
       <Can module="studentGroups" action="delete">
         <button
           type="button"
-          aria-label={`Delete ${group.groupName}`}
+          aria-label={`Delete group ${group.groupName}`}
+          title="Delete group"
           onClick={() =>
             requestDeleteConfirm({
-              title: 'Delete group?',
-              description: `This will permanently remove ${group.groupName}. This action cannot be undone.`,
+              title: `Delete ${group.groupName}?`,
+              description: `This permanently removes the group ${group.groupName}${
+                memberCount > 0
+                  ? ` and its list of ${memberCount} ${memberCount === 1 ? 'student' : 'students'}`
+                  : ''
+              }. The students themselves are not deleted. This cannot be undone.`,
+              confirmLabel: 'Delete group',
               onConfirm: () => {
                 void (async () => {
                   try {
@@ -64,7 +72,7 @@ export function StudentGroupActionsCell({
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
         >
           <Trash2 className="size-3.5" />
         </button>

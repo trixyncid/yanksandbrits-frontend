@@ -1,12 +1,27 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import type { Row } from '@tanstack/react-table'
+import {
+  CalendarPlus,
+  CircleCheck,
+  ClipboardList,
+  Hourglass,
+  NotebookPen,
+  Plus,
+} from 'lucide-react'
+import { useMemo } from 'react'
 
 import { DataTable, ListToolbarFilters } from '../../../shared/components/data-table'
-import { Button } from '../../../shared/components/ui/button'
+import {
+  HeroPillButton,
+  HeroSpotlight,
+  PageHero,
+  type HeroStat,
+} from '../../../shared/components/page'
 import { useSessionState } from '../../../shared/hooks/use-session-state'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
 import {
+  useCanEditApprovedPayment,
   useIsAcademicLeader,
   useIsMarketing,
   useIsProgramReviewer,
@@ -39,6 +54,26 @@ const EMPTY_FILTERS: PredictionTestListFilterState = {
 
 const STATUS_FILTERS: StatusFilter[] = ['all', 'pending', 'approved', 'void']
 
+function hasAnyScore(row: PredictionTestListItem) {
+  return [
+    row.listening,
+    row.reading,
+    row.writing,
+    row.speaking,
+    row.math,
+    row.writtenTestScore,
+  ].some((value) => value != null)
+}
+
+function isThisMonth(value: string) {
+  const date = new Date(value)
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth()
+  )
+}
+
 function filterPredictionTest(row: PredictionTestListItem, search: string) {
   return row.studentName.toLowerCase().includes(search)
 }
@@ -60,6 +95,7 @@ export default function PredictionTestListPage() {
   const hideCounsellorFilter = useIsMarketing()
   const hidePayment = isProgramReviewer
   const canBulkUpdateStatus = canChange && !lockPaymentStatus && !hidePayment
+  const canEditApprovedPayment = useCanEditApprovedPayment()
   const listColumns = getPredictionTestListColumns({ hidePayment })
   const testsQuery = usePredictionTestsQuery({
     counsellorId: hideCounsellorFilter
@@ -69,6 +105,86 @@ export default function PredictionTestListPage() {
   })
 
   const clearFilters = () => setFilters(EMPTY_FILTERS)
+  const tests = useMemo(
+    () => testsQuery.data?.data ?? [],
+    [testsQuery.data?.data],
+  )
+  const loaded = testsQuery.isSuccess
+  const effectiveStatus = hidePayment ? 'all' : status
+
+  // Counts come from the list already on screen. While a payment filter is
+  // applied, the other statuses are not loaded, so show a dash instead of 0.
+  const countFor = (target: StatusFilter, count: number) =>
+    loaded && (effectiveStatus === 'all' || effectiveStatus === target)
+      ? count
+      : '–'
+
+  const heroStats: HeroStat[] = hidePayment
+    ? [
+        {
+          id: 'all',
+          label: 'Tests',
+          value: loaded ? tests.length : '–',
+          icon: ClipboardList,
+          caption: 'In your review list',
+        },
+        {
+          id: 'scored',
+          label: 'Scored',
+          value: loaded ? tests.filter(hasAnyScore).length : '–',
+          icon: NotebookPen,
+          caption: 'Have at least one score',
+        },
+        {
+          id: 'month',
+          label: 'This month',
+          value: loaded
+            ? tests.filter((test) => isThisMonth(test.createdAt)).length
+            : '–',
+          icon: CalendarPlus,
+          caption: 'New tests added',
+        },
+      ]
+    : [
+        {
+          id: 'all',
+          label: 'Tests',
+          value: countFor('all', tests.length),
+          icon: ClipboardList,
+          hint: 'Show all prediction tests',
+          active: status === 'all',
+          onSelect: () =>
+            setFilters((current) => ({ ...current, status: 'all' })),
+        },
+        {
+          id: 'pending',
+          label: 'Awaiting Finance',
+          value: countFor(
+            'pending',
+            tests.filter((test) => test.status === 'pending').length,
+          ),
+          icon: Hourglass,
+          caption: 'Payment not yet approved',
+          hint: 'Show tests awaiting payment approval',
+          active: status === 'pending',
+          onSelect: () =>
+            setFilters((current) => ({ ...current, status: 'pending' })),
+        },
+        {
+          id: 'approved',
+          label: 'Approved',
+          value: countFor(
+            'approved',
+            tests.filter((test) => test.status === 'approved').length,
+          ),
+          icon: CircleCheck,
+          caption: 'Payment confirmed',
+          hint: 'Show tests with approved payment',
+          active: status === 'approved',
+          onSelect: () =>
+            setFilters((current) => ({ ...current, status: 'approved' })),
+        },
+      ]
 
   function openCreate() {
     void navigate({ to: '/prediction-tests/new' })
@@ -93,31 +209,35 @@ export default function PredictionTestListPage() {
   )
 
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Prediction Tests
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              {isAcademicLeader
-                ? 'Review prediction test scores.'
-                : isTutorReviewer
-                  ? 'Review prediction tests, and General English Pre-Test students assigned to you.'
-                  : 'Review prediction test results and payments.'}
-            </p>
-          </div>
-          <Can module="predictionTests" action="add">
-            <Button
-              onClick={openCreate}
-              className="rounded-full bg-slate-900 px-4 text-white hover:bg-slate-800"
-            >
-              <Plus className="size-4" />
-              Add Prediction Test
-            </Button>
-          </Can>
-        </div>
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Leads"
+          title="Prediction Tests"
+          description={
+            isAcademicLeader
+              ? 'Review prediction test scores.'
+              : isTutorReviewer
+                ? 'Review prediction tests, and General English Pre-Test students assigned to you.'
+                : 'Placement test scores and test fees for each prospective student, from booking to Finance approval.'
+          }
+          theme="dawn"
+          pattern="dots"
+          stats={heroStats}
+          spotlight={
+            <Can module="predictionTests" action="add">
+              <HeroSpotlight
+                title="Book a prediction test"
+                description="Pick the student and record the fee. Scores can wait until they finish."
+                actions={
+                  <HeroPillButton icon={Plus} onClick={openCreate}>
+                    Add prediction test
+                  </HeroPillButton>
+                }
+              />
+            </Can>
+          }
+        />
 
         {testsQuery.isLoading ? <PredictionTestListLoadingState /> : null}
 
@@ -133,17 +253,32 @@ export default function PredictionTestListPage() {
         {testsQuery.isSuccess ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
             <DataTable
-              title="Tests"
-              description="Search and manage prediction test records."
+              variant="soft"
+              title={hidePayment ? 'Test Records' : 'Test & Payment Records'}
+              description={
+                hidePayment
+                  ? 'Find a student and open their test to review scores.'
+                  : 'Find a student, check their scores and payment, or select rows to update payment status together.'
+              }
               totalLabel="tests"
               columns={listColumns}
-              data={testsQuery.data.data}
+              data={tests}
               searchPlaceholder="Search by student name..."
               searchVariant="pill"
               globalFilterFn={filterPredictionTest}
               initialPageSize={10}
-              emptyMessage="No prediction tests found"
-              enableRowSelection={canBulkUpdateStatus}
+              emptyMessage={
+                (!hidePayment && status !== 'all') ||
+                (!hideCounsellorFilter && filters.counsellorId)
+                  ? 'No prediction tests match these filters'
+                  : 'No prediction tests yet'
+              }
+              enableRowSelection={
+                canBulkUpdateStatus &&
+                (canEditApprovedPayment ||
+                  ((row: Row<PredictionTestListItem>) =>
+                    row.original.status !== 'approved'))
+              }
               getRowId={(row) => row.id}
               selectionToolbar={(ctx) => <PredictionTestBulkStatusBar {...ctx} />}
               toolbarFilters={listFilters}

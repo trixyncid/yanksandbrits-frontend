@@ -22,6 +22,8 @@ function mapStaff(user: UserListItem): StaffListItem {
     email: user.email,
     gender: user.gender,
     position: deriveStaffPosition(user),
+    roles: user.roles.map((role) => ({ code: role.code, name: role.name })),
+    isSuperuser: user.isSuperuser,
     isActive: user.isActive,
     isStudent: user.isStudent,
     studentId: user.studentId,

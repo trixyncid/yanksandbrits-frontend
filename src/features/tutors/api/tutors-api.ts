@@ -37,6 +37,7 @@ function mapTutor(
     dateJoined: user.dateJoined,
     paidLeaveLeft: user.paidLeaveLeft,
     hasWorkingSchedule: scheduleTutorIds.has(user.id),
+    employmentType: user.employmentType,
   }
 }
 

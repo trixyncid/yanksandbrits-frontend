@@ -6,12 +6,27 @@ import {
   startOfDay,
   startOfMonth,
 } from 'date-fns'
+import {
+  CalendarCheck2,
+  CalendarDays,
+  CalendarRange,
+  Clock3,
+  DoorOpen,
+  Building2,
+  MousePointerClick,
+  Timer,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
   TimetableColumn,
   TimetableEvent,
 } from '../../../shared/components/timetable'
+import {
+  EmptyState,
+  ListErrorState,
+  PageHero,
+} from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { Select } from '../../../shared/components/ui/select'
 import { AdminShell } from '../../admin/components/admin-shell'
@@ -44,6 +59,7 @@ import {
 import { useTutorDayScheduleQuery } from '../hooks/use-tutor-day-schedule-query'
 import { useTutorScheduleRangeQuery } from '../hooks/use-tutor-schedule-range-query'
 import type { TutorDaySession } from '../lib/map-tutor-day-sessions'
+import { TutorSwitchRequestsPanel } from '../../schedules/components/tutor-switch-requests-panel'
 
 function tutorSessionToTimetableEvent(
   session: TutorDaySession,
@@ -130,6 +146,21 @@ export default function FullSchedulePage() {
     [tutorSessions, selectedDate, monthSessions],
   )
   const viewingToday = isSameDay(selectedDate, startOfDay(new Date()))
+  const tutorDayLoading =
+    tutorScheduleQuery.isLoading || tutorScheduleQuery.isFetching
+  const staffDayReady =
+    Boolean(branchId) &&
+    staffScheduleQuery.isSuccess &&
+    !staffScheduleQuery.isFetching
+  const roomsInUse = new Set(dayEvents.map((event) => event.classroomId)).size
+  const hoursBooked =
+    Math.round(
+      dayEvents.reduce((total, event) => total + event.durationHours, 0) * 10,
+    ) / 10
+  const monthBooked = monthSessions.filter(
+    (session) => session.status !== 'cancelled',
+  ).length
+  const nextSession = viewingToday ? upcomingSessions[0] : undefined
 
   function openTutorSession(session: TutorDaySession) {
     if (session.dateKey && session.dateKey !== dateKey) {
@@ -178,50 +209,56 @@ export default function FullSchedulePage() {
 
   if (isTutor) {
     return (
-      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <AdminShell mainClassName="px-3 pb-6 sm:px-5">
         <ScheduleFormDialog
           context={scheduleDialog.context}
           onOpenChange={scheduleDialog.setOpen}
         />
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-                My Schedule
-              </h1>
-              <p className="mt-1 max-w-xl text-sm text-slate-500">
-                Pick a day, scan upcoming classes, and read the day as a
-                timeline.
-              </p>
-              <p className="mt-2 text-xs text-slate-400 sm:text-sm">
-                Showing{' '}
-                <span className="font-semibold text-slate-600">
-                  {format(selectedDate, 'EEEE, d MMM yyyy')}
-                </span>
-                {!tutorScheduleQuery.isLoading &&
-                !tutorScheduleQuery.isFetching ? (
-                  <>
-                    {' '}
-                    ·{' '}
-                    <span className="font-semibold tabular-nums text-slate-600">
-                      {tutorSessions.length} session
-                      {tutorSessions.length === 1 ? '' : 's'}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-            </div>
-            {!viewingToday ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => selectDate(new Date())}
-                className="shadow-sm"
-              >
-                Jump to today
-              </Button>
-            ) : null}
-          </div>
+        <div className="space-y-3">
+          <PageHero
+            eyebrow="Teaching"
+            title="My Schedule"
+            description="Pick a day on the calendar to see your classes, then follow the day on the timeline."
+            theme="sky"
+            pattern="grid"
+            actions={
+              !viewingToday ? (
+                <Button variant="ink" onClick={() => selectDate(new Date())}>
+                  <CalendarCheck2 className="size-4" />
+                  Jump to today
+                </Button>
+              ) : null
+            }
+            stats={[
+              {
+                id: 'day',
+                label: viewingToday ? 'Today' : format(selectedDate, 'EEE d MMM'),
+                value: tutorDayLoading ? '–' : tutorSessions.length,
+                icon: CalendarDays,
+                caption: `Session${tutorSessions.length === 1 ? '' : 's'} on this day`,
+                hint: 'Jump to the day timeline',
+                onSelect: scrollToTimeline,
+              },
+              {
+                id: 'month',
+                label: format(visibleMonth, 'MMMM'),
+                value: monthRangeQuery.isLoading ? '–' : monthBooked,
+                icon: CalendarRange,
+                caption: 'Sessions this month',
+              },
+              {
+                id: 'next',
+                label: 'Next class',
+                value: nextSession ? nextSession.startTimeLabel : '–',
+                icon: Clock3,
+                caption: nextSession
+                  ? nextSession.title
+                  : viewingToday
+                    ? 'Nothing else today'
+                    : 'Shown when viewing today',
+              },
+            ]}
+          />
 
           <div className="space-y-4">
             <div className="grid gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
@@ -256,10 +293,10 @@ export default function FullSchedulePage() {
               >
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-base font-bold text-slate-900">
+                    <p className="text-base font-bold text-ink">
                       Day timeline
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-400">
+                    <p className="mt-0.5 text-sm text-slate-500">
                       {format(selectedDate, 'EEEE, d MMM')}
                       {!tutorScheduleQuery.isLoading &&
                       !tutorScheduleQuery.isFetching ? (
@@ -275,15 +312,17 @@ export default function FullSchedulePage() {
                   </div>
                 </div>
 
-                {tutorScheduleQuery.isLoading ||
-                tutorScheduleQuery.isFetching ? (
-                  <p className="py-14 text-center text-sm text-slate-500">
-                    Loading your schedule…
-                  </p>
+                {tutorDayLoading ? (
+                  <div className="space-y-2 py-4" aria-busy="true">
+                    <div className="h-10 animate-pulse rounded-full bg-canvas" />
+                    <div className="h-24 animate-pulse rounded-3xl bg-canvas/70" />
+                  </div>
                 ) : tutorScheduleQuery.isError ? (
-                  <p className="py-14 text-center text-sm text-rose-600">
-                    Unable to load your schedule. Please try another day.
-                  </p>
+                  <ListErrorState
+                    title="Unable to load your schedule"
+                    description="Something went wrong while fetching this day. Try again or pick another day."
+                    onRetry={() => void tutorScheduleQuery.refetch()}
+                  />
                 ) : (
                   <TutorDayTimeline
                     sessions={tutorSessions}
@@ -304,31 +343,26 @@ export default function FullSchedulePage() {
   }
 
   return (
-    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+    <AdminShell mainClassName="px-3 pb-6 sm:px-5">
       <ScheduleFormDialog
         context={scheduleDialog.context}
         onOpenChange={scheduleDialog.setOpen}
       />
-      <div className="animate-in fade-in slide-in-from-bottom-2 space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-              Full Schedule
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              See which classrooms are free by time for{' '}
-              <span className="font-semibold text-slate-700">{branchLabel}</span>.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className="space-y-3">
+        <PageHero
+          eyebrow="Academics"
+          title="Full Schedule"
+          description={`See which classrooms at ${branchLabel} are free, hour by hour.`}
+          theme="sky"
+          pattern="grid"
+          actions={
             <Select
               value={branchId}
               aria-label="Select branch"
               disabled={branchesQuery.isLoading || branches.length === 0}
               onChange={(event) => setBranchId(event.target.value)}
               containerClassName="w-full sm:min-w-56 sm:w-auto"
-              className="h-10 min-w-0 rounded-full border-slate-200 bg-white py-1.5"
+              className="h-11 min-w-0 rounded-full border-transparent bg-white py-1.5 font-semibold text-ink shadow-sm"
             >
               {branches.length === 0 ? (
                 <option value="">Loading branches…</option>
@@ -340,64 +374,128 @@ export default function FullSchedulePage() {
                 ))
               )}
             </Select>
-          </div>
-        </div>
-
-        <AdminWeekToolbar
-          selectedDate={selectedDate}
-          onDateChange={selectDate}
-          canAdd={schedulePerms.canAdd && Boolean(branchId)}
-          onAdd={() =>
-            openStaffCreate(
-              classrooms[0] ?? { id: '', label: 'classroom' },
-              9,
-              10,
-            )
           }
+          stats={[
+            {
+              id: 'sessions',
+              label: viewingToday ? 'Sessions today' : 'Sessions',
+              value: staffDayReady ? dayEvents.length : '–',
+              icon: CalendarDays,
+              caption: format(selectedDate, 'EEEE, d MMM'),
+            },
+            {
+              id: 'rooms',
+              label: 'Rooms in use',
+              value: staffDayReady
+                ? `${roomsInUse}/${classrooms.length}`
+                : '–',
+              icon: DoorOpen,
+              caption: staffDayReady
+                ? `${Math.max(classrooms.length - roomsInUse, 0)} free all day`
+                : undefined,
+            },
+            {
+              id: 'hours',
+              label: 'Hours booked',
+              value: staffDayReady ? hoursBooked : '–',
+              icon: Timer,
+              caption: 'Across every room',
+            },
+          ]}
         />
 
-        {!branchId ? (
-          <p className="rounded-2xl border border-slate-200 bg-white py-14 text-center text-sm text-slate-500">
-            Select a branch to view the schedule.
-          </p>
-        ) : staffScheduleQuery.isLoading || staffScheduleQuery.isFetching ? (
-          <p className="rounded-2xl border border-slate-200 bg-white py-14 text-center text-sm text-slate-500">
-            Loading schedule…
-          </p>
-        ) : staffScheduleQuery.isError ? (
-          <p className="rounded-2xl border border-slate-200 bg-white py-14 text-center text-sm text-rose-600">
-            Unable to load schedule. Please try another branch or day.
-          </p>
-        ) : classrooms.length === 0 ? (
-          <p className="rounded-2xl border border-slate-200 bg-white py-14 text-center text-sm text-slate-500">
-            No classrooms found for this branch. Add classrooms to start
-            scheduling sessions.
-          </p>
-        ) : (
-          <AdminWeekCalendar
-            dateKey={dateKey}
-            classrooms={classrooms}
-            events={dayEvents}
-            onEventClick={
-              schedulePerms.canChange
-                ? (event) => {
-                    if (!branchId) return
-                    scheduleDialog.openEdit({
-                      scheduleId: event.id,
-                      branchId,
-                      event: weekEventToTimetableEvent(event),
-                    })
-                  }
-                : undefined
-            }
-            onSlotSelect={
-              schedulePerms.canAdd
-                ? (classroom, startHour, endHour) =>
-                    openStaffCreate(classroom, startHour, endHour)
-                : undefined
+        <TutorSwitchRequestsPanel />
+
+        <section className="animate-in fade-in slide-in-from-bottom-2 space-y-4 rounded-[1.75rem] bg-white p-3 sm:p-5">
+          <AdminWeekToolbar
+            selectedDate={selectedDate}
+            onDateChange={selectDate}
+            canAdd={schedulePerms.canAdd && Boolean(branchId)}
+            onAdd={() =>
+              openStaffCreate(
+                classrooms[0] ?? { id: '', label: 'classroom' },
+                9,
+                10,
+              )
             }
           />
-        )}
+
+          {!branchId ? (
+            <EmptyState
+              icon={Building2}
+              title="Choose a branch"
+              description="Pick a branch at the top to see its classrooms and sessions."
+              className="bg-canvas"
+            />
+          ) : staffScheduleQuery.isLoading || staffScheduleQuery.isFetching ? (
+            <div
+              className="grid grid-cols-[4.5rem_repeat(3,minmax(0,1fr))] gap-2"
+              aria-busy="true"
+              aria-label="Loading schedule"
+            >
+              {Array.from({ length: 24 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={
+                    index % 4 === 0
+                      ? 'h-14 animate-pulse rounded-2xl bg-canvas/60'
+                      : 'h-14 animate-pulse rounded-2xl bg-canvas'
+                  }
+                  style={{ animationDelay: `${index * 25}ms` }}
+                />
+              ))}
+            </div>
+          ) : staffScheduleQuery.isError ? (
+            <ListErrorState
+              title="Unable to load the schedule"
+              description="Something went wrong while fetching this day. Try again, or pick another branch or day."
+              onRetry={() => void staffScheduleQuery.refetch()}
+            />
+          ) : classrooms.length === 0 ? (
+            <EmptyState
+              icon={DoorOpen}
+              title="No classrooms at this branch yet"
+              description="Add classrooms for this branch to start booking sessions."
+              className="bg-canvas"
+            />
+          ) : (
+            <>
+              <AdminWeekCalendar
+                dateKey={dateKey}
+                classrooms={classrooms}
+                events={dayEvents}
+                onEventClick={
+                  schedulePerms.canChange
+                    ? (event) => {
+                        if (!branchId) return
+                        scheduleDialog.openEdit({
+                          scheduleId: event.id,
+                          branchId,
+                          event: weekEventToTimetableEvent(event),
+                        })
+                      }
+                    : undefined
+                }
+                onSlotSelect={
+                  schedulePerms.canAdd
+                    ? (classroom, startHour, endHour) =>
+                        openStaffCreate(classroom, startHour, endHour)
+                    : undefined
+                }
+              />
+              {schedulePerms.canAdd || schedulePerms.canChange ? (
+                <p className="flex items-center gap-1.5 px-1 text-xs text-slate-500">
+                  <MousePointerClick className="size-3.5 shrink-0" />
+                  {schedulePerms.canAdd && schedulePerms.canChange
+                    ? 'Drag down an empty column to book a room, or click a session to change it.'
+                    : schedulePerms.canAdd
+                      ? 'Drag down an empty column to book a room.'
+                      : 'Click a session to change it.'}
+                </p>
+              ) : null}
+            </>
+          )}
+        </section>
       </div>
     </AdminShell>
   )

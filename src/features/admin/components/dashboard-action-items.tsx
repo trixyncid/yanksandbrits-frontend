@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
   AlertTriangle,
-  ArrowRight,
+  ArrowUpRight,
+  BellRing,
   CalendarClock,
   CheckCircle2,
   CreditCard,
@@ -10,6 +11,7 @@ import {
 
 import { cn } from '../../../shared/lib/cn'
 import type { DashboardMetrics } from '../types/dashboard'
+import { DashboardCardHeader, DashboardPanel } from './dashboard-section'
 
 type ActionItem = {
   id: string
@@ -21,49 +23,47 @@ type ActionItem = {
   to: '/student-payments' | '/prospective-students' | '/paid-leaves'
 }
 
-const toneStyles = {
-  amber: {
-    card: 'border-amber-200/80 bg-amber-50 text-amber-950',
-    icon: 'bg-amber-100 text-amber-700',
-    count: 'text-[#9A3412]',
-  },
-  rose: {
-    card: 'border-rose-200/80 bg-rose-50 text-rose-950',
-    icon: 'bg-rose-100 text-rose-700',
-    count: 'text-[#6E2433]',
-  },
-  blue: {
-    card: 'border-[#D8E6FA] bg-[#F5F9FF] text-[#1B2A5A]',
-    icon: 'bg-white text-[#1B2A5A]',
-    count: 'text-[#1B2A5A]',
-  },
+const toneDot = {
+  amber: 'bg-amber-300 text-ink',
+  rose: 'bg-rose-300 text-ink',
+  blue: 'bg-brand-300 text-ink',
 }
 
-export function DashboardActionItems({ metrics }: { metrics: DashboardMetrics }) {
+/**
+ * The dashboard's one dark card: things someone should act on today, each a
+ * rounded tile with a round arrow that opens the right list.
+ */
+export function DashboardActionItems({
+  metrics,
+  className,
+}: {
+  metrics: DashboardMetrics
+  className?: string
+}) {
   const items = [
     {
       id: 'payments',
-      label: 'Pending payments',
+      label: 'Payments to approve',
       count: metrics.actions.pendingPayments,
-      detail: 'Awaiting approval',
+      detail: 'Waiting for a manager to approve',
       icon: <CreditCard className="size-4" />,
       tone: 'amber',
       to: '/student-payments',
     },
     {
       id: 'prospects',
-      label: 'Stale prospects',
+      label: 'Leads going cold',
       count: metrics.actions.staleProspects,
-      detail: 'No movement in 14+ days',
+      detail: 'No update in 14 days or more',
       icon: <AlertTriangle className="size-4" />,
       tone: 'rose',
       to: '/prospective-students',
     },
     {
       id: 'leave',
-      label: 'Pending leave',
+      label: 'Leave requests',
       count: metrics.actions.pendingLeave,
-      detail: 'Staff leave requests',
+      detail: 'Staff time off waiting for a reply',
       icon: <CalendarClock className="size-4" />,
       tone: 'blue',
       to: '/paid-leaves',
@@ -71,57 +71,76 @@ export function DashboardActionItems({ metrics }: { metrics: DashboardMetrics })
   ] satisfies ActionItem[]
 
   const visibleItems = items.filter((item) => item.count > 0)
-
-  if (visibleItems.length === 0) {
-    return (
-      <div className="flex items-start gap-2.5 rounded-xl border border-[#CFE9DC] bg-[#F4FBF7] px-3 py-2.5">
-        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#3D9B6E]" />
-        <div>
-          <p className="text-sm font-semibold text-[#1F5A3D]">
-            You&apos;re all caught up
-          </p>
-          <p className="mt-0.5 text-xs text-[#2F6B4C]">
-            No pending payments, stale prospects, or leave requests right now.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  const total = visibleItems.reduce((sum, item) => sum + item.count, 0)
 
   return (
-    <div className="grid items-stretch gap-2 md:grid-cols-3">
-      {visibleItems.map((item) => (
-        <Link
-          key={item.id}
-          to={item.to}
-          className={cn(
-            'group flex h-full flex-col rounded-xl border px-3 py-3 transition hover:-translate-y-0.5',
-            toneStyles[item.tone].card,
-          )}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div
-              className={cn(
-                'inline-flex size-7 items-center justify-center rounded-md',
-                toneStyles[item.tone].icon,
-              )}
-            >
-              {item.icon}
+    <DashboardPanel variant="dark" className={cn('relative overflow-hidden', className)}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-brand-500/30 blur-3xl"
+      />
+      <div className="relative flex h-full flex-col">
+        <DashboardCardHeader
+          inverted
+          title="Needs attention"
+          description="Open items across payments, leads and leave."
+          icon={<BellRing className="size-4" />}
+        />
+
+        <p className="text-5xl leading-none font-bold tracking-tight tabular-nums">
+          {total}
+        </p>
+        <p className="mt-1 text-xs text-white/60">
+          {total === 1 ? 'item is' : 'items are'} waiting on someone
+        </p>
+
+        {visibleItems.length === 0 ? (
+          <div className="mt-5 flex flex-1 items-start gap-3 rounded-3xl bg-white/8 px-4 py-4">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-ink">
+              <CheckCircle2 className="size-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">You&apos;re all caught up</p>
+              <p className="mt-0.5 text-xs text-white/60">
+                No payments, cold leads or leave requests are waiting.
+              </p>
             </div>
-            <ArrowRight className="size-3.5 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
           </div>
-          <p className="mt-2.5 text-sm font-semibold">{item.label}</p>
-          <p
-            className={cn(
-              'mt-0.5 text-2xl font-bold tabular-nums',
-              toneStyles[item.tone].count,
-            )}
-          >
-            {item.count}
-          </p>
-          <p className="mt-0.5 text-[11px] opacity-80">{item.detail}</p>
-        </Link>
-      ))}
-    </div>
+        ) : (
+          <ul className="mt-5 flex flex-1 flex-col gap-2">
+            {visibleItems.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center gap-3 rounded-3xl bg-white/8 py-2.5 pr-2.5 pl-3 transition hover:bg-white/12"
+              >
+                <span
+                  className={cn(
+                    'inline-flex size-9 shrink-0 items-center justify-center rounded-full',
+                    toneDot[item.tone],
+                  )}
+                >
+                  {item.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{item.label}</p>
+                  <p className="truncate text-[11px] text-white/55">
+                    {item.detail}
+                  </p>
+                </div>
+                <span className="text-xl font-bold tabular-nums">{item.count}</span>
+                <Link
+                  to={item.to}
+                  aria-label={`Open ${item.label.toLowerCase()}`}
+                  title={`Open ${item.label.toLowerCase()}`}
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-ink transition hover:-translate-y-0.5 hover:bg-brand-300"
+                >
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </DashboardPanel>
   )
 }

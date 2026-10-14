@@ -62,12 +62,15 @@ export function PredictionTestBulkStatusBar({
   }
 
   return (
-    <div className="flex flex-col gap-2 border-b border-slate-100 bg-[#F5F8FF] px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <p className="text-sm font-medium text-slate-700">
-        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#253CA1] px-1.5 py-0.5 text-[11px] font-bold text-white">
+    <div className="mx-3 mb-2 flex flex-col gap-2 rounded-3xl bg-ink px-4 py-3 text-white sm:mx-5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-ink">
           {selectedCount}
-        </span>{' '}
-        selected for bulk update
+        </span>
+        <span>
+          {selectedCount === 1 ? 'test' : 'tests'} selected · change their
+          payment status in one go
+        </span>
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Select
@@ -76,7 +79,7 @@ export function PredictionTestBulkStatusBar({
             setStatus(event.target.value as PredictionTestStatus | '')
           }
           containerClassName="w-full sm:w-[180px]"
-          className="rounded-full border-slate-200 bg-white shadow-sm"
+          className="h-9 rounded-full border-transparent bg-white text-ink"
           aria-label="Bulk status"
           disabled={isSubmitting}
         >
@@ -94,16 +97,17 @@ export function PredictionTestBulkStatusBar({
             disabled={!status || isSubmitting}
             onClick={() => void handleApply()}
           >
-            {isSubmitting ? 'Updating…' : 'Apply'}
+            {isSubmitting ? 'Updating…' : 'Apply status'}
           </Button>
           <Button
             type="button"
             size="sm"
-            variant="secondary"
+            variant="ghost"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
             disabled={isSubmitting}
             onClick={clearSelection}
           >
-            Clear
+            Clear selection
           </Button>
         </div>
       </div>

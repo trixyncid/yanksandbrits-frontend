@@ -46,9 +46,9 @@ export function DataTableColumnHeader<TData, TValue>({
     >
       <span>{title}</span>
       {sorted === 'asc' ? (
-        <ArrowUp className="size-3.5 text-[#253CA1]" />
+        <ArrowUp className="size-3.5 text-brand-500" />
       ) : sorted === 'desc' ? (
-        <ArrowDown className="size-3.5 text-[#253CA1]" />
+        <ArrowDown className="size-3.5 text-brand-500" />
       ) : (
         <ArrowUpDown className="size-3.5 opacity-50" />
       )}

@@ -12,6 +12,7 @@ import {
   bookkeepingQueryKeys,
   type BookkeepingListFilters,
 } from '../api/bookkeeping-query-keys'
+import { fetchBookkeepingStaffSalaries } from '../api/staff-salary-api'
 
 export function useBookkeepingQuery(filters: BookkeepingListFilters = {}) {
   return useQuery({
@@ -32,6 +33,14 @@ export function useBookkeepingTutorSalariesQuery(id: string) {
   return useQuery({
     queryKey: bookkeepingQueryKeys.tutorSalaries(id),
     queryFn: () => fetchBookkeepingTutorSalaries(id),
+    enabled: Boolean(id),
+  })
+}
+
+export function useBookkeepingStaffSalariesQuery(id: string) {
+  return useQuery({
+    queryKey: bookkeepingQueryKeys.staffSalaries(id),
+    queryFn: () => fetchBookkeepingStaffSalaries(id),
     enabled: Boolean(id),
   })
 }

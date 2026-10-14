@@ -1,8 +1,13 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Inbox } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import {
+  EmptyState,
+  ListLoadingState,
+  PageHeader,
+} from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -12,10 +17,14 @@ import {
   prospectiveStudentToFormValues,
 } from '../api/prospective-students-api'
 import { prospectiveStudentQueryKeys } from '../api/prospective-student-query-keys'
+import { LeadStatusPill } from '../components/lead-status-pill'
 import { ProspectiveStudentForm } from '../components/prospective-student-form'
 import { useProspectiveStudentForm } from '../hooks/use-prospective-student-form'
 import { useProspectiveStudentQuery } from '../hooks/use-prospective-student-query'
-import type { ProspectiveStudentFormValues } from '../types/prospective-student'
+import type {
+  ProspectiveStudentFormValues,
+  ProspectiveStudentStatus,
+} from '../types/prospective-student'
 
 export default function ProspectiveStudentEditPage() {
   const navigate = useNavigate()
@@ -27,11 +36,8 @@ export default function ProspectiveStudentEditPage() {
   if (studentQuery.isLoading) {
     return (
       <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-[#E8EEFF]" />
-          <p className="mt-4 text-sm text-slate-500">
-            Loading prospective student...
-          </p>
+        <div className="mx-auto max-w-6xl">
+          <ListLoadingState rows={6} />
         </div>
       </AdminShell>
     )
@@ -40,25 +46,31 @@ export default function ProspectiveStudentEditPage() {
   if (studentQuery.isError || !studentQuery.data) {
     return (
       <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-[#E8EEFF] text-[#253CA1]">
-            <Pencil className="size-6" />
-          </div>
-          <h2 className="mt-4 text-2xl font-bold text-slate-900">
-            Prospective student not found
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This lead may have been removed or the link is invalid.
-          </p>
-          <Button
-            className="mt-6"
-            variant="secondary"
-            size="sm"
-            onClick={() => void navigate({ to: '/prospective-students' })}
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to prospective students
-          </Button>
+        <div className="mx-auto max-w-2xl">
+          <EmptyState
+            icon={Inbox}
+            title="Lead not found"
+            description="This student response may have been removed or the link is out of date."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button
+                  variant="ink"
+                  onClick={() => void navigate({ to: '/prospective-students' })}
+                >
+                  <ArrowLeft className="size-4" />
+                  Back to student responses
+                </Button>
+                {studentQuery.isError ? (
+                  <Button
+                    variant="soft"
+                    onClick={() => void studentQuery.refetch()}
+                  >
+                    Try again
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
         </div>
       </AdminShell>
     )
@@ -70,6 +82,7 @@ export default function ProspectiveStudentEditPage() {
     <ProspectiveStudentEditForm
       prospectiveStudentId={student.id}
       fullName={student.fullName}
+      status={student.status}
       initialValues={prospectiveStudentToFormValues(student)}
       meta={{
         createdAt: student.createdAt,
@@ -83,11 +96,13 @@ export default function ProspectiveStudentEditPage() {
 function ProspectiveStudentEditForm({
   prospectiveStudentId,
   fullName,
+  status,
   initialValues,
   meta,
 }: {
   prospectiveStudentId: string
   fullName: string
+  status: ProspectiveStudentStatus
   initialValues: ProspectiveStudentFormValues
   meta: { createdAt: string; updatedAt: string; branch: string }
 }) {
@@ -101,8 +116,9 @@ function ProspectiveStudentEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete prospective student?',
-      description: `This will permanently remove ${fullName}. This action cannot be undone.`,
+      title: `Delete ${fullName}?`,
+      description: `This permanently removes the lead for ${fullName}, including their contact and consult details. This cannot be undone.`,
+      confirmLabel: 'Delete lead',
       onConfirm: () => {
         void deleteProspectiveStudent(prospectiveStudentId)
           .then(async () => {
@@ -110,14 +126,14 @@ function ProspectiveStudentEditForm({
               queryKey: prospectiveStudentQueryKeys.all,
             })
             notify('success', {
-              title: 'Prospective student deleted',
+              title: 'Lead deleted',
               description: `${fullName} has been removed.`,
             })
             void navigate({ to: '/prospective-students' })
           })
           .catch((error) => {
             notify('error', {
-              title: 'Unable to delete prospective student',
+              title: 'Unable to delete lead',
               description: getApiErrorMessage(error),
             })
           })
@@ -127,28 +143,21 @@ function ProspectiveStudentEditForm({
 
   return (
     <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/prospective-students"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Prospective Students
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Update Prospective Student
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Edit lead details for{' '}
-              <span className="font-semibold text-slate-700">{fullName}</span>.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/prospective-students"
+          backLabel="Student Responses"
+          title={fullName}
+          description={
+            meta.branch && meta.branch !== '—'
+              ? `Editing lead · ${meta.branch}`
+              : 'Editing lead'
+          }
+          icon={Inbox}
+          theme="sky"
+          pattern="ribbons"
+          badge={<LeadStatusPill status={status} className="bg-white" />}
+        />
 
         <ProspectiveStudentForm
           mode="edit"

@@ -12,12 +12,12 @@ import { AdminWeekEventCard } from './admin-week-event-card'
 
 /** Weekday office open (9am). */
 const START_HOUR = 9
-/** Buffer after weekday office close (8pm) so 9pm stays visible. */
-const END_HOUR = 21
+/** Weekday office close (8pm). The last row is 7pm to 8pm. */
+const END_HOUR = 20
 const ROW_HEIGHT = 64
 /** Keeps the 9am label clear of the sticky header / overflow clip. */
 const TOP_PAD = 12
-/** Extra space under the 9pm marker so overflow scroll does not clip it. */
+/** Extra space under the 8pm marker so overflow scroll does not clip it. */
 const BOTTOM_PAD = 24
 const TIME_COL_WIDTH = 72
 const HEADER_HEIGHT = 52
@@ -168,7 +168,7 @@ export function AdminWeekCalendar({
   return (
     <div
       className={cn(
-        'overflow-auto overscroll-contain rounded-2xl border border-[#C8D4F5] bg-[linear-gradient(180deg,#F5F8FF_0%,#EEF2FF_45%,#F8FAFF_100%)] shadow-sm shadow-[#253CA1]/6',
+        'overflow-auto overscroll-contain rounded-3xl bg-canvas/70 ring-1 ring-brand-100',
         className,
       )}
       style={{ maxHeight: '78vh' }}
@@ -178,25 +178,25 @@ export function AdminWeekCalendar({
         style={{ minWidth: TIME_COL_WIDTH + columnCount * COLUMN_MIN_WIDTH }}
       >
         <div
-          className="sticky top-0 z-20 grid border-b border-[#C8D4F5] bg-[linear-gradient(180deg,#E8EEFF_0%,#F5F8FF_100%)]"
+          className="sticky top-0 z-20 grid border-b border-brand-100 bg-brand-50/95 backdrop-blur"
           style={{
             gridTemplateColumns,
             height: HEADER_HEIGHT,
           }}
         >
-          <div className="border-r border-[#D6DFF5]" />
+          <div className="border-r border-brand-100" />
           {classrooms.length === 0 ? (
-            <div className="flex items-center justify-center px-3 text-sm text-[#253CA1]/55">
+            <div className="flex items-center justify-center px-3 text-sm text-brand-500/55">
               No classrooms
             </div>
           ) : (
             classrooms.map((classroom) => (
               <div
                 key={classroom.id}
-                className="flex items-center justify-center border-r border-[#D6DFF5] px-2 last:border-r-0"
+                className="flex items-center justify-center border-r border-brand-100 px-2 last:border-r-0"
               >
                 <span
-                  className="truncate text-sm font-semibold text-[#1B2A5A]"
+                  className="inline-flex max-w-full items-center truncate rounded-full bg-white px-3 py-1 text-xs font-bold text-ink shadow-sm"
                   title={classroom.label}
                 >
                   {classroom.label}
@@ -213,15 +213,15 @@ export function AdminWeekCalendar({
             height: bodyHeight,
           }}
         >
-          <div className="relative border-r border-[#D6DFF5] bg-[#F5F8FF]/80">
+          <div className="relative border-r border-brand-100 bg-white/70">
             {hourLabels.map((hour) => (
               <div
                 key={hour}
                 className={cn(
                   'absolute right-2 text-[11px] font-semibold tabular-nums',
                   hour === END_HOUR || hour === START_HOUR
-                    ? 'text-[#253CA1]'
-                    : 'text-[#253CA1]/55',
+                    ? 'text-brand-500'
+                    : 'text-brand-500/55',
                 )}
                 style={{
                   top: hourOffsetTop(hour) - 7,
@@ -232,7 +232,7 @@ export function AdminWeekCalendar({
             ))}
             {nowVisible ? (
               <div
-                className="absolute right-2 z-10 -translate-y-1/2 rounded bg-[#F5F8FF] px-0.5 text-[10px] font-semibold text-rose-500"
+                className="absolute right-1.5 z-10 -translate-y-1/2 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
                 style={{ top: nowTop }}
               >
                 {formatHourLabel(now.hourFraction)}
@@ -248,12 +248,12 @@ export function AdminWeekCalendar({
             return (
               <div
                 key={classroom.id}
-                className="relative border-r border-[#D6DFF5] bg-white/55 last:border-r-0"
+                className="relative border-r border-brand-100 bg-white/80 last:border-r-0"
               >
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="absolute inset-x-0 border-t border-[#E0E7F8] hover:bg-[rgba(37,60,161,0.04)]"
+                    className="absolute inset-x-0 border-t border-brand-100/70 hover:bg-brand-500/5"
                     style={{
                       top: hourOffsetTop(hour),
                       height: ROW_HEIGHT,
@@ -270,9 +270,9 @@ export function AdminWeekCalendar({
                   />
                 ))}
 
-                {/* Soft end-of-day band after office close so 9pm has breathing room */}
+                {/* Soft end-of-day band after office close so 8pm has breathing room */}
                 <div
-                  className="pointer-events-none absolute inset-x-0 border-t border-dashed border-[#C8D4F5]/80 bg-[#E8EEFF]/35"
+                  className="pointer-events-none absolute inset-x-0 border-t border-dashed border-brand-200/80 bg-brand-100/35"
                   style={{
                     top: TOP_PAD + gridHeight,
                     height: BOTTOM_PAD,
@@ -281,7 +281,7 @@ export function AdminWeekCalendar({
 
                 {columnDrag ? (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-[5] rounded-lg bg-[#253CA1]/12 ring-1 ring-[#253CA1]/25"
+                    className="pointer-events-none absolute inset-x-1 z-[5] rounded-2xl bg-brand-500/12 ring-2 ring-brand-500/30"
                     style={{
                       top: hourOffsetTop(columnDrag.startHour) + 2,
                       height:

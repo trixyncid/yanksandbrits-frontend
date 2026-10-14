@@ -1,6 +1,7 @@
-import { CalendarDays, ChevronDown } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 
 import { cn } from '../../../shared/lib/cn'
+import { DropdownSelect } from '../../../shared/components/ui/dropdown-select'
 import { Select } from '../../../shared/components/ui/select'
 import type { BookkeepingListItem } from '../types/bookkeeping'
 
@@ -54,37 +55,23 @@ function PillPeriodSelect({
   openPeriodLabel: string
 }) {
   return (
-    <div className={cn('relative inline-flex max-w-full', className)}>
-      <CalendarDays
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2 text-slate-700"
-      />
-      <select
-        aria-label="Bookkeeping period"
-        value={value}
-        disabled={disabled}
-        onChange={(event) =>
-          onChange(event.target.value as BookkeepingPeriodValue)
-        }
-        className={cn(
-          'h-10 max-w-[min(100vw-2rem,20rem)] appearance-none truncate rounded-full border border-slate-200/80 bg-white py-2 pr-9 pl-10 text-sm font-medium text-slate-800 shadow-sm',
-          'transition-colors hover:border-slate-300 hover:bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-[#253CA1]/20',
-          'disabled:cursor-not-allowed disabled:opacity-60',
-        )}
-      >
-        <option value={OPEN_BOOKKEEPING_PERIOD}>{openPeriodLabel}</option>
-        {periods.map((period) => (
-          <option key={period.id} value={period.id}>
-            {formatBookkeepingPeriodOption(period)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-slate-600"
-      />
-    </div>
+    <DropdownSelect
+      variant="pill"
+      leadingIcon={CalendarDays}
+      ariaLabel="Bookkeeping period"
+      value={value}
+      disabled={disabled}
+      align="end"
+      className={cn('max-w-[min(100vw-2rem,20rem)]', className)}
+      options={[
+        { value: OPEN_BOOKKEEPING_PERIOD, label: openPeriodLabel },
+        ...periods.map((period) => ({
+          value: period.id,
+          label: formatBookkeepingPeriodOption(period),
+        })),
+      ]}
+      onValueChange={(next) => onChange(next as BookkeepingPeriodValue)}
+    />
   )
 }
 

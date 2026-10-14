@@ -30,8 +30,8 @@ const STATUS_PALETTE: Record<
   { background: string; text: string; accent: string }
 > = {
   ongoing: {
-    background: '#E8EEFF',
-    text: '#1B2A5A',
+    background: '#DCE2F6',
+    text: '#15225A',
     accent: '#253CA1',
   },
   finished: {

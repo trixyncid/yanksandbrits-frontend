@@ -1,5 +1,6 @@
 import {
   isCombinedIeltsProgram,
+  isComputerScienceCourse,
   isGeneralEnglishCourse,
   isHskCourse,
   isIeltsCourse,
@@ -32,6 +33,34 @@ export type SkillSessionSlot = {
     | 'writingTutorName'
     | 'speakingTutorName'
     | 'mathTutorName'
+  programKey: keyof Pick<
+    TutorAllocationFormValues,
+    | 'listeningProgramId'
+    | 'readingProgramId'
+    | 'writingProgramId'
+    | 'speakingProgramId'
+    | 'mathProgramId'
+  >
+  noteKey: keyof Pick<
+    TutorAllocationFormValues,
+    | 'listeningNote'
+    | 'readingNote'
+    | 'writingNote'
+    | 'speakingNote'
+    | 'mathNote'
+  >
+  programCodeKey:
+    | 'listeningProgramCode'
+    | 'readingProgramCode'
+    | 'writingProgramCode'
+    | 'speakingProgramCode'
+    | 'mathProgramCode'
+  programTitleKey:
+    | 'listeningProgramTitle'
+    | 'readingProgramTitle'
+    | 'writingProgramTitle'
+    | 'speakingProgramTitle'
+    | 'mathProgramTitle'
 }
 
 const LISTENING: SkillSessionSlot = {
@@ -39,31 +68,47 @@ const LISTENING: SkillSessionSlot = {
   tutorKey: 'listeningTutorId',
   sessionsKey: 'listeningSessions',
   tutorNameKey: 'listeningTutorName',
+  programKey: 'listeningProgramId',
+  noteKey: 'listeningNote',
+  programCodeKey: 'listeningProgramCode',
+  programTitleKey: 'listeningProgramTitle',
 }
 const READING: SkillSessionSlot = {
   label: 'Reading',
   tutorKey: 'readingTutorId',
   sessionsKey: 'readingSessions',
   tutorNameKey: 'readingTutorName',
+  programKey: 'readingProgramId',
+  noteKey: 'readingNote',
+  programCodeKey: 'readingProgramCode',
+  programTitleKey: 'readingProgramTitle',
 }
 const WRITING: SkillSessionSlot = {
   label: 'Writing',
   tutorKey: 'writingTutorId',
   sessionsKey: 'writingSessions',
   tutorNameKey: 'writingTutorName',
+  programKey: 'writingProgramId',
+  noteKey: 'writingNote',
+  programCodeKey: 'writingProgramCode',
+  programTitleKey: 'writingProgramTitle',
 }
 const SPEAKING: SkillSessionSlot = {
   label: 'Speaking',
   tutorKey: 'speakingTutorId',
   sessionsKey: 'speakingSessions',
   tutorNameKey: 'speakingTutorName',
+  programKey: 'speakingProgramId',
+  noteKey: 'speakingNote',
+  programCodeKey: 'speakingProgramCode',
+  programTitleKey: 'speakingProgramTitle',
 }
 
 export function skillSessionSlots(
   course: string | null | undefined,
   program: string | null | undefined,
 ): SkillSessionSlot[] {
-  if (!course || isGeneralEnglishCourse(course)) {
+  if (!course || isGeneralEnglishCourse(course) || isComputerScienceCourse(course)) {
     return []
   }
   if (isSatCourse(course)) {
@@ -73,12 +118,20 @@ export function skillSessionSlots(
         tutorKey: 'readingTutorId',
         sessionsKey: 'readingSessions',
         tutorNameKey: 'readingTutorName',
+        programKey: 'readingProgramId',
+        noteKey: 'readingNote',
+        programCodeKey: 'readingProgramCode',
+        programTitleKey: 'readingProgramTitle',
       },
       {
         label: 'Mathematics',
         tutorKey: 'mathTutorId',
         sessionsKey: 'mathSessions',
         tutorNameKey: 'mathTutorName',
+        programKey: 'mathProgramId',
+        noteKey: 'mathNote',
+        programCodeKey: 'mathProgramCode',
+        programTitleKey: 'mathProgramTitle',
       },
     ]
   }
@@ -92,12 +145,20 @@ export function skillSessionSlots(
         tutorKey: 'listeningTutorId',
         sessionsKey: 'listeningSessions',
         tutorNameKey: 'listeningTutorName',
+        programKey: 'listeningProgramId',
+        noteKey: 'listeningNote',
+        programCodeKey: 'listeningProgramCode',
+        programTitleKey: 'listeningProgramTitle',
       },
       {
         label: 'Reading & Writing',
         tutorKey: 'readingTutorId',
         sessionsKey: 'readingSessions',
         tutorNameKey: 'readingTutorName',
+        programKey: 'readingProgramId',
+        noteKey: 'readingNote',
+        programCodeKey: 'readingProgramCode',
+        programTitleKey: 'readingProgramTitle',
       },
     ]
   }

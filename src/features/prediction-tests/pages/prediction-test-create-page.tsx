@@ -1,7 +1,6 @@
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ClipboardList } from 'lucide-react'
 
-import { Button } from '../../../shared/components/ui/button'
+import { PageHeader } from '../../../shared/components/page'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { PredictionTestForm } from '../components/prediction-test-form'
 import { usePredictionTestForm } from '../hooks/use-prediction-test-form'
@@ -11,27 +10,16 @@ export default function PredictionTestCreatePage() {
 
   return (
     <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/prediction-tests"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Prediction Tests
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Add Prediction Test
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Choose a student and record the payment. Scores can be added after the student finishes the test.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/prediction-tests"
+          backLabel="Prediction Tests"
+          title="Add prediction test"
+          description="Choose a student and record the payment. Scores can be added after the student finishes the test."
+          icon={ClipboardList}
+          theme="dawn"
+          pattern="dots"
+        />
 
         <PredictionTestForm
           mode="create"

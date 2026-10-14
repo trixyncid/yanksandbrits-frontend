@@ -1,7 +1,6 @@
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { Inbox } from 'lucide-react'
 
-import { Button } from '../../../shared/components/ui/button'
+import { PageHeader } from '../../../shared/components/page'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { ProspectiveStudentForm } from '../components/prospective-student-form'
 import { useProspectiveStudentForm } from '../hooks/use-prospective-student-form'
@@ -11,27 +10,16 @@ export default function ProspectiveStudentCreatePage() {
 
   return (
     <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              to="/prospective-students"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Prospective Students
-            </Link>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Add Prospective Student
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Capture inquiry details and assign a counsellor for follow-up.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/prospective-students"
+          backLabel="Student Responses"
+          title="Add student response"
+          description="Log a new inquiry and who will follow up with them."
+          icon={Inbox}
+          theme="sky"
+          pattern="ribbons"
+        />
 
         <ProspectiveStudentForm
           mode="create"

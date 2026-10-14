@@ -15,6 +15,9 @@ export type StaffListItem = {
   email: string
   gender: StaffGender
   position: StaffPosition
+  /** The account's actual roles, e.g. Finance, CRO, Academic Leader. */
+  roles: { code: string; name: string }[]
+  isSuperuser: boolean
   isActive: boolean
   isStudent: boolean
   studentId: string | null

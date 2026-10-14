@@ -1,14 +1,19 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
+import { RowActionButton } from '../../users/components/people-ui'
 import { deleteStaffPermission } from '../api/staff-permissions-api'
 import { staffPermissionQueryKeys } from '../api/staff-permission-query-keys'
 import type { StaffPermissionListItem } from '../types/staff-permission'
+
+function memberText(count: number) {
+  return `${count} ${count === 1 ? 'person' : 'people'}`
+}
 
 export function StaffPermissionActionsCell({
   group,
@@ -21,55 +26,51 @@ export function StaffPermissionActionsCell({
   return (
     <div className="flex items-center justify-center gap-2">
       <Can managerOnly>
-        <button
-          type="button"
-          aria-label={`Edit role ${group.name}`}
+        <RowActionButton
+          label={`Edit role ${group.name}`}
+          icon={Pencil}
+          tone="edit"
           onClick={() =>
             void navigate({
               to: '/staff-permissions/$groupId/edit',
               params: { groupId: group.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-        >
-          <Eye className="size-3.5" />
-        </button>
+        />
       </Can>
       <Can managerOnly>
-        <button
-        type="button"
-        aria-label={`Delete role ${group.name}`}
-        onClick={() =>
-          requestDeleteConfirm({
-            title: 'Delete role?',
-            description: group.isSystem
-              ? `This will permanently remove the built-in role ${group.name}. Users currently in this role will lose it. This action cannot be undone.`
-              : `This will permanently remove ${group.name}. This action cannot be undone.`,
-            onConfirm: () => {
-              void (async () => {
-                try {
-                  await deleteStaffPermission(group.id)
-                  await queryClient.invalidateQueries({
-                    queryKey: staffPermissionQueryKeys.all,
-                  })
-                  notify('success', {
-                    title: 'Role deleted',
-                    description: `${group.name} has been removed.`,
-                  })
-                } catch (error) {
-                  notify('error', {
-                    title: 'Unable to delete role',
-                    description: getApiErrorMessage(error),
-                  })
-                }
-              })()
-            },
-          })
-        }
-        className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-      >
-        <Trash2 className="size-3.5" />
-        </button>
+        <RowActionButton
+          label={`Delete role ${group.name}`}
+          icon={Trash2}
+          tone="delete"
+          onClick={() =>
+            requestDeleteConfirm({
+              title: `Delete the ${group.name} role?`,
+              description: group.isSystem
+                ? `${group.name} is a built-in role. Deleting it removes it from ${memberText(group.memberCount)}, who will lose the access it gave them. This cannot be undone.`
+                : `This removes ${group.name} from ${memberText(group.memberCount)}. Anyone who only had this role will lose that access. This cannot be undone.`,
+              onConfirm: () => {
+                void (async () => {
+                  try {
+                    await deleteStaffPermission(group.id)
+                    await queryClient.invalidateQueries({
+                      queryKey: staffPermissionQueryKeys.all,
+                    })
+                    notify('success', {
+                      title: 'Role deleted',
+                      description: `${group.name} has been removed.`,
+                    })
+                  } catch (error) {
+                    notify('error', {
+                      title: 'Unable to delete role',
+                      description: getApiErrorMessage(error),
+                    })
+                  }
+                })()
+              },
+            })
+          }
+        />
       </Can>
     </div>
   )

@@ -37,8 +37,8 @@ export function MarketingCommissionSection({
 
   function handleDelete(tier: MarketingCommissionTier) {
     requestDeleteConfirm({
-      title: 'Delete commission tier?',
-      description: `This will remove the ${describeRange(tier)} tier from ${marketingName}'s ${commissionPeriodLabels[tier.periodType].toLowerCase()} commissions. This action cannot be undone.`,
+      title: `Delete the ${describeRange(tier)} commission tier?`,
+      description: `This will remove the ${describeRange(tier)} tier from ${marketingName}'s ${commissionPeriodLabels[tier.periodType].toLowerCase()} commissions. This cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -63,16 +63,16 @@ export function MarketingCommissionSection({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="grid gap-3 xl:grid-cols-2">
         {COMMISSION_PERIOD_TYPES.map((periodType) => {
           const tiers = salary.commissionTiers
             .filter((tier) => tier.periodType === periodType)
             .sort((a, b) => a.minAmount - b.minAmount)
 
           return (
-            <div key={periodType} className="space-y-3">
+            <div key={periodType} className="space-y-3 rounded-3xl bg-canvas p-3 sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h5 className="text-sm font-bold text-slate-900">
+                <h5 className="text-sm font-bold text-ink">
                   {commissionPeriodLabels[periodType]}
                 </h5>
                 <Can module="users" action="change">
@@ -80,6 +80,7 @@ export function MarketingCommissionSection({
                     variant="secondary"
                     size="sm"
                     onClick={() => setDialogTarget({ periodType, tier: null })}
+                    aria-label={`Add a ${commissionPeriodLabels[periodType].toLowerCase()} commission tier`}
                   >
                     <Plus className="size-3.5" />
                     Add tier
@@ -87,75 +88,65 @@ export function MarketingCommissionSection({
                 </Can>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-slate-100">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-[11px] font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                    <tr>
-                      <th className="px-4 py-3">Min amount</th>
-                      <th className="px-4 py-3">Max amount</th>
-                      <th className="px-4 py-3">Commission</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tiers.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-4 py-8 text-center text-slate-500"
-                        >
-                          No commission tiers configured for this period.
-                        </td>
-                      </tr>
-                    ) : (
-                      tiers.map((tier) => (
-                        <tr key={tier.id} className="border-t border-slate-100">
-                          <td className="px-4 py-3 tabular-nums text-slate-600">
-                            {formatStaffCurrency(tier.minAmount)}
-                          </td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600">
-                            {tier.maxAmount == null
-                              ? 'No limit'
-                              : formatStaffCurrency(tier.maxAmount)}
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-slate-800">
-                            {tier.percentage}%
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-2">
-                              <Can module="users" action="change">
-                                <button
-                                  type="button"
-                                  aria-label={`Update the ${describeRange(tier)} commission tier`}
-                                  onClick={() =>
-                                    setDialogTarget({
-                                      periodType,
-                                      tier,
-                                    })
-                                  }
-                                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
-                                >
-                                  <Pencil className="size-3.5" />
-                                </button>
-                              </Can>
-                              <Can module="users" action="change">
-                                <button
-                                  type="button"
-                                  aria-label={`Delete the ${describeRange(tier)} commission tier`}
-                                  onClick={() => handleDelete(tier)}
-                                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </button>
-                              </Can>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {tiers.length === 0 ? (
+                <p className="rounded-2xl bg-white px-4 py-5 text-center text-sm text-slate-500">
+                  No commission tiers for this period yet.
+                </p>
+              ) : (
+                <ol className="space-y-1.5">
+                  {tiers.map((tier) => (
+                    <li
+                      key={tier.id}
+                      className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-medium text-slate-500">
+                          Payment between
+                        </p>
+                        <p className="truncate text-sm font-semibold text-ink tabular-nums">
+                          {formatStaffCurrency(tier.minAmount)}
+                          <span className="text-slate-400"> – </span>
+                          {tier.maxAmount == null
+                            ? 'no limit'
+                            : formatStaffCurrency(tier.maxAmount)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-sm font-bold text-brand-700 tabular-nums">
+                        {tier.percentage}%
+                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Can module="users" action="change">
+                          <button
+                            type="button"
+                            aria-label={`Update the ${describeRange(tier)} commission tier`}
+                            title="Edit tier"
+                            onClick={() =>
+                              setDialogTarget({
+                                periodType,
+                                tier,
+                              })
+                            }
+                            className="inline-flex size-8 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                        </Can>
+                        <Can module="users" action="change">
+                          <button
+                            type="button"
+                            aria-label={`Delete the ${describeRange(tier)} commission tier`}
+                            title="Delete tier"
+                            onClick={() => handleDelete(tier)}
+                            className="inline-flex size-8 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </Can>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           )
         })}

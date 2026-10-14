@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw, ShieldCheck, ShieldOff } from 'lucide-react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
+import { EmptyState, PageHeader } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
 import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
@@ -13,10 +14,7 @@ import {
 } from '../api/staff-permissions-api'
 import { staffPermissionQueryKeys } from '../api/staff-permission-query-keys'
 import { StaffPermissionForm } from '../components/staff-permission-form'
-import {
-  StaffPermissionListErrorState,
-  StaffPermissionListLoadingState,
-} from '../components/staff-permission-list-states'
+import { StaffPermissionListLoadingState } from '../components/staff-permission-list-states'
 import { useStaffPermissionForm } from '../hooks/use-staff-permission-form'
 import { useStaffPermissionQuery } from '../hooks/use-staff-permission-query'
 import type {
@@ -31,45 +29,45 @@ export default function StaffPermissionEditPage() {
 
   if (groupQuery.isLoading) {
     return (
-      <AdminShell>
-        <StaffPermissionListLoadingState />
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl space-y-3">
+          <div className="h-24 animate-pulse rounded-[1.75rem] bg-white/70" />
+          <StaffPermissionListLoadingState />
+        </div>
       </AdminShell>
     )
   }
 
   if (groupQuery.isError || !groupQuery.data) {
     return (
-      <AdminShell>
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Role not found
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            This role may have been removed or the link is invalid.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void navigate({ to: '/staff-permissions' })}
-            >
-              <ArrowLeft className="size-3.5" />
-              Back to roles
-            </Button>
-            {groupQuery.isError ? (
-              <Button size="sm" onClick={() => void groupQuery.refetch()}>
-                Retry
+      <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+        <EmptyState
+          className="mx-auto max-w-2xl"
+          icon={ShieldOff}
+          title={groupQuery.isError ? 'Unable to load this role' : 'Role not found'}
+          description={
+            groupQuery.isError
+              ? 'Something went wrong while loading this role. You can try again.'
+              : 'This role may have been removed, or the link is no longer valid.'
+          }
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant="soft"
+                onClick={() => void navigate({ to: '/staff-permissions' })}
+              >
+                <ArrowLeft className="size-4" />
+                Back to roles
               </Button>
-            ) : null}
-          </div>
-          {groupQuery.isError ? (
-            <div className="mt-8 w-full">
-              <StaffPermissionListErrorState
-                onRetry={() => void groupQuery.refetch()}
-              />
+              {groupQuery.isError ? (
+                <Button variant="ink" onClick={() => void groupQuery.refetch()}>
+                  <RefreshCw className="size-4" />
+                  Try again
+                </Button>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          }
+        />
       </AdminShell>
     )
   }
@@ -99,8 +97,8 @@ function StaffPermissionEditForm({
 
   function handleDelete() {
     requestDeleteConfirm({
-      title: 'Delete this role?',
-      description: `This will permanently remove ${group.name}. Staff who only had this role will lose that access.`,
+      title: `Delete the ${group.name} role?`,
+      description: `This removes ${group.name} from ${group.memberCount} ${group.memberCount === 1 ? 'person' : 'people'}. Anyone who only had this role will lose that access. This cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {
@@ -125,31 +123,28 @@ function StaffPermissionEditForm({
   }
 
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="animate-in fade-in slide-in-from-bottom-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Link
-              to="/staff-permissions"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#253CA1]"
-            >
-              <ArrowLeft className="size-4" />
-              Staff Roles
-            </Link>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-              Edit role
-            </h2>
-            <p className="mt-1 max-w-xl text-sm text-slate-500">
-              Choose which pages <span className="font-semibold text-slate-700">{group.name}</span> can open, and whether they can add, edit, or delete records.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={form.cancel}>
-            Go Back
-          </Button>
-        </div>
+    <AdminShell mainClassName="px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-6xl space-y-3">
+        <PageHeader
+          backTo="/staff-permissions"
+          backLabel="Roles"
+          title={group.name}
+          description={`Choose which pages this role can open, and whether it can add, edit or delete. Given to ${group.memberCount} ${group.memberCount === 1 ? 'person' : 'people'}.`}
+          icon={ShieldCheck}
+          theme="ink"
+          pattern="grid"
+          badge={
+            group.isSystem ? (
+              <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                Built-in
+              </span>
+            ) : null
+          }
+        />
 
         <StaffPermissionForm
           mode="edit"
+          roleId={group.id}
           values={form.values}
           errors={form.errors}
           isSubmitting={form.isSubmitting}

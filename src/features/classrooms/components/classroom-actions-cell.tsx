@@ -24,13 +24,14 @@ export function ClassroomActionsCell({
         <button
           type="button"
           aria-label={`Edit classroom ${classroom.code}`}
+          title="Edit classroom"
           onClick={() =>
             void navigate({
               to: '/classrooms/$classroomId/edit',
               params: { classroomId: classroom.id },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-[#C8D4F5] hover:bg-[#F5F8FF] hover:text-[#1B2A5A]"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-ink transition hover:bg-ink hover:text-white"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -39,10 +40,11 @@ export function ClassroomActionsCell({
         <button
           type="button"
           aria-label={`Delete classroom ${classroom.code}`}
+          title="Delete classroom"
           onClick={() =>
             requestDeleteConfirm({
-              title: 'Delete classroom?',
-              description: `This will permanently remove ${classroom.className}. This action cannot be undone.`,
+              title: `Delete ${classroom.className}?`,
+              description: `This permanently removes the classroom ${classroom.className} (${classroom.code}). Past sessions keep their history, but the room can no longer be booked. This can't be undone.`,
               onConfirm: () => {
                 void (async () => {
                   try {
@@ -64,7 +66,7 @@ export function ClassroomActionsCell({
               },
             })
           }
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-canvas text-rose-500 transition hover:bg-rose-500 hover:text-white"
         >
           <Trash2 className="size-3.5" />
         </button>

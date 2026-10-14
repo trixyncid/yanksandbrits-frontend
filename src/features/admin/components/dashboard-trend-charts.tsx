@@ -1,8 +1,9 @@
 import { format, parseISO } from 'date-fns'
+import { UserPlus } from 'lucide-react'
 
-import { formatCurrencyCompact } from '../../../shared/lib/currency'
 import type { DashboardMetrics } from '../types/dashboard'
-import { DashboardAreaChart, DashboardColumnChart } from './dashboard-charts'
+import { DashboardColumnChart } from './dashboard-charts'
+import { DashboardChip, DashboardDelta } from './dashboard-kit'
 import {
   DashboardCardHeader,
   DashboardEmptyState,
@@ -13,50 +14,50 @@ function monthLabel(month: string) {
   return format(parseISO(`${month}-01`), 'MMM')
 }
 
-export function DashboardTrendCharts({ metrics }: { metrics: DashboardMetrics }) {
-  const revenue = metrics.trends.revenue.map((item) => ({
-    label: monthLabel(item.month),
-    value: item.revenue,
-  }))
+/** New students per month as rounded columns; the latest month is lit. */
+export function DashboardEnrollmentTrend({
+  metrics,
+  className,
+}: {
+  metrics: DashboardMetrics
+  className?: string
+}) {
   const enrollments = metrics.trends.enrollments.map((item) => ({
     label: monthLabel(item.month),
     value: item.enrollments,
   }))
-  const hasRevenue = revenue.some((item) => item.value > 0)
   const hasEnrollments = enrollments.some((item) => item.value > 0)
+  const { newEnrollments } = metrics.kpis
 
   return (
-    <div className="grid items-stretch gap-2 xl:grid-cols-5">
-      <DashboardPanel className="xl:col-span-3">
-        <DashboardCardHeader
-          title="Revenue trend"
-          description="Last 6 months of approved tuition and prediction test payments"
-        />
-        {hasRevenue ? (
-          <DashboardAreaChart
-            data={revenue}
-            color="#253CA1"
-            formatTick={formatCurrencyCompact}
-          />
-        ) : (
-          <DashboardEmptyState message="No revenue recorded in the last 6 months." />
-        )}
-      </DashboardPanel>
+    <DashboardPanel className={className}>
+      <DashboardCardHeader
+        title="Enrollments"
+        description="New students each month."
+        icon={<UserPlus className="size-4" />}
+        action={<DashboardChip>6 months</DashboardChip>}
+      />
 
-      <DashboardPanel variant="tint" className="xl:col-span-2">
-        <DashboardCardHeader
-          title="Enrollment trend"
-          description="New students by month over the last 6 months"
-        />
+      <div className="flex items-center gap-2.5">
+        <p className="text-3xl leading-none font-bold tracking-tight text-ink tabular-nums">
+          {newEnrollments.current.toLocaleString('en-US')}
+        </p>
+        <DashboardDelta changePct={newEnrollments.changePct} compact />
+      </div>
+      <p className="mt-1 text-xs text-slate-500">enrolled in this period</p>
+
+      <div className="mt-4 flex flex-1 flex-col justify-end">
         {hasEnrollments ? (
           <DashboardColumnChart
             data={enrollments}
-            barClassName="bg-[#3D9B6E]"
+            highlightIndex={enrollments.length - 1}
+            showValueOnHighlight
+            className="min-h-[220px]"
           />
         ) : (
           <DashboardEmptyState message="No enrollments recorded in the last 6 months." />
         )}
-      </DashboardPanel>
-    </div>
+      </div>
+    </DashboardPanel>
   )
 }
