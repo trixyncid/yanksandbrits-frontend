@@ -15,9 +15,11 @@ import {
   SalaryBreakdownMarketerDetail,
   SalaryBreakdownSummaryStrip,
   SalaryBreakdownSurface,
+} from './salary-breakdown-parts'
+import {
   formatCommissionPercentage,
   periodTypeLabel,
-} from './salary-breakdown-parts'
+} from './salary-breakdown-format'
 
 const listSurfaceStyle = {
   '--sb-ink': '#141B3A',

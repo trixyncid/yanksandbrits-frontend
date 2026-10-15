@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, CalendarPlus, Loader2 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { Button } from '../../../shared/components/ui/button'
 import {
@@ -11,7 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../shared/components/ui/dialog'
-import type { TimetableColumn, TimetableEvent } from '../../../shared/components/timetable'
+import type {
+  TimetableColumn,
+  TimetableEvent,
+} from '../../../shared/components/timetable'
 import { useModulePermissions } from '../../auth/hooks/use-permissions'
 import { useClassroomsQuery } from '../../classrooms/hooks/use-classrooms-query'
 import {
@@ -348,19 +351,4 @@ function ScheduleFormDialogEditor({
       />
     </ScheduleDialogChrome>
   )
-}
-
-export function useScheduleDialogState() {
-  const [context, setContext] = useState<ScheduleDialogContext>(null)
-
-  return {
-    context,
-    openCreate: (next: Omit<ScheduleDialogCreateContext, 'mode'>) =>
-      setContext({ mode: 'create', ...next }),
-    openEdit: (next: Omit<ScheduleDialogEditContext, 'mode'>) =>
-      setContext({ mode: 'edit', ...next }),
-    setOpen: (open: boolean) => {
-      if (!open) setContext(null)
-    },
-  }
 }

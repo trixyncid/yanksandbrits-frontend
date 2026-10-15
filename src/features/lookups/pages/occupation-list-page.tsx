@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BriefcaseBusiness, Plus, UserRoundX, Users } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import {
@@ -86,29 +86,32 @@ export default function OccupationListPage() {
     setDialogOpen(true)
   }
 
-  async function handleDelete(item: OccupationItem) {
-    requestDeleteConfirm({
-      title: `Delete ${item.name}?`,
-      description: `This will permanently remove the occupation ${item.name}. This action cannot be undone.`,
-      onConfirm: () => {
-        void (async () => {
-          try {
-            await deleteOccupation(item.id)
-            await queryClient.invalidateQueries({ queryKey: occupationQueryKey })
-            notify('success', {
-              title: 'Occupation deleted',
-              description: `${item.name} has been removed.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to delete occupation',
-              description: getApiErrorMessage(error),
-            })
-          }
-        })()
-      },
-    })
-  }
+  const handleDelete = useCallback(
+    async (item: OccupationItem) => {
+      requestDeleteConfirm({
+        title: `Delete ${item.name}?`,
+        description: `This will permanently remove the occupation ${item.name}. This action cannot be undone.`,
+        onConfirm: () => {
+          void (async () => {
+            try {
+              await deleteOccupation(item.id)
+              await queryClient.invalidateQueries({ queryKey: occupationQueryKey })
+              notify('success', {
+                title: 'Occupation deleted',
+                description: `${item.name} has been removed.`,
+              })
+            } catch (error) {
+              notify('error', {
+                title: 'Unable to delete occupation',
+                description: getApiErrorMessage(error),
+              })
+            }
+          })()
+        },
+      })
+    },
+    [queryClient],
+  )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -207,7 +210,7 @@ export default function OccupationListPage() {
         ),
       },
     ],
-    [],
+    [handleDelete],
   )
 
   const allOccupations = useMemo(

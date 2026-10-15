@@ -1,16 +1,6 @@
-import {
-  format,
-  isSameMonth,
-  parseISO,
-  startOfDay,
-} from 'date-fns'
+import { format, isSameMonth, parseISO, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  type ComponentProps,
-} from 'react'
+import { useEffect, useMemo, useRef, type ComponentProps } from 'react'
 import {
   DayPicker,
   getDefaultClassNames,
@@ -19,12 +9,7 @@ import {
 
 import { cn } from '../../../shared/lib/cn'
 import { DashboardPanel } from '../../admin/components/dashboard-section'
-import type { TutorDaySession } from '../lib/map-tutor-day-sessions'
-
-export type TutorMonthDayMarker = {
-  dateKey: string
-  count: number
-}
+import type { TutorMonthDayMarker } from '../lib/tutor-month-markers'
 
 type TutorMonthCalendarProps = {
   selected: Date
@@ -106,24 +91,6 @@ function CalendarDayButton({
       />
     </button>
   )
-}
-
-export function buildTutorMonthMarkers(
-  sessions: TutorDaySession[],
-): TutorMonthDayMarker[] {
-  const byDay = new Map<string, TutorMonthDayMarker>()
-
-  for (const session of sessions) {
-    if (!session.dateKey || session.status === 'cancelled') continue
-    const existing = byDay.get(session.dateKey)
-    if (!existing) {
-      byDay.set(session.dateKey, { dateKey: session.dateKey, count: 1 })
-      continue
-    }
-    existing.count += 1
-  }
-
-  return [...byDay.values()]
 }
 
 export function TutorMonthCalendar({

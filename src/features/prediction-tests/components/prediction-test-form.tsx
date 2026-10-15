@@ -10,13 +10,14 @@ import {
   UserRoundSearch,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import {
   FormSectionCard,
   ScoreTile,
 } from '../../../shared/components/feature-page'
 import { EmptyState, FormSaveBar } from '../../../shared/components/page'
+import { useObjectUrls } from '../../../shared/hooks/use-object-urls'
 import { cn } from '../../../shared/lib/cn'
 import { formatCurrencyAmount, parseCurrencyValue } from '../../../shared/lib/currency'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
@@ -104,22 +105,6 @@ function formatFileSize(bytes: number) {
     return `${(bytes / 1024).toFixed(1)} KB`
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function useObjectUrls(files: File[]) {
-  const [urls, setUrls] = useState<string[]>([])
-
-  useEffect(() => {
-    const next = files.map((file) => URL.createObjectURL(file))
-    setUrls(next)
-    return () => {
-      for (const url of next) {
-        URL.revokeObjectURL(url)
-      }
-    }
-  }, [files])
-
-  return urls
 }
 
 const TOEFL_SKILL_FIELDS = [

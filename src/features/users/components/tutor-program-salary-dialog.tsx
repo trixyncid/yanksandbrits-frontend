@@ -1,5 +1,5 @@
 import { Plus, Trash2, Wallet } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -76,20 +76,20 @@ export function TutorProgramSalaryDialog({
       })),
     [availablePrograms],
   )
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-    setIsSubmitting(false)
-    setIsDeleting(false)
-    if (salary) {
-      setProgramId(salary.programId ?? '')
+  // Reset the form whenever the dialog opens or switches to another salary.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    salary: TutorProgramSalary | null
+  }>({ open: false, salary: null })
+  if (synced.open !== open || synced.salary !== salary) {
+    setSynced({ open, salary })
+    if (open) {
+      setIsSubmitting(false)
+      setIsDeleting(false)
+      setProgramId(salary ? (salary.programId ?? '') : '')
       setValues(programSalaryToFormValues(salary))
-      return
     }
-    setProgramId('')
-    setValues(programSalaryToFormValues(null))
-  }, [open, salary])
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

@@ -9,7 +9,7 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { cn } from '../../../shared/lib/cn'
 import { Button } from '../../../shared/components/ui/button'
@@ -46,14 +46,10 @@ export function ScheduleDateNavigator({
   const viewingToday = isSameDay(selected, today)
 
   const weekStart = startOfWeek(selected, { weekStartsOn: 1 })
-  const weekDays = useMemo(
-    () =>
-      eachDayOfInterval({
-        start: weekStart,
-        end: addDays(weekStart, 6),
-      }),
-    [weekStart],
-  )
+  const weekDays = eachDayOfInterval({
+    start: weekStart,
+    end: addDays(weekStart, 6),
+  })
 
   const weekLabel = `${format(weekDays[0]!, 'MMM d')} – ${format(weekDays[6]!, 'MMM d, yyyy')}`
   const relative = relativeDayLabel(selected, today)

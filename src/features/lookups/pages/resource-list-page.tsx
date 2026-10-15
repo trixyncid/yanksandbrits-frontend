@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BadgeDollarSign, BadgeMinus, Megaphone, Plus } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import {
@@ -110,29 +110,32 @@ export default function ResourceListPage() {
     setDialogOpen(true)
   }
 
-  async function handleDelete(item: ResourceItem) {
-    requestDeleteConfirm({
-      title: `Delete ${item.name}?`,
-      description: `This will permanently remove the lead source ${item.name}. This action cannot be undone.`,
-      onConfirm: () => {
-        void (async () => {
-          try {
-            await deleteResource(item.id)
-            await queryClient.invalidateQueries({ queryKey: resourceQueryKey })
-            notify('success', {
-              title: 'Resource deleted',
-              description: `${item.name} has been removed.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to delete resource',
-              description: getApiErrorMessage(error),
-            })
-          }
-        })()
-      },
-    })
-  }
+  const handleDelete = useCallback(
+    async (item: ResourceItem) => {
+      requestDeleteConfirm({
+        title: `Delete ${item.name}?`,
+        description: `This will permanently remove the lead source ${item.name}. This action cannot be undone.`,
+        onConfirm: () => {
+          void (async () => {
+            try {
+              await deleteResource(item.id)
+              await queryClient.invalidateQueries({ queryKey: resourceQueryKey })
+              notify('success', {
+                title: 'Resource deleted',
+                description: `${item.name} has been removed.`,
+              })
+            } catch (error) {
+              notify('error', {
+                title: 'Unable to delete resource',
+                description: getApiErrorMessage(error),
+              })
+            }
+          })()
+        },
+      })
+    },
+    [queryClient],
+  )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -271,7 +274,7 @@ export default function ResourceListPage() {
         ),
       },
     ],
-    [],
+    [handleDelete],
   )
 
   const allResources = useMemo(

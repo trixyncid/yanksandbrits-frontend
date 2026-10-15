@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react'
 import { parseISO } from 'date-fns'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
@@ -40,6 +40,7 @@ import {
   todayIsoDate,
   unallocatedPlanAmount,
 } from '../lib/payment-display'
+import { useObjectUrls } from '../../../shared/hooks/use-object-urls'
 import { pillToneFor } from '../lib/payment-ui'
 import type {
   StudentPaymentFormErrors,
@@ -105,21 +106,6 @@ function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function useObjectUrls(files: File[] | undefined) {
-  const list = files && files.length > 0 ? files : EMPTY_FILES
-  const [urls, setUrls] = useState<string[]>([])
-
-  useEffect(() => {
-    const next = list.map((file) => URL.createObjectURL(file))
-    setUrls(next)
-    return () => {
-      for (const url of next) URL.revokeObjectURL(url)
-    }
-  }, [list])
-
-  return urls
 }
 
 function splitHint(total: number, parts: number) {
@@ -292,19 +278,22 @@ export function StudentPaymentTermsFields({
   const allSelected =
     terms.length > 0 && terms.every((term) => selectedKeys.includes(term.key))
 
-  useEffect(() => {
-    setSelectedKeys((current) => {
-      const next = current.filter((key) =>
+  // When terms or errors change: drop selections for removed terms and open
+  // the first term that failed validation.
+  const [syncedTerms, setSyncedTerms] = useState<typeof terms | null>(null)
+  const [syncedErrors, setSyncedErrors] = useState<typeof errors | null>(null)
+  if (syncedTerms !== terms || syncedErrors !== errors) {
+    setSyncedTerms(terms)
+    setSyncedErrors(errors)
+    if (syncedTerms !== terms) {
+      const liveKeys = selectedKeys.filter((key) =>
         terms.some((term) => term.key === key),
       )
-      return next.length === current.length ? current : next
-    })
-  }, [terms])
-
-  useEffect(() => {
+      if (liveKeys.length !== selectedKeys.length) setSelectedKeys(liveKeys)
+    }
     const failed = terms.find((term) => errors.termErrors?.[term.key])
     if (failed) setOpenKey(failed.key)
-  }, [errors, terms])
+  }
 
   function branchName(term: StudentPaymentTermFormValues) {
     return (

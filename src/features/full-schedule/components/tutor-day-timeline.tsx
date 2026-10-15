@@ -58,11 +58,17 @@ function isSelectedJakartaToday(selectedDate: Date, now = new Date()) {
 
 function useJakartaNow(enabled: boolean) {
   const [now, setNow] = useState(() => jakartaNowParts())
+  const [prevEnabled, setPrevEnabled] = useState(enabled)
+
+  // Refresh immediately when the clock switches on (e.g. navigating to today).
+  if (enabled !== prevEnabled) {
+    setPrevEnabled(enabled)
+    if (enabled) setNow(jakartaNowParts())
+  }
 
   useEffect(() => {
     if (!enabled) return
 
-    setNow(jakartaNowParts())
     const intervalId = window.setInterval(() => {
       setNow(jakartaNowParts())
     }, 30_000)
@@ -109,11 +115,14 @@ export function TutorDayTimeline({
   }, [sessions, viewingToday, nowHour, startHour, endHour])
 
   const [activeHour, setActiveHour] = useState<number | null>(defaultActive)
+  const [prevDefaultActive, setPrevDefaultActive] = useState(defaultActive)
   const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  useEffect(() => {
+  // Re-anchor the highlighted hour when the day, sessions, or clock move it.
+  if (defaultActive !== prevDefaultActive) {
+    setPrevDefaultActive(defaultActive)
     setActiveHour(defaultActive)
-  }, [defaultActive])
+  }
 
   function positionPercent(hour: number) {
     const raw = ((hour - startHour) / daySpan) * 100

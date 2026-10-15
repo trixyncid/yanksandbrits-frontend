@@ -171,7 +171,10 @@ export function RoleAccountForm({
   const rolesQuery = useStaffPermissionsQuery()
   const [showPassword, setShowPassword] = useState(false)
 
-  const branches = branchesQuery.data?.data ?? []
+  const branches = useMemo(
+    () => branchesQuery.data?.data ?? [],
+    [branchesQuery.data?.data],
+  )
   const branchOptions = useMemo(
     () =>
       branches.map((branch) => ({

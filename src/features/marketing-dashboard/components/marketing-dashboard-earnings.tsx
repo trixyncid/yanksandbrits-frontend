@@ -15,7 +15,7 @@ import {
 import {
   formatCommissionPercentage,
   periodTypeLabel,
-} from '../../bookkeeping/components/salary-breakdown-parts'
+} from '../../bookkeeping/components/salary-breakdown-format'
 import type { SalaryBreakdownMarketer } from '../../bookkeeping/types/bookkeeping'
 import type { MarketingPerformanceMetrics } from '../types/marketing-dashboard'
 

@@ -18,7 +18,7 @@ import {
 import {
   formatCommissionPercentage,
   formatCommissionTierRange,
-} from '../../bookkeeping/components/salary-breakdown-parts'
+} from '../../bookkeeping/components/salary-breakdown-format'
 import type { MarketingPerformanceMetrics } from '../types/marketing-dashboard'
 
 /**

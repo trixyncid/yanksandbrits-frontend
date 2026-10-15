@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
   type FormEvent,
@@ -236,11 +235,9 @@ export function StaffPermissionForm({
     selectionFilter,
   ])
 
-  useEffect(() => {
-    if (!permissionsQuery.isSuccess || hasInitializedExpand) {
-      return
-    }
-
+  // Once the catalog loads, expand groups that already have selections
+  // (or the first group when nothing is selected).
+  if (permissionsQuery.isSuccess && !hasInitializedExpand) {
     const catalogGroups = groupPermissions(allPermissions)
     const initial = new Set<string>()
     for (const group of catalogGroups) {
@@ -258,19 +255,16 @@ export function StaffPermissionForm({
 
     setExpanded(initial)
     setHasInitializedExpand(true)
-  }, [
-    allPermissions,
-    hasInitializedExpand,
-    permissionsQuery.isSuccess,
-    selectedIds,
-  ])
+  }
 
-  useEffect(() => {
-    if (!search.trim()) {
-      return
-    }
+  // While searching, expand every matching group each time the results change.
+  const [expandedForGroups, setExpandedForGroups] = useState<
+    typeof groups | null
+  >(null)
+  if (search.trim() && expandedForGroups !== groups) {
+    setExpandedForGroups(groups)
     setExpanded(new Set(groups.map((group) => group.key)))
-  }, [groups, search])
+  }
 
 
   function toggleExpanded(key: string) {

@@ -3,7 +3,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { updateOpenPeriodSalaries } from '../../bookkeeping/api/bookkeeping-api'
-import { OPEN_BOOKKEEPING_PERIOD } from '../../bookkeeping/components/bookkeeping-period-select'
+import { OPEN_BOOKKEEPING_PERIOD } from '../../bookkeeping/components/bookkeeping-period'
 import { fetchUsers, type UserListItem } from '../../users/api/users-api'
 import type { TutorReportListItem } from '../types/tutor-report'
 import type { TutorReportListFilters } from './tutor-report-query-keys'
@@ -32,6 +32,7 @@ type TutorSalaryDto = {
   session_salary: number
   overtime_sessions: number
   overtime_salary: number
+  bonus_salary?: number
   total_salary?: number
   bookkeeping: number | null
 }

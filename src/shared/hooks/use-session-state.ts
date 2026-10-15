@@ -41,13 +41,16 @@ export function useSessionState<T>(key: string, initial: T) {
     ) {
       return { ...(initial as object), ...(stored as object) } as T
     }
-    return stored ?? initial
+    return (stored ?? initial) as T
   })
 
   const setPersistedState = useCallback(
     (update: T | ((prev: T) => T)) => {
       setState((prev) => {
-        const next = typeof update === 'function' ? update(prev) : update
+        const next =
+          typeof update === 'function'
+            ? (update as (prev: T) => T)(prev)
+            : update
         writeSessionValue(key, next)
         return next
       })

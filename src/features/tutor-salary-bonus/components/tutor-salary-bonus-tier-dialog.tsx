@@ -1,5 +1,5 @@
 import { Wallet } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -52,13 +52,18 @@ export function TutorSalaryBonusTierDialog({
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (!open) {
-      return
+  // Reset the form whenever the dialog opens or switches to another tier.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    tier: TutorSalaryBonusTier | null
+  }>({ open: false, tier: null })
+  if (synced.open !== open || synced.tier !== tier) {
+    setSynced({ open, tier })
+    if (open) {
+      setValues(tierToFormValues(tier))
+      setIsSubmitting(false)
     }
-    setValues(tierToFormValues(tier))
-    setIsSubmitting(false)
-  }, [open, tier])
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

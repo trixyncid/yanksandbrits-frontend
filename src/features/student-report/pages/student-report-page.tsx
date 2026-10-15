@@ -14,7 +14,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -100,7 +100,7 @@ function StepChip({
 
 export default function StudentReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [branchId, setBranchId] = useState('')
+  const [chosenBranchId, setBranchId] = useState('')
   const [isDownloading, setIsDownloading] = useState(false)
 
   const branchesQuery = useBranchesQuery()
@@ -110,11 +110,8 @@ export default function StudentReportPage() {
   )
   const presets = useMemo(() => periodPresets(new Date()), [])
 
-  useEffect(() => {
-    if (!branchId && branches.length > 0) {
-      setBranchId(branches[0]!.id)
-    }
-  }, [branchId, branches])
+  // Default to the first branch until one is chosen.
+  const branchId = chosenBranchId || branches[0]?.id || ''
 
   const selectedBranchName = useMemo(() => {
     if (!branchId) {

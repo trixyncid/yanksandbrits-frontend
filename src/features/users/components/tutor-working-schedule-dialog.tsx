@@ -1,5 +1,5 @@
 import { CalendarClock } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -102,12 +102,18 @@ export function TutorWorkingScheduleDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isUpdate = Boolean(schedule)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens or switches to another schedule.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    schedule: TutorWorkingSchedule | null
+  }>({ open: false, schedule: null })
+  if (synced.open !== open || synced.schedule !== schedule) {
+    setSynced({ open, schedule })
     if (open) {
       setValues(scheduleToFormValues(schedule))
       setIsSubmitting(false)
     }
-  }, [open, schedule])
+  }
 
   function updateField<K extends keyof TutorWorkingScheduleFormValues>(
     field: K,

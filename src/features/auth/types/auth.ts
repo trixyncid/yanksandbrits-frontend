@@ -35,7 +35,7 @@ export type AuthSession = {
 }
 
 export function hasAuthRole(
-  user: Pick<AuthUser, 'roles' | 'is_superuser'> | null | undefined,
+  user: Pick<AuthUser, 'roles'> | null | undefined,
   code: string,
 ): boolean {
   if (!user) return false

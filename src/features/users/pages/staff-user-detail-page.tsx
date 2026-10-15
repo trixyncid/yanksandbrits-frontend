@@ -32,11 +32,13 @@ import { StaffScheduleTab } from '../components/staff-schedule-tab'
 import {
   formatStaffDate,
   formatStaffDateTime,
-  StaffDetailItem,
-  StaffDetailSection,
   staffPositionLabel,
   staffRoleBadges,
 } from '../components/staff-detail-utils'
+import {
+  StaffDetailItem,
+  StaffDetailSection,
+} from '../components/staff-detail-parts'
 import { useUserQuery } from '../hooks/use-user-query'
 import type { StaffEntityConfig } from '../lib/staff-entity-config'
 import { useAuthUser } from '../../auth/hooks/use-permissions'

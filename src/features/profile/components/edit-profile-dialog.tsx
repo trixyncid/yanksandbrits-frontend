@@ -1,6 +1,6 @@
 import { parseISO } from 'date-fns'
 import { Pencil } from 'lucide-react'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { mapGenderToApi } from '../../../shared/api/choices'
@@ -125,13 +125,24 @@ export function EditProfileDialog({
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens or the profile data changes.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    profile: CurrentUserProfile | null
+    detail: UserDetail | null | undefined
+  }>({ open: false, profile: null, detail: undefined })
+  if (
+    synced.open !== open ||
+    synced.profile !== profile ||
+    synced.detail !== detail
+  ) {
+    setSynced({ open, profile, detail })
     if (open) {
       setValues(buildInitialValues(profile, detail))
       setErrors({})
       setIsSubmitting(false)
     }
-  }, [open, profile, detail])
+  }
 
   function updateField<K extends keyof FormValues>(field: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }))

@@ -14,10 +14,6 @@ import { RootLayout } from './root-layout'
 import { AppLoadingScreen } from './ui/app-loading-screen'
 import { RouteErrorScreen } from './ui/route-error-screen'
 
-function AuthenticatedLayout() {
-  return <Outlet />
-}
-
 const rootRoute = createRootRoute({
   component: RootLayout,
   pendingComponent: AppLoadingScreen,
@@ -59,7 +55,7 @@ const loginRoute = createRoute({
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authenticated',
-  component: AuthenticatedLayout,
+  component: Outlet,
   beforeLoad: async ({ location }) => {
     await useAuthStore.getState().hydrate()
     if (!useAuthStore.getState().isAuthenticated) {
@@ -182,7 +178,9 @@ const studentPaymentsRoute = createRoute({
 const studentPaymentCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/student-payments/new',
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { studentId?: string; prospectiveStudentId?: string } => ({
     studentId:
       typeof search.studentId === 'string' && search.studentId.trim()
         ? search.studentId.trim()

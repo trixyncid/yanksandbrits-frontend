@@ -27,6 +27,7 @@ import {
 } from '../../auth/hooks/use-permissions'
 import { useProspectiveStudentsQuery } from '../../prospective-students/hooks/use-prospective-students-query'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
+import type { StudentListItem } from '../../students/types/student'
 import { useLinkedPredictionTestQuery } from '../hooks/use-linked-prediction-test-query'
 import { planAmountDue } from '../lib/payment-display'
 import { cn } from '../../../shared/lib/cn'
@@ -42,6 +43,8 @@ import {
   PaymentCollectionSummary,
   StudentPaymentTermsFields,
 } from './student-payment-terms-fields'
+
+const EMPTY_STUDENTS: StudentListItem[] = []
 
 type StudentPaymentFormProps = {
   mode: 'create' | 'edit'
@@ -106,7 +109,7 @@ export function StudentPaymentForm({
     fullAmount: values.fullAmount,
     paymentId: payment?.id,
   })
-  const students = studentsQuery.data?.data ?? []
+  const students = studentsQuery.data?.data ?? EMPTY_STUDENTS
   const studentOptions = useMemo(
     () =>
       students.map((option) => ({
@@ -208,10 +211,14 @@ export function StudentPaymentForm({
     onPretestCredit?.(appliedPretest)
   }, [appliedPretest, onPretestCredit])
 
-  useEffect(() => {
+  // Follow the selected owner whenever it changes (including the first render).
+  const ownerKey = `${values.studentId}|${values.prospectiveStudentId}`
+  const [syncedOwnerKey, setSyncedOwnerKey] = useState<string | null>(null)
+  if (syncedOwnerKey !== ownerKey) {
+    setSyncedOwnerKey(ownerKey)
     if (values.studentId) setOwnerMode('student')
     else if (values.prospectiveStudentId) setOwnerMode('prospect')
-  }, [values.prospectiveStudentId, values.studentId])
+  }
 
   function selectOwnerMode(next: 'student' | 'prospect') {
     setOwnerMode(next)
