@@ -485,7 +485,7 @@ export function userToFormValues(user: UserDetail | UserListItem): UserFormValue
     staffTypes: user.staffTypes,
     employmentType: user.employmentType ?? '',
     workingDaysPerWeek:
-      user.workingDaysPerWeek == null ? '' : String(user.workingDaysPerWeek),
+      user.workingDaysPerWeek == null ? '' : (`${user.workingDaysPerWeek}` as const),
     branchId: user.branchId ?? '',
     paidLeave: String(user.paidLeaveTotal),
     resignDate: detail.resignDate ?? '',

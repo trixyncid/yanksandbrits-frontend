@@ -198,7 +198,10 @@ const studentPaymentsRoute = createRoute({
 const studentPaymentCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/student-payments/new',
-  validateSearch: (search: Record<string, unknown>) => ({
+  // Both optional: a payment starts from either a student or a prospect.
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { studentId?: string; prospectiveStudentId?: string } => ({
     studentId:
       typeof search.studentId === 'string' && search.studentId.trim()
         ? search.studentId.trim()

@@ -32,6 +32,7 @@ type TutorSalaryDto = {
   session_salary: number
   overtime_sessions: number
   overtime_salary: number
+  bonus_salary?: number
   total_salary?: number
   bookkeeping: number | null
 }
