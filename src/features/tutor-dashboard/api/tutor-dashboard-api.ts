@@ -88,6 +88,8 @@ type TutorPerformanceDto = {
     overtime_sessions: number
     overtime_salary: number
     bonus_salary: number
+    leader_bonus?: number
+    tutor_headcount?: number
     expected_salary: number
   } | null
   earnings_meta: {
@@ -121,6 +123,8 @@ function mapEarnings(
       overtimeSessions: 0,
       overtimeSalary: 0,
       bonusSalary: 0,
+      leaderBonus: 0,
+      tutorHeadcount: 0,
       expectedSalary: 0,
     }
   }
@@ -135,6 +139,8 @@ function mapEarnings(
     overtimeSessions: dto.overtime_sessions ?? 0,
     overtimeSalary: dto.overtime_salary ?? 0,
     bonusSalary: dto.bonus_salary ?? 0,
+    leaderBonus: dto.leader_bonus ?? 0,
+    tutorHeadcount: dto.tutor_headcount ?? 0,
     expectedSalary: dto.expected_salary ?? 0,
   }
 }

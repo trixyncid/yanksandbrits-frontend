@@ -1,5 +1,6 @@
-import { Filter, Sparkles, Target, Trophy, WalletCards } from 'lucide-react'
+import { Award, Filter, Sparkles, Target, Trophy, WalletCards } from 'lucide-react'
 
+import { formatCurrencyCompact } from '../../../shared/lib/currency'
 import {
   DashboardColumnChart,
   DashboardGauge,
@@ -115,6 +116,15 @@ export function MarketingDashboardGoals({
   const spif = kpis.spifProgress
   const spifPct = Math.min(Math.max(spif.progressPct, 0), 100)
 
+  const ecSpif = kpis.ecSpifProgress
+  const ecSpifPct = Math.min(Math.max(ecSpif.progressPct, 0), 100)
+  const ecSpifBranch = ecSpif.branchName ? ` in ${ecSpif.branchName}` : ''
+  const ecSpifDetail = !ecSpif.hasTiers
+    ? 'No bonus tiers set for this period'
+    : ecSpif.remaining != null && ecSpif.nextBonus != null
+      ? `${formatCurrencyCompact(ecSpif.remaining)} more${ecSpifBranch} to earn ${formatCurrencyCompact(ecSpif.nextBonus)}`
+      : 'Top bonus tier reached'
+
   const paymentTotal =
     kpis.studentPayments.completed + kpis.studentPayments.incomplete
   const paymentPct =
@@ -124,24 +134,33 @@ export function MarketingDashboardGoals({
 
   const goals = [
     {
+      id: 'ec-spif',
+      icon: <Award className="size-3.5" />,
+      label: 'EC SPIF',
+      pct: ecSpif.hasTiers ? ecSpifPct : 0,
+      detail: ecSpifDetail,
+      amount:
+        ecSpif.currentBonus > 0 ? formatCurrencyCompact(ecSpif.currentBonus) : null,
+    },
+    {
       id: 'spif',
       icon: <Sparkles className="size-3.5" />,
-      label: 'SPIF progress',
+      label: 'TM SPIF',
       pct: spifPct,
       detail:
         spif.remaining > 0
-          ? `${spif.count} / ${spif.threshold} Tele Marketing`
+          ? `${spif.count} / ${spif.threshold} Telemarketing`
           : spif.units > 0
             ? `${spif.units} unit${spif.units === 1 ? '' : 's'} earned`
-            : `${spif.threshold} Tele Marketing to unlock`,
+            : `${spif.threshold} Telemarketing to unlock`,
       amount: spif.units > 0 ? `${spif.units}u` : null,
     },
     {
       id: 'convert',
       icon: <Target className="size-3.5" />,
-      label: 'Tele Marketing → enroll',
+      label: 'Telemarketing → enroll',
       pct: convertPct,
-      detail: `${kpis.enrollments.current} enrollments from Tele Marketing`,
+      detail: `${kpis.enrollments.current} enrollments from Telemarketing`,
       amount: `${kpis.consultToEnrollRate.current}%`,
     },
     {
@@ -162,7 +181,7 @@ export function MarketingDashboardGoals({
         icon={<Trophy className="size-4" />}
       />
 
-      <ul className="grid flex-1 gap-2 sm:grid-cols-3">
+      <ul className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
         {goals.map((goal) => (
           <li
             key={goal.id}

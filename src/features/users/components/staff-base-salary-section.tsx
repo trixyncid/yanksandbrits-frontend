@@ -19,12 +19,14 @@ import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
 import { fetchStaffSalary, saveStaffSalary } from '../api/compensation-api'
 import type { UserDetail } from '../api/users-api'
+import { AcademicLeaderBonusSection } from './academic-leader-bonus-section'
 
 /** Base salary for staff paid a fixed amount (Finance, CRO, Academic Leader, …). */
 export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
+  const isAcademicLeader = user.roles.some((role) => role.code === 'academic-leader')
   const roleNames = user.roles
     .filter((role) => role.code !== 'systemadmin')
     .map((role) => role.name)
@@ -101,10 +103,24 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
           </Can>
         </div>
       </section>
-      <p className="text-xs text-slate-500">
-        Staff in this role are paid a fixed base salary only, with no commission
-        or session pay.
-      </p>
+      {isAcademicLeader ? (
+        salary ? (
+          <AcademicLeaderBonusSection
+            leaderId={user.id}
+            leaderName={user.fullName}
+            paidOn="base salary"
+          />
+        ) : (
+          <p className="text-xs text-slate-500">
+            Set a base salary first, then add academic leader bonus brackets.
+          </p>
+        )
+      ) : (
+        <p className="text-xs text-slate-500">
+          Staff in this role are paid a fixed base salary only, with no commission
+          or session pay.
+        </p>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">

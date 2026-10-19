@@ -197,7 +197,7 @@ export const TELE_MARKETING_OPTIONS: {
   label: string
 }[] = [
   { value: 'WI', label: 'Walk-In (WI)' },
-  { value: 'TM', label: 'Tele Marketing (TM)' },
+  { value: 'TM', label: 'Telemarketing (TM)' },
 ]
 
 export function courseLabel(code: string | null | undefined): string {

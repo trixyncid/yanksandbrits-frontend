@@ -25,6 +25,7 @@ import {
 } from '../api/compensation-api'
 import type { UserDetail } from '../api/users-api'
 import { isSystemAdminOnly, usesStaffSalary } from '../lib/staff-pay'
+import { AcademicLeaderBonusSection } from './academic-leader-bonus-section'
 import { MarketingBonusSection } from './marketing-bonus-section'
 import { StaffBaseSalarySection } from './staff-base-salary-section'
 import { MarketingCommissionSection } from './marketing-commission-section'
@@ -39,6 +40,7 @@ type StaffSalaryTabProps = {
 
 export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
   const isFreelance = user.employmentType === 'FL'
+  const isAcademicLeader = user.roles.some((role) => role.code === 'academic-leader')
   const isBranchManager = user.roles.some(
     (role) => role.code === 'branch-manager',
   )
@@ -280,6 +282,14 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
                 </ul>
               )}
             </div>
+
+            {isAcademicLeader ? (
+              <AcademicLeaderBonusSection
+                leaderId={user.id}
+                leaderName={user.fullName}
+                paidOn="tutor pay"
+              />
+            ) : null}
           </section>
         ) : null}
 

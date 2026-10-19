@@ -20,13 +20,16 @@ type RoutePrefixRule = {
   managerOnly?: boolean
 }
 
-// Pages are looked up in the page catalog; only the Roles page is gated by
-// role instead of a permission.
+// Pages are looked up in the page catalog; only the Roles page and the pay
+// settings pages below are gated by role instead of a permission.
 const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
   { prefix: '/staff-permissions', managerOnly: true },
 ]
 
 const PUBLIC_PATHS = new Set(['/profile', '/notifications', '/forbidden'])
+
+// Pay settings set by Finance and System Admin, whatever their page grants.
+const PAY_SETTINGS_PATHS = ['/tm-fees']
 
 function ruleForPath(pathname: string): RoutePrefixRule | null {
   const sorted = [...ROUTE_PREFIX_RULES].sort(
@@ -93,6 +96,14 @@ export function canAccessRoute(
 
   if (user.is_superuser) {
     return true
+  }
+
+  if (
+    PAY_SETTINGS_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  ) {
+    return hasAuthRole(user, 'finance') || hasAuthRole(user, 'systemadmin')
   }
 
   if (

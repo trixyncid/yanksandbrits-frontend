@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import type { ApiErrorBody } from '../../../shared/api/types'
 import { notify } from '../../../shared/lib/notify'
+import { useResourceOptionsQuery } from '../../lookups/hooks/use-lookup-options'
 import { predictionTestQueryKeys } from '../../prediction-tests/api/prediction-test-query-keys'
 import {
   createProspectiveStudent,
@@ -13,6 +14,7 @@ import {
   updateProspectiveStudent,
 } from '../api/prospective-students-api'
 import { prospectiveStudentQueryKeys } from '../api/prospective-student-query-keys'
+import { isReferralResource } from '../lib/referral'
 import { prospectiveStudentFormSchema } from '../schema/prospective-student-form-schema'
 import type {
   ProspectiveStudentFormErrors,
@@ -29,6 +31,8 @@ const apiFieldToFormField: Record<string, keyof ProspectiveStudentFormValues> = 
   sr_number: 'srNumber',
   date: 'date',
   resource: 'resourceId',
+  referral_student: 'referralStudentId',
+  referral_name: 'referralName',
   tele_marketing: 'teleMarketing',
   age: 'age',
   address: 'address',
@@ -78,6 +82,7 @@ export function useProspectiveStudentForm({
 }: UseProspectiveStudentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const resourcesQuery = useResourceOptionsQuery()
   const [values, setValues] = useState<ProspectiveStudentFormValues>(initialValues)
   const [errors, setErrors] = useState<ProspectiveStudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,7 +96,13 @@ export function useProspectiveStudentForm({
   }
 
   function validateForm(nextValues: ProspectiveStudentFormValues) {
-    const result = prospectiveStudentFormSchema.safeParse(nextValues)
+    const result = prospectiveStudentFormSchema.safeParse({
+      ...nextValues,
+      isReferral: isReferralResource(
+        nextValues.resourceId,
+        resourcesQuery.data,
+      ),
+    })
 
     if (result.success) {
       setErrors({})

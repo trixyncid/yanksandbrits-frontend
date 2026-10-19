@@ -33,10 +33,13 @@ import {
   useAuthUser,
   useIsRestrictedMarketing,
 } from '../../auth/hooks/use-permissions'
+import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useResourceOptionsQuery } from '../../lookups/hooks/use-lookup-options'
+import { useStudentsQuery } from '../../students/hooks/use-students-query'
 import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { courseLabel } from '../api/prospective-students-api'
 import { getInitials } from '../lib/lead-status'
+import { isReferralResource } from '../lib/referral'
 import type {
   ProspectiveStudentFormErrors,
   ProspectiveStudentFormValues,
@@ -196,7 +199,10 @@ type ProspectiveStudentFormProps = {
   values: ProspectiveStudentFormValues
   errors: ProspectiveStudentFormErrors
   isSubmitting: boolean
-  meta?: Pick<ProspectiveStudentListItem, 'createdAt' | 'updatedAt' | 'branch'>
+  meta?: Pick<
+    ProspectiveStudentListItem,
+    'createdAt' | 'updatedAt' | 'branch' | 'referralStudentName'
+  >
   onChange: <K extends keyof ProspectiveStudentFormValues>(
     field: K,
     value: ProspectiveStudentFormValues[K],
@@ -219,6 +225,13 @@ export function ProspectiveStudentForm({
 }: ProspectiveStudentFormProps) {
   const marketingsQuery = useMarketingOptionsQuery()
   const resourcesQuery = useResourceOptionsQuery()
+  const branchesQuery = useBranchesQuery()
+  const isReferral = isReferralResource(values.resourceId, resourcesQuery.data)
+  const showStudentReferral = isReferral && values.referralType === 'student'
+  const studentsQuery = useStudentsQuery(
+    { status: 'all' },
+    { enabled: showStudentReferral },
+  )
   const authUser = useAuthUser()
   const lockCounsellor = useIsRestrictedMarketing()
   const lockConsultFields = lockCounsellor && mode === 'edit'
@@ -242,6 +255,53 @@ export function ProspectiveStudentForm({
     [resourcesQuery.data],
   )
 
+  const counsellorBranchName = (marketingsQuery.data ?? []).find(
+    (option) => option.id === values.marketingId,
+  )?.branchName
+  // Shown when the branch list is unavailable (e.g. no branch view permission).
+  const savedBranchName =
+    (meta?.branch !== '—' ? meta?.branch : undefined) || counsellorBranchName
+  const savedReferralStudentName = meta?.referralStudentName
+  const branchOptions = useMemo(() => {
+    const options = (branchesQuery.data?.data ?? []).map((branch) => ({
+      value: branch.id,
+      label: branch.name,
+    }))
+    // Keep the saved branch visible even if it is outside the loaded list.
+    if (
+      values.branchId &&
+      savedBranchName &&
+      !options.some((option) => option.value === values.branchId)
+    ) {
+      options.unshift({ value: values.branchId, label: savedBranchName })
+    }
+    return options
+  }, [branchesQuery.data?.data, savedBranchName, values.branchId])
+
+  const referralStudentOptions = useMemo(() => {
+    const options = (studentsQuery.data?.data ?? []).map((student) => ({
+      value: student.id,
+      label: `${student.pin} | ${student.fullName}`,
+      keywords: `${student.pin} ${student.fullName} ${student.email}`,
+    }))
+    if (
+      values.referralStudentId &&
+      savedReferralStudentName &&
+      !options.some((option) => option.value === values.referralStudentId)
+    ) {
+      options.unshift({
+        value: values.referralStudentId,
+        label: savedReferralStudentName,
+        keywords: savedReferralStudentName,
+      })
+    }
+    return options
+  }, [
+    studentsQuery.data?.data,
+    savedReferralStudentName,
+    values.referralStudentId,
+  ])
+
   const selectedCounsellor = useMemo(
     () =>
       (marketingsQuery.data ?? []).find(
@@ -264,43 +324,48 @@ export function ProspectiveStudentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync self attribution once
   }, [authUser?.id, lockCounsellor, mode, values.marketingId])
 
-  // Branch always follows the assigned education counsellor's home branch.
+  // Self-attributed counsellors start on their own branch; they can still pick another.
   useEffect(() => {
-    if (!values.marketingId) {
-      if (values.branchId) {
-        onChange('branchId', '')
-      }
+    if (
+      !lockCounsellor ||
+      mode !== 'create' ||
+      values.branchId ||
+      authUser?.branch_id == null
+    ) {
       return
     }
-
-    if (selectedCounsellor) {
-      const nextBranchId = selectedCounsellor.branchId ?? ''
-      if (values.branchId !== nextBranchId) {
-        onChange('branchId', nextBranchId)
-      }
-      return
-    }
-
-    const fromAuth =
-      lockCounsellor &&
-      authUser?.branch_id != null &&
-      values.marketingId === String(authUser.id)
-        ? String(authUser.branch_id)
-        : null
-
-    if (fromAuth && values.branchId !== fromAuth) {
-      onChange('branchId', fromAuth)
-    }
+    onChange('branchId', String(authUser.branch_id))
     // Intentionally omit onChange: parent passes a fresh function each render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keep branch synced to counsellor
-  }, [
-    authUser?.branch_id,
-    authUser?.id,
-    lockCounsellor,
-    selectedCounsellor,
-    values.branchId,
-    values.marketingId,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- default branch once
+  }, [authUser?.branch_id, lockCounsellor, mode, values.branchId])
+
+  // Picking a counsellor suggests their home branch; the branch stays editable.
+  function setCounsellor(nextId: string) {
+    onChange('marketingId', nextId)
+    const counsellor = (marketingsQuery.data ?? []).find(
+      (option) => option.id === nextId,
+    )
+    if (counsellor?.branchId) {
+      onChange('branchId', counsellor.branchId)
+    }
+  }
+
+  function setResource(nextId: string) {
+    onChange('resourceId', nextId)
+    if (!isReferralResource(nextId, resourcesQuery.data)) {
+      onChange('referralStudentId', '')
+      onChange('referralName', '')
+    }
+  }
+
+  function setReferralType(next: ProspectiveStudentFormValues['referralType']) {
+    onChange('referralType', next)
+    if (next === 'student') {
+      onChange('referralName', '')
+    } else {
+      onChange('referralStudentId', '')
+    }
+  }
 
   function setHasTakenLanguageTest(next: boolean) {
     onChange('hasTakenLanguageTest', next)
@@ -319,9 +384,8 @@ export function ProspectiveStudentForm({
   }
 
   const branchLabel =
-    selectedCounsellor?.branchName ||
-    (meta?.branch && meta.branch !== '—' ? meta.branch : null) ||
-    (values.branchId ? 'Assigned' : 'Unassigned')
+    branchOptions.find((option) => option.value === values.branchId)?.label ??
+    ''
 
   const previewName = values.fullName.trim()
   const counsellorName = selectedCounsellor?.fullName ?? ''
@@ -332,6 +396,15 @@ export function ProspectiveStudentForm({
   const resourceLabel =
     resourceOptions.find((option) => option.value === values.resourceId)
       ?.label ?? ''
+  const referrerLabel = !isReferral
+    ? ''
+    : values.referralType === 'student'
+      ? ((studentsQuery.data?.data ?? []).find(
+          (student) => student.id === values.referralStudentId,
+        )?.fullName ??
+        (values.referralStudentId ? savedReferralStudentName : '') ??
+        '')
+      : values.referralName.trim()
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit} noValidate>
@@ -433,7 +506,7 @@ export function ProspectiveStudentForm({
                 <Lock className="mt-0.5 size-3.5 shrink-0" />
                 <p>
                   {lockConsultFields
-                    ? 'As an education counsellor, you can’t change the counsellor, consult date, SR number, resource, or tele marketing on an existing lead.'
+                    ? 'As an education counsellor, you can’t change the counsellor, branch, consult date, SR number, resource, referral, or telemarketing on an existing lead.'
                     : 'As an education counsellor, new leads are assigned to you automatically.'}
                 </p>
               </div>
@@ -456,7 +529,7 @@ export function ProspectiveStudentForm({
                   id="marketingId"
                   value={values.marketingId}
                   options={counsellorOptions}
-                  onChange={(next) => onChange('marketingId', next)}
+                  onChange={setCounsellor}
                   placeholder="Select counsellor..."
                   searchPlaceholder="Search counsellors..."
                   disabled={lockCounsellor || marketingsQuery.isLoading}
@@ -469,17 +542,23 @@ export function ProspectiveStudentForm({
                 htmlFor="branchId"
                 error={errors.branchId}
                 required
-                hint="Set automatically from the counsellor’s branch."
+                locked={lockConsultFields}
+                hint={
+                  lockConsultFields
+                    ? 'Education counsellors cannot change the branch.'
+                    : 'Defaults to the counsellor’s branch.'
+                }
               >
-                <div
+                <SearchableSelect
                   id="branchId"
-                  className={cn(
-                    'flex min-h-12 items-center rounded-full bg-canvas px-4 text-sm leading-snug font-semibold',
-                    values.branchId ? 'text-ink' : 'text-slate-400',
-                  )}
-                >
-                  {branchLabel}
-                </div>
+                  value={values.branchId}
+                  options={branchOptions}
+                  onChange={(next) => onChange('branchId', next)}
+                  placeholder="Select branch..."
+                  searchPlaceholder="Search branches..."
+                  disabled={lockConsultFields || branchesQuery.isLoading}
+                  emptyMessage="No branches found"
+                />
               </Field>
 
               <Field
@@ -543,9 +622,7 @@ export function ProspectiveStudentForm({
                     id="resourceId"
                     containerClassName="w-full sm:w-full"
                     value={values.resourceId}
-                    onChange={(event) =>
-                      onChange('resourceId', event.target.value)
-                    }
+                    onChange={(event) => setResource(event.target.value)}
                     disabled={lockConsultFields || resourcesQuery.isLoading}
                   >
                     <option value="">Select resource...</option>
@@ -558,22 +635,87 @@ export function ProspectiveStudentForm({
                 </Field>
               </div>
 
+              {isReferral ? (
+                <div className="space-y-3 rounded-3xl bg-canvas p-3.5 sm:col-span-2 sm:p-4">
+                  <Field
+                    label="Referred by"
+                    htmlFor="referralType"
+                    required
+                    locked={lockConsultFields}
+                    hint={
+                      lockConsultFields
+                        ? 'Education counsellors cannot change the referral.'
+                        : 'Is the referrer one of our students?'
+                    }
+                  >
+                    <SegmentedChoice
+                      id="referralType"
+                      label="Referred by"
+                      value={values.referralType}
+                      disabled={lockConsultFields}
+                      options={[
+                        { value: 'student', label: 'Our student' },
+                        { value: 'other', label: 'Someone else' },
+                      ]}
+                      onChange={setReferralType}
+                    />
+                  </Field>
+
+                  {values.referralType === 'student' ? (
+                    <Field
+                      label="Referring student"
+                      htmlFor="referralStudentId"
+                      error={errors.referralStudentId}
+                      required
+                    >
+                      <SearchableSelect
+                        id="referralStudentId"
+                        value={values.referralStudentId}
+                        options={referralStudentOptions}
+                        onChange={(next) => onChange('referralStudentId', next)}
+                        placeholder="Select student..."
+                        searchPlaceholder="Search by PIN or name..."
+                        emptyMessage="No students found"
+                        disabled={lockConsultFields || studentsQuery.isLoading}
+                      />
+                    </Field>
+                  ) : (
+                    <Field
+                      label="Referrer name"
+                      htmlFor="referralName"
+                      error={errors.referralName}
+                      required
+                    >
+                      <Input
+                        id="referralName"
+                        value={values.referralName}
+                        onChange={(event) =>
+                          onChange('referralName', event.target.value)
+                        }
+                        placeholder="Who referred this student?"
+                        disabled={lockConsultFields}
+                      />
+                    </Field>
+                  )}
+                </div>
+              ) : null}
+
               <div className="sm:col-span-2">
                 <Field
-                  label="Tele marketing"
+                  label="Telemarketing"
                   htmlFor="teleMarketing"
                   error={errors.teleMarketing}
                   required
                   locked={lockConsultFields}
                   hint={
                     lockConsultFields
-                      ? 'Education counsellors cannot change tele marketing.'
+                      ? 'Education counsellors cannot change telemarketing.'
                       : 'Walk-in at the branch, or reached by phone.'
                   }
                 >
                   <SegmentedChoice
                     id="teleMarketing"
-                    label="Tele Marketing"
+                    label="Telemarketing"
                     value={values.teleMarketing}
                     disabled={lockConsultFields}
                     options={TELE_MARKETING_OPTIONS}
@@ -790,6 +932,9 @@ export function ProspectiveStudentForm({
                   label: 'Came from',
                   value: [resourceLabel, sourceLabel].filter(Boolean).join(' · '),
                 },
+                ...(referrerLabel
+                  ? [{ label: 'Referred by', value: referrerLabel }]
+                  : []),
               ].map((item) => (
                 <div
                   key={item.label}

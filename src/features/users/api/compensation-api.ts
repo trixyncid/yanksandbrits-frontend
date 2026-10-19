@@ -615,3 +615,113 @@ export async function saveStaffSalary(
       )
   return mapStaffSalary(data.data)
 }
+
+/* ------------------------------------------------------------------ */
+/* Academic leader bonus brackets (per leader, on staff or tutor pay)  */
+/* ------------------------------------------------------------------ */
+
+export type AcademicLeaderBonusTier = {
+  id: string
+  minHeadcount: number
+  maxHeadcount: number | null
+  bonusAmount: number
+}
+
+export type AcademicLeaderBonusTierFormValues = {
+  minHeadcount: string
+  maxHeadcount: string
+  bonusAmount: string
+}
+
+type AcademicLeaderBonusTierDto = {
+  id: number
+  leader: number
+  min_headcount: number
+  max_headcount: number | null
+  bonus_amount: number
+}
+
+export const academicLeaderBonusQueryKeys = {
+  all: ['academic-leader-bonus-tiers'] as const,
+  forLeader: (leaderId: string) =>
+    [...academicLeaderBonusQueryKeys.all, leaderId] as const,
+}
+
+function mapAcademicLeaderBonusTier(
+  dto: AcademicLeaderBonusTierDto,
+): AcademicLeaderBonusTier {
+  return {
+    id: String(dto.id),
+    minHeadcount: dto.min_headcount,
+    maxHeadcount: dto.max_headcount,
+    bonusAmount: dto.bonus_amount ?? 0,
+  }
+}
+
+function academicLeaderBonusPayload(values: AcademicLeaderBonusTierFormValues) {
+  return {
+    min_headcount: Number(values.minHeadcount) || 1,
+    max_headcount: values.maxHeadcount.trim() ? Number(values.maxHeadcount) : null,
+    bonus_amount: Number(values.bonusAmount) || 0,
+  }
+}
+
+export function academicLeaderBonusTierToFormValues(
+  tier: AcademicLeaderBonusTier | null,
+): AcademicLeaderBonusTierFormValues {
+  return {
+    minHeadcount: tier ? String(tier.minHeadcount) : '',
+    maxHeadcount: tier?.maxHeadcount == null ? '' : String(tier.maxHeadcount),
+    bonusAmount: tier ? String(tier.bonusAmount) : '',
+  }
+}
+
+export function describeTutorHeadcount(tier: AcademicLeaderBonusTier) {
+  if (tier.maxHeadcount == null) {
+    return `${tier.minHeadcount}+ tutors`
+  }
+  if (tier.maxHeadcount === tier.minHeadcount) {
+    return `${tier.minHeadcount} tutor${tier.minHeadcount === 1 ? '' : 's'}`
+  }
+  return `${tier.minHeadcount} – ${tier.maxHeadcount} tutors`
+}
+
+export async function fetchAcademicLeaderBonusTiers(
+  leaderId: string,
+): Promise<AcademicLeaderBonusTier[]> {
+  const { items } = await fetchAllPages<AcademicLeaderBonusTierDto>({
+    client: httpClient,
+    path: adminPath('/academic-leader-bonus-tiers'),
+    params: { leader: Number(leaderId) },
+  })
+  return items
+    .map(mapAcademicLeaderBonusTier)
+    .sort((a, b) => a.minHeadcount - b.minHeadcount)
+}
+
+export async function createAcademicLeaderBonusTier(
+  leaderId: string,
+  values: AcademicLeaderBonusTierFormValues,
+): Promise<AcademicLeaderBonusTier> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<AcademicLeaderBonusTierDto>
+  >(adminPath('/academic-leader-bonus-tiers'), {
+    leader: Number(leaderId),
+    ...academicLeaderBonusPayload(values),
+  })
+  return mapAcademicLeaderBonusTier(data.data)
+}
+
+export async function updateAcademicLeaderBonusTier(
+  id: string,
+  values: AcademicLeaderBonusTierFormValues,
+): Promise<AcademicLeaderBonusTier> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<AcademicLeaderBonusTierDto>
+  >(adminPath(`/academic-leader-bonus-tiers/${id}`), academicLeaderBonusPayload(values))
+  return mapAcademicLeaderBonusTier(data.data)
+}
+
+export async function deleteAcademicLeaderBonusTier(id: string): Promise<void> {
+  await httpClient.delete(adminPath(`/academic-leader-bonus-tiers/${id}`))
+}

@@ -6,9 +6,13 @@ import {
   type StudentListFilters,
 } from '../api/student-query-keys'
 
-export function useStudentsQuery(filters: StudentListFilters = {}) {
+export function useStudentsQuery(
+  filters: StudentListFilters = {},
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: studentQueryKeys.list(filters),
     queryFn: () => fetchStudents(filters),
+    enabled,
   })
 }

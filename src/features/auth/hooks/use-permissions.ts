@@ -182,5 +182,9 @@ export function useCanViewNavBadges() {
   const user = useAuthStore((state) => state.user)
   if (!user) return false
   if (user.is_superuser) return true
-  return hasAuthRole(user, 'finance') || hasAuthRole(user, 'systemadmin')
+  return (
+    hasAuthRole(user, 'finance') ||
+    hasAuthRole(user, 'systemadmin') ||
+    hasAuthRole(user, 'academic-leader')
+  )
 }

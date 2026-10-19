@@ -88,6 +88,7 @@ export default function ProspectiveStudentEditPage() {
         createdAt: student.createdAt,
         updatedAt: student.updatedAt,
         branch: student.branch,
+        referralStudentName: student.referralStudentName,
       }}
     />
   )
@@ -104,7 +105,12 @@ function ProspectiveStudentEditForm({
   fullName: string
   status: ProspectiveStudentStatus
   initialValues: ProspectiveStudentFormValues
-  meta: { createdAt: string; updatedAt: string; branch: string }
+  meta: {
+    createdAt: string
+    updatedAt: string
+    branch: string
+    referralStudentName: string
+  }
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()

@@ -38,6 +38,11 @@ export type BookkeepingTutorSalaryItem = {
   sessionSalary: number
   overtimeSessions: number
   overtimeSalary: number
+  /** Session bonus from the tutor's own session volume. */
+  bonusSalary: number
+  /** Academic leader bonus, for tutors who also lead. */
+  leaderBonus: number
+  tutorHeadcount: number
   totalSalary: number
 }
 

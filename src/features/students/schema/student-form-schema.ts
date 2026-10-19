@@ -11,6 +11,14 @@ export const studentFormSchema = z.object({
   gender: z.enum(['M', 'F']),
   birthPlace: z.string().trim(),
   birthDate: z.string(),
+  age: z
+    .string()
+    .trim()
+    .refine((value) => {
+      if (!value) return true
+      const age = Number(value)
+      return Number.isInteger(age) && age > 0 && age < 120
+    }, 'Enter a valid age.'),
   address: z.string().trim(),
   mobilePhone: z.string().trim().min(6, 'Mobile phone is required.'),
   homePhone: z.string().trim(),

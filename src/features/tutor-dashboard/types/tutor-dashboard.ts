@@ -73,6 +73,9 @@ export type TutorEarnings = {
   overtimeSessions: number
   overtimeSalary: number
   bonusSalary: number
+  /** Academic leader bonus, for tutors who also lead. */
+  leaderBonus: number
+  tutorHeadcount: number
   expectedSalary: number
 }
 

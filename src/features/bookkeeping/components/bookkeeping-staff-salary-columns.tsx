@@ -64,9 +64,40 @@ export const bookkeepingStaffSalaryColumns: ColumnDef<BookkeepingStaffSalaryItem
     ),
   },
   {
-    accessorKey: 'totalSalary',
+    accessorKey: 'mainSalary',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Base salary" align="right" />
+    ),
+    cell: ({ row }) => (
+      <p className="text-right text-sm font-medium text-slate-600 tabular-nums">
+        {formatCurrency(row.original.mainSalary)}
+      </p>
+    ),
+  },
+  {
+    accessorKey: 'bonusSalary',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Leader bonus" align="right" />
+    ),
+    cell: ({ row }) =>
+      row.original.bonusSalary > 0 || row.original.tutorHeadcount > 0 ? (
+        <div className="text-right">
+          <p className="text-sm font-medium text-slate-600 tabular-nums">
+            {formatCurrency(row.original.bonusSalary)}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {row.original.tutorHeadcount} tutor
+            {row.original.tutorHeadcount === 1 ? '' : 's'} hit bonus
+          </p>
+        </div>
+      ) : (
+        <p className="text-right text-xs text-slate-400">—</p>
+      ),
+  },
+  {
+    accessorKey: 'totalSalary',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total" align="right" />
     ),
     cell: ({ row }) => (
       <p className="text-right text-sm font-bold text-ink tabular-nums">

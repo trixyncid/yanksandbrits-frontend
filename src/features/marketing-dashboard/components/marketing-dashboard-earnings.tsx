@@ -47,31 +47,31 @@ function buildPayRows(marketer: SalaryBreakdownMarketer) {
       accent: BRAND_CHART.brand900,
     },
     {
-      label: 'Commission',
+      label: 'TM - Commission',
       amount: marketer.commissionBonus,
       hint: commissionHint(marketer),
       accent: BRAND_CHART.brand700,
     },
     {
-      label: 'Tier bonus',
+      label: 'EC SPIF',
       amount: marketer.tierBonus,
       hint: 'Flat bonus for this payment range',
       accent: BRAND_CHART.brand500,
     },
     {
-      label: 'Tele Marketing fees',
+      label: 'TM - Consult',
       amount: marketer.consultTotal,
-      hint: `${marketer.consultCount} Tele Marketing`,
+      hint: `${marketer.consultCount} Telemarketing`,
       accent: BRAND_CHART.brand400,
     },
     {
-      label: 'Enrollment add-ons',
+      label: 'TM - Student Deal',
       amount: marketer.enrollmentTotal,
       hint: `${marketer.enrollmentCount} enrollment${marketer.enrollmentCount === 1 ? '' : 's'}`,
       accent: BRAND_CHART.brand300,
     },
     {
-      label: 'SPIF',
+      label: 'TM SPIF',
       amount: marketer.spifTotal,
       hint: `${marketer.spifProspectCount} prospect${
         marketer.spifProspectCount === 1 ? '' : 's'

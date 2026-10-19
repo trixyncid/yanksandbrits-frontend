@@ -12,6 +12,8 @@ export type ProspectiveStudentStatus =
 
 export type ProspectiveStudentGender = 'male' | 'female'
 
+export type ProspectiveStudentReferralType = 'student' | 'other'
+
 export type ProspectiveStudentListItem = {
   id: string
   fullName: string
@@ -24,6 +26,9 @@ export type ProspectiveStudentListItem = {
   date: string
   resourceId: string | null
   resource: string
+  referralStudentId: string | null
+  referralStudentName: string
+  referralName: string
   teleMarketing: TeleMarketingCode | ''
   age: number | null
   address: string
@@ -53,6 +58,9 @@ export type ProspectiveStudentFormValues = {
   srNumber: string
   date: string
   resourceId: string
+  referralType: ProspectiveStudentReferralType
+  referralStudentId: string
+  referralName: string
   teleMarketing: TeleMarketingCode | ''
   age: string
   address: string

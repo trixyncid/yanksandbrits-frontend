@@ -37,6 +37,9 @@ type ProspectiveStudentListDto = {
   date?: string | null
   resource?: number | null
   resource_name?: string | null
+  referral_student?: number | null
+  referral_student_name?: string | null
+  referral_name?: string | null
   tele_marketing?: TeleMarketingCode | null
   age?: number | null
   address?: string | null
@@ -93,6 +96,10 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     date: dto.date ?? '',
     resourceId: dto.resource == null ? null : String(dto.resource),
     resource: dto.resource_name ?? '',
+    referralStudentId:
+      dto.referral_student == null ? null : String(dto.referral_student),
+    referralStudentName: dto.referral_student_name ?? '',
+    referralName: dto.referral_name ?? '',
     teleMarketing: (dto.tele_marketing as TeleMarketingCode | null) ?? '',
     age: dto.age ?? null,
     address: dto.address ?? '',
@@ -126,6 +133,13 @@ function toWritePayload(values: ProspectiveStudentFormValues) {
     sr_number: values.srNumber.trim() || null,
     date: values.date.trim() || null,
     resource: values.resourceId ? Number(values.resourceId) : null,
+    // The API clears both referral fields unless the resource is a referral.
+    referral_student:
+      values.referralType === 'student' && values.referralStudentId
+        ? Number(values.referralStudentId)
+        : null,
+    referral_name:
+      values.referralType === 'other' ? values.referralName.trim() || null : null,
     tele_marketing: values.teleMarketing || null,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim() || null,
@@ -261,6 +275,9 @@ export async function createProspectiveStudent(
     date: values.date,
     resourceId: values.resourceId || null,
     resource: '',
+    referralStudentId: null,
+    referralStudentName: '',
+    referralName: '',
     teleMarketing: values.teleMarketing,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim(),
@@ -309,6 +326,9 @@ export function prospectiveStudentToFormValues(
     srNumber: student.srNumber,
     date: student.date,
     resourceId: student.resourceId ?? '',
+    referralType: student.referralName ? 'other' : 'student',
+    referralStudentId: student.referralStudentId ?? '',
+    referralName: student.referralName,
     teleMarketing: student.teleMarketing || '',
     age: student.age == null ? '' : String(student.age),
     address: student.address,
@@ -342,6 +362,9 @@ export function emptyProspectiveStudentFormValues(): ProspectiveStudentFormValue
     srNumber: '',
     date: todayDateString(),
     resourceId: '',
+    referralType: 'student',
+    referralStudentId: '',
+    referralName: '',
     teleMarketing: '',
     age: '',
     address: '',

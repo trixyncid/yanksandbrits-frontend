@@ -6,6 +6,7 @@ import {
   CreditCard,
   FolderKanban,
   GraduationCap,
+  HandCoins,
   UserRound,
   KeyRound,
   LayoutDashboard,
@@ -56,6 +57,7 @@ export type AppPath =
   | '/bookkeeping/new'
   | '/tutor-report'
   | '/tutor-salary-bonus'
+  | '/tm-fees'
   | '/marketing-report'
   | '/appointment-by-tutor'
   | '/profile'
@@ -255,6 +257,12 @@ export const adminNavigation: NavigationItem[] = [
         label: 'Tutor Salary Bonus',
         icon: ClipboardList,
         to: '/tutor-salary-bonus',
+      },
+      {
+        id: 'tm-fees',
+        label: 'TM Fees',
+        icon: HandCoins,
+        to: '/tm-fees',
       },
       {
         id: 'marketing-report',

@@ -129,6 +129,27 @@ export const bookkeepingTutorSalaryColumns: ColumnDef<BookkeepingTutorSalaryItem
       ),
     },
     {
+      id: 'bonuses',
+      accessorFn: (row) => row.bonusSalary + row.leaderBonus,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Bonus" align="center" />
+      ),
+      cell: ({ row }) => (
+        <div className="text-center">
+          <p className="text-xs font-medium text-slate-600 tabular-nums">
+            {formatCurrency(row.original.bonusSalary + row.original.leaderBonus)}
+          </p>
+          {row.original.leaderBonus > 0 ? (
+            <p className="text-[11px] text-slate-400">
+              incl. leader {formatCurrency(row.original.leaderBonus)} ·{' '}
+              {row.original.tutorHeadcount} tutor
+              {row.original.tutorHeadcount === 1 ? '' : 's'}
+            </p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
       accessorKey: 'totalSalary',
       header: ({ column }) => (
         <DataTableColumnHeader

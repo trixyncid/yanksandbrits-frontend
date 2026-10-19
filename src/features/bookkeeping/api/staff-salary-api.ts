@@ -12,6 +12,9 @@ export type BookkeepingStaffSalaryItem = {
   roles: string[]
   branchName: string
   mainSalary: number
+  /** Academic leader bonus from tutor headcount; 0 for other staff. */
+  bonusSalary: number
+  tutorHeadcount: number
   totalSalary: number
 }
 
@@ -23,6 +26,8 @@ type StaffSalaryDto = {
   staff_roles?: string[]
   branch_name?: string | null
   main_salary: number
+  bonus_salary?: number
+  tutor_headcount?: number
   total_salary: number
 }
 
@@ -35,6 +40,8 @@ function mapStaffSalary(dto: StaffSalaryDto): BookkeepingStaffSalaryItem {
     roles: dto.staff_roles ?? [],
     branchName: dto.branch_name ?? '',
     mainSalary: dto.main_salary ?? 0,
+    bonusSalary: dto.bonus_salary ?? 0,
+    tutorHeadcount: dto.tutor_headcount ?? 0,
     totalSalary: dto.total_salary ?? 0,
   }
 }

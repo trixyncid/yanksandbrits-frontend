@@ -57,10 +57,7 @@ import {
 } from '../../lookups/hooks/use-lookup-options'
 import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
 import { getStudentInitials } from '../lib/student-display'
-import type {
-  StudentFormErrors,
-  StudentFormValues,
-} from '../types/student'
+import type { StudentFormErrors, StudentFormValues } from '../types/student'
 import { StudentStatusPill } from './student-status-pill'
 
 type QuickAddKind = 'occupation' | 'institution'
@@ -229,9 +226,9 @@ function formatDate(value: string) {
 }
 
 function missingRequired(values: StudentFormValues) {
-  return REQUIRED_FIELDS.filter((field) => !String(values[field.key]).trim()).map(
-    (field) => field.label,
-  )
+  return REQUIRED_FIELDS.filter(
+    (field) => !String(values[field.key]).trim(),
+  ).map((field) => field.label)
 }
 
 type StudentFormProps = {
@@ -369,7 +366,9 @@ export function StudentForm({
       if (quickAddKind === 'occupation') {
         const created = await createOccupation({ name })
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['lookups', 'occupations'] }),
+          queryClient.invalidateQueries({
+            queryKey: ['lookups', 'occupations'],
+          }),
           queryClient.invalidateQueries({ queryKey: ['occupations', 'list'] }),
         ])
         onChange('occupationId', created.id)
@@ -498,16 +497,32 @@ export function StudentForm({
                   />
                 </Field>
 
-                <Field label="Email" htmlFor="email" error={errors.email}>
+                <Field label="Age" htmlFor="age" error={errors.age}>
                   <Input
-                    id="email"
-                    type="email"
-                    value={values.email}
-                    onChange={(event) => onChange('email', event.target.value)}
-                    placeholder="student@email.com"
-                    autoComplete="email"
+                    id="age"
+                    type="number"
+                    min={1}
+                    max={119}
+                    value={values.age}
+                    onChange={(event) => onChange('age', event.target.value)}
+                    placeholder="18"
                   />
                 </Field>
+
+                <div className="sm:col-span-2">
+                  <Field label="Email" htmlFor="email" error={errors.email}>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={values.email}
+                      onChange={(event) =>
+                        onChange('email', event.target.value)
+                      }
+                      placeholder="student@email.com"
+                      autoComplete="email"
+                    />
+                  </Field>
+                </div>
 
                 <Field
                   label="Place of birth"
@@ -843,7 +858,9 @@ export function StudentForm({
                   <Input
                     id="country"
                     value={values.country}
-                    onChange={(event) => onChange('country', event.target.value)}
+                    onChange={(event) =>
+                      onChange('country', event.target.value)
+                    }
                     placeholder="United Kingdom"
                   />
                 </Field>
@@ -1005,12 +1022,18 @@ export function StudentForm({
                     label="Created"
                     value={formatDateTime(meta.createdAt)}
                   />
-                  <RecordFact label="Created by" value={meta.createdBy || '—'} />
+                  <RecordFact
+                    label="Created by"
+                    value={meta.createdBy || '—'}
+                  />
                   <RecordFact
                     label="Updated"
                     value={formatDateTime(meta.updatedAt)}
                   />
-                  <RecordFact label="Updated by" value={meta.updatedBy || '—'} />
+                  <RecordFact
+                    label="Updated by"
+                    value={meta.updatedBy || '—'}
+                  />
                 </dl>
               </FormSectionCard>
             ) : null}
@@ -1037,7 +1060,10 @@ export function StudentForm({
         }}
       >
         <DialogContent showClose className="overflow-hidden p-0 sm:max-w-lg">
-          <form onSubmit={handleQuickAdd} className="flex max-h-[90vh] flex-col">
+          <form
+            onSubmit={handleQuickAdd}
+            className="flex max-h-[90vh] flex-col"
+          >
             <div className="shrink-0 bg-canvas px-6 pt-6 pb-4">
               <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-500 text-white">
                 <Plus className="size-5" />
@@ -1075,9 +1101,7 @@ export function StudentForm({
               />
               <p className="text-xs text-slate-400">
                 Saved as Title Case
-                {quickAddName.trim()
-                  ? `: ${toTitleCase(quickAddName)}`
-                  : '.'}
+                {quickAddName.trim() ? `: ${toTitleCase(quickAddName)}` : '.'}
               </p>
             </div>
 

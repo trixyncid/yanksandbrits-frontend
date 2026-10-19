@@ -114,6 +114,16 @@ type MarketingPerformanceDto = {
       previous_incomplete: number
       change_pct: number | null
     }
+    ec_spif_progress: {
+      has_tiers: boolean
+      range_amount: number
+      current_bonus: number
+      next_bonus: number | null
+      next_min_amount: number | null
+      remaining: number | null
+      progress_pct: number
+      branch_name: string
+    }
     spif_progress: {
       count: number
       threshold: number
@@ -267,6 +277,16 @@ function mapMetrics(dto: MarketingPerformanceDto): MarketingPerformanceMetrics {
         previousCompleted: dto.kpis.student_payments?.previous_completed ?? 0,
         previousIncomplete: dto.kpis.student_payments?.previous_incomplete ?? 0,
         changePct: dto.kpis.student_payments?.change_pct ?? null,
+      },
+      ecSpifProgress: {
+        hasTiers: dto.kpis.ec_spif_progress.has_tiers,
+        rangeAmount: dto.kpis.ec_spif_progress.range_amount,
+        currentBonus: dto.kpis.ec_spif_progress.current_bonus,
+        nextBonus: dto.kpis.ec_spif_progress.next_bonus,
+        nextMinAmount: dto.kpis.ec_spif_progress.next_min_amount,
+        remaining: dto.kpis.ec_spif_progress.remaining,
+        progressPct: dto.kpis.ec_spif_progress.progress_pct,
+        branchName: dto.kpis.ec_spif_progress.branch_name,
       },
       spifProgress: {
         count: dto.kpis.spif_progress.count,

@@ -33,8 +33,12 @@ export const prospectiveStudentFormSchema = z
     srNumber: z.string().trim().min(1, 'SR number is required.'),
     date: z.string().trim().min(1, 'Date consulted is required.'),
     resourceId: z.string().min(1, 'Select a resource.'),
+    isReferral: z.boolean(),
+    referralType: z.enum(['student', 'other']),
+    referralStudentId: z.string(),
+    referralName: z.string(),
     teleMarketing: z.enum(['WI', 'TM'], {
-      message: 'Select tele marketing.',
+      message: 'Select telemarketing.',
     }),
     age: z
       .string()
@@ -60,6 +64,20 @@ export const prospectiveStudentFormSchema = z
       .min(1, 'Selected counsellor has no branch assigned.'),
   })
   .superRefine((values, ctx) => {
+    if (values.isReferral && values.referralType === 'student' && !values.referralStudentId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['referralStudentId'],
+        message: 'Select the referring student.',
+      })
+    }
+    if (values.isReferral && values.referralType === 'other' && !values.referralName.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['referralName'],
+        message: 'Referral name is required.',
+      })
+    }
     if (values.hasTakenLanguageTest && !values.languageTest) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

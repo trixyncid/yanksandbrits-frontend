@@ -601,6 +601,14 @@ const tutorSalaryBonusRoute = createRoute({
   ),
 })
 
+const tmFeesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tm-fees',
+  component: lazyRouteComponent(
+    () => import('../features/tm-fees/pages/tm-fees-page'),
+  ),
+})
+
 const marketingReportRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/marketing-report',
@@ -726,6 +734,7 @@ const routeTree = rootRoute.addChildren([
     bookkeepingEditRoute,
     tutorReportRoute,
     tutorSalaryBonusRoute,
+    tmFeesRoute,
     marketingReportRoute,
     appointmentByTutorRoute,
     profileRoute,
