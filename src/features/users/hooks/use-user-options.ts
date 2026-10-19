@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import {
+  fetchEducationCounsellorOptions,
   fetchStaffUserOptions,
   fetchTutorOptions,
   type StaffTypeCode,
@@ -22,6 +23,14 @@ export function useTutorOptionsQuery(filters: {
     queryKey: ['users', 'options', 'tutors', staffType],
     queryFn: () => fetchTutorOptions({ staffType }),
     enabled: filters.enabled ?? true,
+  })
+}
+
+/** Every active education counsellor, not limited to the caller's branch. */
+export function useEducationCounsellorOptionsQuery() {
+  return useQuery({
+    queryKey: ['users', 'options', 'education-counsellors'],
+    queryFn: fetchEducationCounsellorOptions,
   })
 }
 

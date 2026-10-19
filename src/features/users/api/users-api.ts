@@ -465,6 +465,31 @@ export async function fetchTutorOptions(filters: {
   }))
 }
 
+type CounsellorOptionDto = {
+  id: number
+  pin: string | null
+  full_name: string
+  email: string
+  branch: number | null
+  branch_name: string | null
+}
+
+/** Education counsellor pick-list across every branch (student response form). */
+export async function fetchEducationCounsellorOptions(): Promise<StaffUserOption[]> {
+  const { data } = await httpClient.get<ApiSuccessEnvelope<CounsellorOptionDto[]>>(
+    adminPath('/users/counsellor-options'),
+  )
+
+  return (data.data ?? []).map((counsellor) => ({
+    id: String(counsellor.id),
+    pin: counsellor.pin ?? '',
+    fullName: counsellor.full_name,
+    email: counsellor.email ?? '',
+    branchId: counsellor.branch == null ? null : String(counsellor.branch),
+    branchName: counsellor.branch_name,
+  }))
+}
+
 export function userToFormValues(user: UserDetail | UserListItem): UserFormValues {
   const detail = user as UserDetail
 

@@ -36,7 +36,7 @@ import {
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useResourceOptionsQuery } from '../../lookups/hooks/use-lookup-options'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
-import { useMarketingOptionsQuery } from '../../users/hooks/use-user-options'
+import { useEducationCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
 import { courseLabel } from '../api/prospective-students-api'
 import { getInitials } from '../lib/lead-status'
 import { isReferralResource } from '../lib/referral'
@@ -223,7 +223,7 @@ export function ProspectiveStudentForm({
   onCancel,
   onDelete,
 }: ProspectiveStudentFormProps) {
-  const marketingsQuery = useMarketingOptionsQuery()
+  const marketingsQuery = useEducationCounsellorOptionsQuery()
   const resourcesQuery = useResourceOptionsQuery()
   const branchesQuery = useBranchesQuery()
   const isReferral = isReferralResource(values.resourceId, resourcesQuery.data)
@@ -506,7 +506,7 @@ export function ProspectiveStudentForm({
                 <Lock className="mt-0.5 size-3.5 shrink-0" />
                 <p>
                   {lockConsultFields
-                    ? 'As an education counsellor, you can’t change the counsellor, branch, consult date, SR number, resource, referral, or telemarketing on an existing lead.'
+                    ? 'As an education counsellor, you can’t change the counsellor, consultation branch, consult date, SR number, resource, referral, or telemarketing on an existing lead.'
                     : 'As an education counsellor, new leads are assigned to you automatically.'}
                 </p>
               </div>
@@ -538,14 +538,14 @@ export function ProspectiveStudentForm({
               </Field>
 
               <Field
-                label="Branch"
+                label="Consultation Branch"
                 htmlFor="branchId"
                 error={errors.branchId}
                 required
                 locked={lockConsultFields}
                 hint={
                   lockConsultFields
-                    ? 'Education counsellors cannot change the branch.'
+                    ? 'Education counsellors cannot change the consultation branch.'
                     : 'Defaults to the counsellor’s branch.'
                 }
               >
@@ -554,7 +554,7 @@ export function ProspectiveStudentForm({
                   value={values.branchId}
                   options={branchOptions}
                   onChange={(next) => onChange('branchId', next)}
-                  placeholder="Select branch..."
+                  placeholder="Select consultation branch..."
                   searchPlaceholder="Search branches..."
                   disabled={lockConsultFields || branchesQuery.isLoading}
                   emptyMessage="No branches found"
@@ -927,7 +927,7 @@ export function ProspectiveStudentForm({
               {[
                 { label: 'Prediction test', value: course },
                 { label: 'Counsellor', value: counsellorName },
-                { label: 'Branch', value: values.branchId ? branchLabel : '' },
+                { label: 'Consultation Branch', value: values.branchId ? branchLabel : '' },
                 {
                   label: 'Came from',
                   value: [resourceLabel, sourceLabel].filter(Boolean).join(' · '),

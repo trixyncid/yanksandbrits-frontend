@@ -59,9 +59,7 @@ export const prospectiveStudentFormSchema = z
     reading: optionalScore,
     writing: optionalScore,
     marketingId: z.string().min(1, 'Select an education counsellor.'),
-    branchId: z
-      .string()
-      .min(1, 'Selected counsellor has no branch assigned.'),
+    branchId: z.string().min(1, 'Select a consultation branch.'),
   })
   .superRefine((values, ctx) => {
     if (values.isReferral && values.referralType === 'student' && !values.referralStudentId) {
