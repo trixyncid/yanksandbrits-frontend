@@ -95,6 +95,26 @@ export const bookkeepingStaffSalaryColumns: ColumnDef<BookkeepingStaffSalaryItem
       ),
   },
   {
+    accessorKey: 'commissionSalary',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Finance commission" align="right" />
+    ),
+    cell: ({ row }) =>
+      row.original.commissionSalary > 0 || row.original.enrollmentCount > 0 ? (
+        <div className="text-right">
+          <p className="text-sm font-medium text-slate-600 tabular-nums">
+            {formatCurrency(row.original.commissionSalary)}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {row.original.enrollmentCount} new student
+            {row.original.enrollmentCount === 1 ? '' : 's'}
+          </p>
+        </div>
+      ) : (
+        <p className="text-right text-xs text-slate-400">—</p>
+      ),
+  },
+  {
     accessorKey: 'totalSalary',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total" align="right" />

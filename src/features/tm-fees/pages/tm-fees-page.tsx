@@ -1,5 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarRange, Handshake, History, PhoneCall } from 'lucide-react'
+import {
+  CalendarRange,
+  GraduationCap,
+  Handshake,
+  History,
+  PhoneCall,
+} from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -64,7 +70,7 @@ export default function TmFeesPage() {
         <PageHero
           eyebrow="Money"
           title="TM fees"
-          description="Flat fees education counsellors earn on telemarketing leads. Changes apply to the bookkeeping period running now; earlier periods keep what they paid."
+          description="Flat fees education counsellors earn on telemarketing leads, and finance earns on new students. Changes apply to the bookkeeping period running now; earlier periods keep what they paid."
           theme="harbor"
           pattern="rings"
           stats={[
@@ -81,6 +87,13 @@ export default function TmFeesPage() {
               value: fees ? formatCurrencyAmount(fees.studentDealFee) : '–',
               icon: Handshake,
               caption: 'Per same-period enrollment',
+            },
+            {
+              id: 'finance',
+              label: 'Finance - New Student',
+              value: fees ? formatCurrencyAmount(fees.financeEnrollmentFee) : '–',
+              icon: GraduationCap,
+              caption: 'Per student enrolled in the period',
             },
             {
               id: 'period',
@@ -117,10 +130,12 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
   const queryClient = useQueryClient()
   const [consult, setConsult] = useState(String(fees.consultFee))
   const [deal, setDeal] = useState(String(fees.studentDealFee))
+  const [finance, setFinance] = useState(String(fees.financeEnrollmentFee))
   const [saving, setSaving] = useState(false)
   const changed =
     parseCurrencyValue(consult) !== fees.consultFee ||
-    parseCurrencyValue(deal) !== fees.studentDealFee
+    parseCurrencyValue(deal) !== fees.studentDealFee ||
+    parseCurrencyValue(finance) !== fees.financeEnrollmentFee
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -129,6 +144,7 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
       const updated = await updateTmFees({
         consultFee: parseCurrencyValue(consult),
         studentDealFee: parseCurrencyValue(deal),
+        financeEnrollmentFee: parseCurrencyValue(finance),
       })
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: tmFeeQueryKeys.all }),
@@ -136,14 +152,14 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
         queryClient.invalidateQueries({ queryKey: marketingDashboardQueryKeys.all }),
       ])
       notify('success', {
-        title: 'TM fees updated',
+        title: 'Fees updated',
         description: updated.currentPeriods.length
-          ? `Counsellor pay for ${updated.currentPeriods.map(periodLabel).join(', ')} has been recalculated.`
+          ? `Counsellor and finance pay for ${updated.currentPeriods.map(periodLabel).join(', ')} has been recalculated.`
           : 'No period is running today; the next period will use these fees.',
       })
     } catch (error) {
       notify('error', {
-        title: 'Unable to update TM fees',
+        title: 'Unable to update fees',
         description: getApiErrorMessage(error),
       })
     } finally {
@@ -159,8 +175,8 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
       <div>
         <h2 className="text-base font-bold text-ink">Fee amounts</h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          Saving recalculates every education counsellor’s pay for the period
-          running now.
+          Saving recalculates education counsellor and finance pay for the
+          period running now.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -174,6 +190,18 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
           <CurrencyInput id="studentDealFee" value={deal} onValueChange={setDeal} />
           <p className="text-xs text-slate-400">
             A consulted lead who enrolls in the same period.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="financeEnrollmentFee">Finance - New Student</Label>
+          <CurrencyInput
+            id="financeEnrollmentFee"
+            value={finance}
+            onValueChange={setFinance}
+          />
+          <p className="text-xs text-slate-400">
+            Paid to each finance staff member for every prospective student who
+            enrolls in the period.
           </p>
         </div>
       </div>
@@ -229,7 +257,8 @@ function PeriodHistory({ fees }: { fees: TmFees }) {
                 </p>
                 <p className="mt-1 text-xs text-slate-600 tabular-nums">
                   Consult {formatCurrencyAmount(period.consultFee)} · Deal{' '}
-                  {formatCurrencyAmount(period.studentDealFee)}
+                  {formatCurrencyAmount(period.studentDealFee)} · Finance{' '}
+                  {formatCurrencyAmount(period.financeEnrollmentFee)}
                 </p>
               </li>
             )

@@ -1,6 +1,7 @@
 import {
   hasAuthPermission,
   hasAuthRole,
+  canViewFinancePerformance,
   canViewMarketingPerformance,
   isTutorUser,
   type AuthUser,
@@ -84,6 +85,22 @@ export function canAccessRoute(
     pathname.startsWith('/tutor-dashboard/')
   ) {
     return Boolean(user.is_superuser) || isTutorUser(user)
+  }
+
+  // Personal finance dashboard — finance role only (superusers can preview).
+  if (
+    pathname === '/finance-dashboard' ||
+    pathname.startsWith('/finance-dashboard/')
+  ) {
+    return Boolean(user.is_superuser) || canViewFinancePerformance(user)
+  }
+
+  // Counsellor's own students' schedule — Education Counsellor only.
+  if (
+    pathname === '/student-schedule' ||
+    pathname.startsWith('/student-schedule/')
+  ) {
+    return canViewMarketingPerformance(user)
   }
 
   // Personal marketing dashboard — Education Counsellor only (not CRO).
@@ -186,6 +203,7 @@ export function getDefaultStaffPath(
   const candidates = [
     '/tutor-dashboard',
     '/marketing-dashboard',
+    '/finance-dashboard',
     '/dashboard',
     '/prospective-students',
     '/prediction-tests',
@@ -210,6 +228,9 @@ export function getDefaultStaffPath(
     // Don't land system admins / superusers on personal performance homes.
     if (path === '/tutor-dashboard' && !isTutorUser(user)) return false
     if (path === '/marketing-dashboard' && !canViewMarketingPerformance(user)) {
+      return false
+    }
+    if (path === '/finance-dashboard' && !canViewFinancePerformance(user)) {
       return false
     }
     return canAccessRoute(user, path)

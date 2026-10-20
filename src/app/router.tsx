@@ -100,6 +100,30 @@ const tutorDashboardRoute = createRoute({
   ),
 })
 
+const studentScheduleRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/student-schedule',
+  validateSearch: (search: Record<string, unknown>) => ({
+    range: search.range === 'past' ? ('past' as const) : undefined,
+    student:
+      typeof search.student === 'string' && search.student ? search.student : undefined,
+    program:
+      typeof search.program === 'string' && search.program ? search.program : undefined,
+  }),
+  component: lazyRouteComponent(
+    () => import('../features/student-schedule/pages/student-schedule-page'),
+  ),
+})
+
+const financeDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/finance-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/finance-dashboard/pages/finance-dashboard-page'),
+  ),
+})
+
 const studentsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/students',
@@ -677,6 +701,8 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     marketingDashboardRoute,
     tutorDashboardRoute,
+    financeDashboardRoute,
+    studentScheduleRoute,
     studentsRoute,
     studentCreateRoute,
     studentDetailRoute,

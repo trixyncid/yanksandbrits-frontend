@@ -72,6 +72,14 @@ export function canViewMarketingPerformance(
   )
 }
 
+/** Finance role users who get the personal performance home. */
+export function canViewFinancePerformance(
+  user: Pick<AuthUser, 'roles'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return hasAuthRole(user, 'finance')
+}
+
 /** Tutor role users who get the personal performance home. */
 export function isTutorUser(
   user: Pick<AuthUser, 'roles' | 'is_tutor'> | null | undefined,

@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BookOpen,
+  CalendarClock,
   CalendarDays,
   ClipboardList,
   CreditCard,
@@ -24,6 +25,8 @@ export type AppPath =
   | '/dashboard'
   | '/marketing-dashboard'
   | '/tutor-dashboard'
+  | '/finance-dashboard'
+  | '/student-schedule'
   | '/students'
   | '/students/new'
   | '/student-groups'
@@ -97,6 +100,18 @@ export const adminNavigation: NavigationItem[] = [
     label: 'My Performance',
     icon: PieChart,
     to: '/marketing-dashboard',
+  },
+  {
+    id: 'finance-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/finance-dashboard',
+  },
+  {
+    id: 'student-schedule',
+    label: 'Student Schedule',
+    icon: CalendarClock,
+    to: '/student-schedule',
   },
   {
     id: 'dashboard',

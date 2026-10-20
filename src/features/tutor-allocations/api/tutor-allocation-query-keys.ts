@@ -4,6 +4,12 @@ export const tutorAllocationQueryKeys = {
   list: () => [...tutorAllocationQueryKeys.lists()] as const,
   details: () => [...tutorAllocationQueryKeys.all, 'detail'] as const,
   detail: (id: string) => [...tutorAllocationQueryKeys.details(), id] as const,
-  eligibleStudents: (program: string) =>
-    [...tutorAllocationQueryKeys.all, 'eligible-students', program] as const,
+  eligibleStudents: (program: string, classType: string, allocationId = '') =>
+    [
+      ...tutorAllocationQueryKeys.all,
+      'eligible-students',
+      program,
+      classType,
+      allocationId,
+    ] as const,
 }
