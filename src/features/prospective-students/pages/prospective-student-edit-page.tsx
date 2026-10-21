@@ -17,6 +17,7 @@ import {
   prospectiveStudentToFormValues,
 } from '../api/prospective-students-api'
 import { prospectiveStudentQueryKeys } from '../api/prospective-student-query-keys'
+import { ResponseStudentsPanel } from '../components/extra-students'
 import { LeadStatusPill } from '../components/lead-status-pill'
 import { ProspectiveStudentForm } from '../components/prospective-student-form'
 import { useProspectiveStudentForm } from '../hooks/use-prospective-student-form'
@@ -84,6 +85,8 @@ export default function ProspectiveStudentEditPage() {
       fullName={student.fullName}
       status={student.status}
       initialValues={prospectiveStudentToFormValues(student)}
+      responseId={student.responseId}
+      responseStudents={student.responseStudents}
       meta={{
         createdAt: student.createdAt,
         updatedAt: student.updatedAt,
@@ -99,12 +102,16 @@ function ProspectiveStudentEditForm({
   fullName,
   status,
   initialValues,
+  responseId,
+  responseStudents,
   meta,
 }: {
   prospectiveStudentId: string
   fullName: string
   status: ProspectiveStudentStatus
   initialValues: ProspectiveStudentFormValues
+  responseId: string | null
+  responseStudents: { id: string; fullName: string; status: ProspectiveStudentStatus }[]
   meta: {
     createdAt: string
     updatedAt: string
@@ -175,6 +182,14 @@ function ProspectiveStudentEditForm({
           onSubmit={form.submit}
           onCancel={form.cancel}
           onDelete={handleDelete}
+          afterStudentSection={
+            <ResponseStudentsPanel
+              currentId={prospectiveStudentId}
+              responseId={responseId}
+              students={responseStudents}
+              defaults={{ phone: initialValues.phone, address: initialValues.address }}
+            />
+          }
         />
       </div>
     </AdminShell>

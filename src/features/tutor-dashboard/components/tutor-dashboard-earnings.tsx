@@ -62,6 +62,17 @@ export function TutorDashboardEarnings({
           },
         ]
       : []),
+    // Only academic leaders who taught tutor training see this row.
+    ...(earnings.trainingSessions > 0
+      ? [
+          {
+            label: 'Tutor training',
+            amount: earnings.trainingSalary,
+            hint: `${earnings.trainingSessions} training session${earnings.trainingSessions === 1 ? '' : 's'} at your trainer fee`,
+            accent: BRAND_CHART.brand100,
+          },
+        ]
+      : []),
   ]
 
   const header = (

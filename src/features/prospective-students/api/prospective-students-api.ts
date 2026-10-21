@@ -12,6 +12,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type {
+  ExtraStudentValues,
   ProspectiveStudentFormValues,
   ProspectiveStudentListItem,
 } from '../types/prospective-student'
@@ -51,6 +52,9 @@ type ProspectiveStudentListDto = {
   is_student: boolean
   is_consult?: boolean
   can_enroll?: boolean
+  response?: number | null
+  response_size?: number | null
+  response_students?: Array<{ id: number; full_name: string; status: string }>
   marketing: number | null
   marketing_name: string | null
   branch: number | null
@@ -117,6 +121,28 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     isStudent: dto.is_student,
     isConsult: Boolean(dto.is_consult),
     canEnroll: Boolean(dto.can_enroll),
+    responseId: dto.response == null ? null : String(dto.response),
+    responseSize: dto.response_size ?? dto.response_students?.length ?? 1,
+    responseStudents: (dto.response_students ?? []).map((student) => ({
+      id: String(student.id),
+      fullName: student.full_name,
+      status: mapResponseStatusFromApi(student.status),
+    })),
+  }
+}
+
+/** Personal details only: the response's Consult & Source details apply. */
+function toExtraStudentPayload(student: ExtraStudentValues) {
+  return {
+    full_name: student.fullName.trim(),
+    email: student.email.trim() || null,
+    phone: student.phone.trim(),
+    gender: mapGenderToApi(student.gender),
+    course: student.course as CourseCode,
+    status: mapResponseStatusToApi(student.status),
+    sr_number: student.srNumber.trim() || null,
+    age: student.age.trim() ? Number(student.age.trim()) : null,
+    address: student.address.trim() || null,
   }
 }
 
@@ -298,7 +324,37 @@ export async function createProspectiveStudent(
       values.status === 'prediction_test' ||
       values.status === 'enrolled',
     canEnroll: false,
+    responseId: null,
+    responseSize: 1,
+    responseStudents: [],
   }
+}
+
+/**
+ * One student response with several students: the first carries the
+ * Consult & Source details the others share. All are saved, or none.
+ */
+export async function createStudentResponse(
+  first: ProspectiveStudentFormValues,
+  others: ExtraStudentValues[],
+): Promise<ProspectiveStudentListItem[]> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ProspectiveStudentListDto[]>>(
+    adminPath('/prospective-students/bulk-create'),
+    { students: [toWritePayload(first), ...others.map(toExtraStudentPayload)] },
+  )
+  return (data.data ?? []).map(mapItem)
+}
+
+/** Add another student to an existing response (shares its Consult & Source). */
+export async function addStudentToResponse(
+  responseId: string,
+  student: ExtraStudentValues,
+): Promise<ProspectiveStudentListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ProspectiveStudentListDto>>(
+    adminPath('/prospective-students'),
+    { ...toExtraStudentPayload(student), response: Number(responseId) },
+  )
+  return mapItem(data.data)
 }
 
 export async function updateProspectiveStudent(

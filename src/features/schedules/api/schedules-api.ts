@@ -38,6 +38,9 @@ export type DayScheduleRow = {
   status: string
   is_overtime: boolean
   description: string | null
+  /** Tutor training: set when an academic leader (``tutor``) trains this tutor. */
+  training_id?: number | null
+  training_tutor?: string | null
 }
 
 export type DayScheduleResult = {
@@ -153,17 +156,22 @@ function mapDayRows(
       const columnId = String(row.classroom_id)
       const startHour = hourFromIso(row.start_time)
       const endHour = hourFromIso(row.end_time)
-      const title =
-        row.student_group ||
-        row.student ||
-        row.tutor ||
-        row.description ||
-        'Class'
+      const isTraining = row.training_id != null
+      const title = isTraining
+        ? `Training · ${row.training_tutor ?? 'tutor'}`
+        : row.student_group ||
+          row.student ||
+          row.tutor ||
+          row.description ||
+          'Class'
       const participantCount = row.participants?.length ?? 0
 
       const status = mapScheduleStatusFromApi(row.status)
-      const backgroundColor = row.program_background_color?.trim() || undefined
-      const textColor = row.program_text_color?.trim() || undefined
+      // Training sessions are violet; classes use their program's colours.
+      const backgroundColor = isTraining
+        ? '#EDE9FE'
+        : row.program_background_color?.trim() || undefined
+      const textColor = isTraining ? '#4C1D95' : row.program_text_color?.trim() || undefined
 
       return {
         id: String(row.id),
@@ -176,8 +184,9 @@ function mapDayRows(
         backgroundColor,
         textColor,
         status: STATUS_LABEL[status],
-        meta:
-          participantCount > 0
+        meta: isTraining
+          ? `Leader: ${row.tutor ?? '—'}`
+          : participantCount > 0
             ? `${participantCount} students`
             : row.tutor
               ? `Tutor: ${row.tutor}`

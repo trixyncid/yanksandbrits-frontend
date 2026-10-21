@@ -43,6 +43,9 @@ export type BookkeepingTutorSalaryItem = {
   /** Academic leader bonus, for tutors who also lead. */
   leaderBonus: number
   tutorHeadcount: number
+  /** Tutor-training sessions taught, paid at their trainer fee. */
+  trainingSessions: number
+  trainingSalary: number
   totalSalary: number
 }
 

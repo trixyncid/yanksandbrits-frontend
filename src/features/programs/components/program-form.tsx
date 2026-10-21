@@ -16,10 +16,11 @@ import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { cn } from '../../../shared/lib/cn'
 import { STAFF_TYPE_OPTIONS } from '../../users/api/users-api'
-import type {
-  ProgramFormErrors,
-  ProgramFormValues,
-  ProgramListItem,
+import {
+  PROGRAM_AUDIENCE_OPTIONS,
+  type ProgramFormErrors,
+  type ProgramFormValues,
+  type ProgramListItem,
 } from '../types/program'
 
 const SUBJECT_CHOICES: { value: ProgramFormValues['subject']; label: string }[] = [
@@ -140,6 +141,45 @@ function ColorField({
         />
       </div>
     </Field>
+  )
+}
+
+/** Who the program is for: students, tutors, or both. */
+function AudienceChoice({
+  value,
+  onChange,
+}: {
+  value: ProgramFormValues['audience']
+  onChange: (value: ProgramFormValues['audience']) => void
+}) {
+  return (
+    <div
+      id="audience"
+      role="radiogroup"
+      aria-label="Intended for"
+      className="grid grid-cols-3 gap-2"
+    >
+      {PROGRAM_AUDIENCE_OPTIONS.map((choice) => {
+        const selected = value === choice.value
+        return (
+          <button
+            key={choice.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(choice.value)}
+            className={cn(
+              'h-10 rounded-full border px-3 text-sm font-semibold transition',
+              selected
+                ? 'border-ink bg-ink text-white'
+                : 'border-transparent bg-canvas text-slate-600 hover:bg-canvas-deep hover:text-ink',
+            )}
+          >
+            {choice.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -307,6 +347,18 @@ export function ProgramForm({
               <SubjectChoice
                 value={values.subject}
                 onChange={(subject) => onChange('subject', subject)}
+              />
+            </Field>
+
+            <Field
+              label="Intended for"
+              htmlFor="audience"
+              error={errors.audience}
+              hint="Who this program is for: students taking it, tutors teaching it, or both. For labelling only."
+            >
+              <AudienceChoice
+                value={values.audience}
+                onChange={(audience) => onChange('audience', audience)}
               />
             </Field>
 

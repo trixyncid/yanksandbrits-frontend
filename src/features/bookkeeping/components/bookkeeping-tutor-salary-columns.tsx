@@ -150,6 +150,26 @@ export const bookkeepingTutorSalaryColumns: ColumnDef<BookkeepingTutorSalaryItem
       ),
     },
     {
+      accessorKey: 'trainingSalary',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Training pay" align="center" />
+      ),
+      cell: ({ row }) =>
+        row.original.trainingSessions > 0 ? (
+          <div className="text-center">
+            <p className="text-xs font-medium text-slate-600 tabular-nums">
+              {formatCurrency(row.original.trainingSalary)}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {row.original.trainingSessions} session
+              {row.original.trainingSessions === 1 ? '' : 's'} taught
+            </p>
+          </div>
+        ) : (
+          <p className="text-center text-xs text-slate-400">—</p>
+        ),
+    },
+    {
       accessorKey: 'totalSalary',
       header: ({ column }) => (
         <DataTableColumnHeader

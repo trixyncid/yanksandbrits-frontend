@@ -78,7 +78,7 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-rose-500">{message}</p>
 }
 
-function Field({
+export function Field({
   label,
   htmlFor,
   error,
@@ -123,7 +123,7 @@ function Field({
   )
 }
 
-function SegmentedChoice<T extends string>({
+export function SegmentedChoice<T extends string>({
   id,
   label,
   value,
@@ -209,6 +209,8 @@ type ProspectiveStudentFormProps = {
   ) => void
   onSubmit: () => void | Promise<void>
   onCancel: () => void
+  /** Shown right after the Student section (e.g. more students in the response). */
+  afterStudentSection?: ReactNode
   onDelete?: () => void
 }
 
@@ -222,6 +224,7 @@ export function ProspectiveStudentForm({
   onSubmit,
   onCancel,
   onDelete,
+  afterStudentSection,
 }: ProspectiveStudentFormProps) {
   const marketingsQuery = useEducationCounsellorOptionsQuery()
   const resourcesQuery = useResourceOptionsQuery()
@@ -494,6 +497,8 @@ export function ProspectiveStudentForm({
               />
             </Field>
           </FormSectionCard>
+
+          {afterStudentSection}
 
           <FormSectionCard
             icon={Megaphone}

@@ -106,12 +106,29 @@ export const bookkeepingStaffSalaryColumns: ColumnDef<BookkeepingStaffSalaryItem
             {formatCurrency(row.original.commissionSalary)}
           </p>
           <p className="text-[11px] text-slate-400">
-            {row.original.enrollmentCount}{' '}
-            {row.original.commissionBasis === 'student_response'
-              ? 'student response'
-              : 'new student'}
+            {row.original.enrollmentCount} new student
             {row.original.enrollmentCount === 1 ? '' : 's'} ×{' '}
             {formatCurrency(row.original.commissionRate)}
+          </p>
+        </div>
+      ) : (
+        <p className="text-right text-xs text-slate-400">—</p>
+      ),
+  },
+  {
+    accessorKey: 'trainingSalary',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Training pay" align="right" />
+    ),
+    cell: ({ row }) =>
+      row.original.trainingSessions > 0 ? (
+        <div className="text-right">
+          <p className="text-sm font-medium text-slate-600 tabular-nums">
+            {formatCurrency(row.original.trainingSalary)}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {row.original.trainingSessions} training session
+            {row.original.trainingSessions === 1 ? '' : 's'}
           </p>
         </div>
       ) : (

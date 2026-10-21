@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, Users } from 'lucide-react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import { courseLabel } from '../api/prospective-students-api'
@@ -39,6 +39,15 @@ export const prospectiveStudentListColumns: ColumnDef<ProspectiveStudentListItem
             {row.original.gender ? (
               <span className="shrink-0 rounded-full bg-canvas px-2 py-0.5 text-[10px] font-semibold text-slate-500">
                 {row.original.gender === 'male' ? 'Male' : 'Female'}
+              </span>
+            ) : null}
+            {row.original.responseSize > 1 ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+                title="Came in with other students in one response; counts once for the counsellor."
+              >
+                <Users aria-hidden className="size-3" />
+                Response of {row.original.responseSize}
               </span>
             ) : null}
           </div>

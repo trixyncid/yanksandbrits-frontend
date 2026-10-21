@@ -239,6 +239,21 @@ export function TutorWorkingScheduleDialog({
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="trainerFee">Trainer fee per session (IDR)</Label>
+              <Input
+                id="trainerFee"
+                inputMode="numeric"
+                value={values.trainerFee}
+                onChange={(event) => updateField('trainerFee', event.target.value)}
+                placeholder="0"
+              />
+              <p className="text-xs text-slate-500">
+                Paid for each finished tutor-training session this person teaches, instead of
+                their class rates. Leave 0 if they don&apos;t run training.
+              </p>
+            </div>
+
             {mode === 'full' && !freelance ? (
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-ink">

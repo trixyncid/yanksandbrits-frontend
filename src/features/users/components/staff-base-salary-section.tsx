@@ -23,10 +23,10 @@ import { AcademicLeaderBonusSection } from './academic-leader-bonus-section'
 
 type CommissionKind = 'finance' | 'cro' | 'digitalMarketing'
 
-/** What a person's commission counts: Finance and CRO new students, Digital Marketing responses. */
+/** Which new students a person's commission counts. */
 function commissionScope(user: UserDetail, kind: CommissionKind) {
   if (kind === 'digitalMarketing') {
-    return 'Counts consulted student responses from lead sources marked for Digital Marketing, in every branch.'
+    return 'Counts students who enroll from lead sources marked for Digital Marketing, in every branch.'
   }
   if (kind === 'finance') return 'Counts new students from every branch.'
   if (user.branchName) return `Counts new students in ${user.branchName} only.`
@@ -35,14 +35,14 @@ function commissionScope(user: UserDetail, kind: CommissionKind) {
 
 /**
  * Base salary for staff paid a fixed amount (Finance, CRO, Academic Leader, …).
- * Finance and CRO also earn their own rate per new student; Digital Marketing
- * per student response.
+ * Finance, CRO and Digital Marketing also earn their own rate per new student.
  */
 export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
   const [commission, setCommission] = useState('')
+  const [trainingFee, setTrainingFee] = useState('')
   const isAcademicLeader = user.roles.some((role) => role.code === 'academic-leader')
   const hasRole = (code: string) => user.roles.some((role) => role.code === code)
   // Same precedence as the backend: Finance, then CRO, then Digital Marketing.
@@ -54,8 +54,7 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
         ? 'digitalMarketing'
         : null
   const earnsCommission = commissionKind !== null
-  const commissionUnit =
-    commissionKind === 'digitalMarketing' ? 'student response' : 'new student'
+  const commissionUnit = 'new student'
   const roleNames = user.roles
     .filter((role) => role.code !== 'systemadmin')
     .map((role) => role.name)
@@ -74,6 +73,7 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
         {
           mainSalary: Number(amount) || 0,
           enrollmentCommission: earnsCommission ? Number(commission) || 0 : undefined,
+          trainerFee: isAcademicLeader ? Number(trainingFee) || 0 : undefined,
         },
         salary?.id,
       ),
@@ -97,6 +97,7 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
   function openDialog() {
     setAmount(salary ? String(salary.mainSalary) : '')
     setCommission(salary ? String(salary.enrollmentCommission) : '')
+    setTrainingFee(salary ? String(salary.trainerFee) : '')
     setOpen(true)
   }
 
@@ -142,6 +143,21 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
             </Button>
           </Can>
         </div>
+        {isAcademicLeader && salary ? (
+          <div className="mt-5 flex items-start gap-3 rounded-2xl bg-white/8 px-4 py-3">
+            <GraduationCap aria-hidden className="mt-0.5 size-4 shrink-0 text-white/60" />
+            <div>
+              <p className="text-sm font-semibold">
+                {salary.trainerFee > 0
+                  ? `Trainer fee ${formatCurrencyAmount(salary.trainerFee)} per session`
+                  : 'No trainer fee set'}
+              </p>
+              <p className="mt-0.5 text-xs text-white/60">
+                Paid for each finished tutor-training session they teach.
+              </p>
+            </div>
+          </div>
+        ) : null}
         {commissionKind && salary ? (
           <div className="mt-5 flex items-start gap-3 rounded-2xl bg-white/8 px-4 py-3">
             <GraduationCap aria-hidden className="mt-0.5 size-4 shrink-0 text-white/60" />
@@ -202,6 +218,20 @@ export function StaffBaseSalarySection({ user }: { user: UserDetail }) {
                 placeholder="0"
               />
             </div>
+            {isAcademicLeader ? (
+              <div className="mt-4 space-y-1.5">
+                <Label htmlFor="staffTrainingFee">Trainer fee per session (IDR)</Label>
+                <CurrencyInput
+                  id="staffTrainingFee"
+                  value={trainingFee}
+                  onValueChange={setTrainingFee}
+                  placeholder="0"
+                />
+                <p className="text-xs text-slate-500">
+                  Paid for each finished tutor-training session {user.fullName} teaches.
+                </p>
+              </div>
+            ) : null}
             {commissionKind ? (
               <div className="mt-4 space-y-1.5">
                 <Label htmlFor="staffEnrollmentCommission">

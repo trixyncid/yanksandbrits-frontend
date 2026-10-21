@@ -485,7 +485,7 @@ export default function ResourceListPage() {
           htmlFor="resource-is-digital-marketing-active"
           hint={
             values.isDigitalMarketing
-              ? 'Each consulted student response from this source pays every Digital Marketing staff member their own rate.'
+              ? 'Each student who enrolls from this source pays every Digital Marketing staff member their own rate.'
               : 'Student responses from this source do not count toward Digital Marketing commission.'
           }
         >

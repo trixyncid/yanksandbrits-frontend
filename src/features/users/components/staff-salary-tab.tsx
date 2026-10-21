@@ -1,23 +1,12 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  AlertCircle,
-  Eye,
-  Lock,
-  Plus,
-  RefreshCw,
-  Trash2,
-  Wallet,
-} from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { AlertCircle, Lock, Plus, RefreshCw, Wallet } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { PageBackdrop } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
-import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
-import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
 import {
-  deleteTutorProgramSalary,
   fetchMarketingSalary,
   fetchTutorProgramSalaries,
   fetchTutorWorkingSchedule,
@@ -31,6 +20,7 @@ import { StaffBaseSalarySection } from './staff-base-salary-section'
 import { MarketingCommissionSection } from './marketing-commission-section'
 import { MarketingSalaryDialog } from './marketing-salary-dialog'
 import { formatStaffCurrency } from './staff-detail-utils'
+import { TutorProgramRatesList } from './tutor-program-rates-list'
 import { TutorProgramSalaryDialog } from './tutor-program-salary-dialog'
 import { TutorWorkingScheduleDialog } from './tutor-working-schedule-dialog'
 
@@ -44,7 +34,6 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
   const isBranchManager = user.roles.some(
     (role) => role.code === 'branch-manager',
   )
-  const queryClient = useQueryClient()
   const [tutorDialogOpen, setTutorDialogOpen] = useState(false)
   const [marketingDialogOpen, setMarketingDialogOpen] = useState(false)
   const [programDialogOpen, setProgramDialogOpen] = useState(false)
@@ -69,31 +58,6 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
     enabled: user.isMarketing,
   })
 
-  function requestDeleteProgramSalary(row: TutorProgramSalary) {
-    requestDeleteConfirm({
-      title: `Remove the ${row.programTitle ?? 'program'} rate?`,
-      description: `${row.programTitle ?? 'This program'} will go back to using ${user.fullName}'s base rates. This cannot be undone.`,
-      onConfirm: () => {
-        void (async () => {
-          try {
-            await deleteTutorProgramSalary(row.id)
-            await queryClient.invalidateQueries({
-              queryKey: ['tutor-salary-class-based'],
-            })
-            notify('success', {
-              title: 'Program salary removed',
-              description: `${row.programTitle ?? 'Program'} will use the tutor's base rates.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to remove program salary',
-              description: getApiErrorMessage(error),
-            })
-          }
-        })()
-      },
-    })
-  }
   if (isSystemAdminOnly(user)) {
     return (
       <EmptySalaryState
@@ -147,9 +111,6 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
   const tutorSchedule = tutorBaseQuery.data ?? null
   const marketingSalary = marketingQuery.data ?? null
   const programSalaries = tutorProgramQuery.data ?? []
-  const existingProgramIds = programSalaries
-    .map((row) => row.programId)
-    .filter((id): id is string => Boolean(id))
 
   return (
     <>
@@ -171,6 +132,10 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
                         value: formatStaffCurrency(tutorSchedule.salaryPerSession),
                         primary: true,
                       },
+                      {
+                        label: 'Trainer fee',
+                        value: formatStaffCurrency(tutorSchedule.trainerFee),
+                      },
                     ]
                   : tutorSchedule
                   ? [
@@ -186,6 +151,10 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
                       {
                         label: 'Overtime',
                         value: `${tutorSchedule.overtimeMultiplier}x`,
+                      },
+                      {
+                        label: 'Trainer fee',
+                        value: formatStaffCurrency(tutorSchedule.trainerFee),
                       },
                     ]
                   : null
@@ -225,7 +194,7 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
                     }}
                   >
                     <Plus className="size-3.5" />
-                    Add program rate
+                    Add or raise rates
                   </Button>
                 </Can>
               </div>
@@ -235,51 +204,15 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
                   No program rates. Every program uses the base rates above.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {programSalaries.map((row) => (
-                    <li
-                      key={row.id}
-                      className="flex flex-wrap items-center gap-3 rounded-2xl bg-canvas px-4 py-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-ink">
-                          {row.programTitle || '—'}
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-500 tabular-nums">
-                          {formatStaffCurrency(row.salaryPerSession)} per
-                          session · {row.overtimeMultiplier}x overtime
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Can module="users" action="change">
-                          <button
-                            type="button"
-                            aria-label={`Open program rate for ${row.programTitle ?? 'program'}`}
-                            title="Open details"
-                            onClick={() => {
-                              setSelectedProgramSalary(row)
-                              setProgramDialogOpen(true)
-                            }}
-                            className="inline-flex size-9 items-center justify-center rounded-full bg-white text-ink transition hover:bg-ink hover:text-white"
-                          >
-                            <Eye className="size-3.5" />
-                          </button>
-                        </Can>
-                        <Can module="users" action="delete">
-                          <button
-                            type="button"
-                            aria-label={`Delete program rate for ${row.programTitle ?? 'program'}`}
-                            title="Delete program rate"
-                            onClick={() => requestDeleteProgramSalary(row)}
-                            className="inline-flex size-9 items-center justify-center rounded-full bg-white text-rose-500 transition hover:bg-rose-500 hover:text-white"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </Can>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <TutorProgramRatesList
+                  rates={programSalaries}
+                  tutorId={user.id}
+                  tutorName={user.fullName}
+                  onOpen={(rate) => {
+                    setSelectedProgramSalary(rate)
+                    setProgramDialogOpen(true)
+                  }}
+                />
               )}
             </div>
 
@@ -401,7 +334,7 @@ export function StaffSalaryTab({ user }: StaffSalaryTabProps) {
             tutorId={user.id}
             tutorName={user.fullName}
             salary={selectedProgramSalary}
-            existingProgramIds={existingProgramIds}
+            existingRates={programSalaries}
           />
         </>
       ) : null}

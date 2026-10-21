@@ -10,13 +10,17 @@ import { useResourceOptionsQuery } from '../../lookups/hooks/use-lookup-options'
 import { predictionTestQueryKeys } from '../../prediction-tests/api/prediction-test-query-keys'
 import {
   createProspectiveStudent,
+  createStudentResponse,
   emptyProspectiveStudentFormValues,
   updateProspectiveStudent,
 } from '../api/prospective-students-api'
+import { emptyExtraStudent, validateExtraStudent } from '../lib/extra-students'
 import { prospectiveStudentQueryKeys } from '../api/prospective-student-query-keys'
 import { isReferralResource } from '../lib/referral'
 import { prospectiveStudentFormSchema } from '../schema/prospective-student-form-schema'
 import type {
+  ExtraStudentErrors,
+  ExtraStudentValues,
   ProspectiveStudentFormErrors,
   ProspectiveStudentFormValues,
 } from '../types/prospective-student'
@@ -45,12 +49,8 @@ const apiFieldToFormField: Record<string, keyof ProspectiveStudentFormValues> = 
   branch: 'branchId',
 }
 
-function formErrorsFromApi(error: unknown): ProspectiveStudentFormErrors {
-  if (!axios.isAxiosError(error)) {
-    return {}
-  }
-
-  const details = (error.response?.data as ApiErrorBody | undefined)?.details
+/** Field messages from an API error body (or one student's part of it). */
+function fieldErrors(details: unknown): ProspectiveStudentFormErrors {
   if (!details || typeof details !== 'object') {
     return {}
   }
@@ -67,6 +67,21 @@ function formErrorsFromApi(error: unknown): ProspectiveStudentFormErrors {
     }
   }
   return next
+}
+
+function apiErrorDetails(error: unknown): unknown {
+  if (!axios.isAxiosError(error)) return undefined
+  return (error.response?.data as ApiErrorBody | undefined)?.details
+}
+
+function formErrorsFromApi(error: unknown): ProspectiveStudentFormErrors {
+  return fieldErrors(apiErrorDetails(error))
+}
+
+/** Bulk-create errors are keyed by student index: 0 is the main form. */
+function studentErrorsFromApi(error: unknown): Record<string, unknown> {
+  const details = apiErrorDetails(error) as { students?: Record<string, unknown> } | undefined
+  return details?.students && typeof details.students === 'object' ? details.students : {}
 }
 
 type UseProspectiveStudentFormOptions = {
@@ -86,6 +101,50 @@ export function useProspectiveStudentForm({
   const [values, setValues] = useState<ProspectiveStudentFormValues>(initialValues)
   const [errors, setErrors] = useState<ProspectiveStudentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Create only: more students in the same response, keyed by card.
+  const [extraStudents, setExtraStudents] = useState<ExtraStudentValues[]>([])
+  const [extraErrors, setExtraErrors] = useState<Record<string, ExtraStudentErrors>>({})
+
+  function addExtraStudent() {
+    setExtraStudents((current) => [
+      ...current,
+      emptyExtraStudent({ phone: values.phone, address: values.address }),
+    ])
+  }
+
+  function removeExtraStudent(key: string) {
+    setExtraStudents((current) => current.filter((student) => student.key !== key))
+    setExtraErrors((current) => {
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
+  }
+
+  function updateExtraStudent<K extends keyof ExtraStudentValues>(
+    key: string,
+    field: K,
+    value: ExtraStudentValues[K],
+  ) {
+    setExtraStudents((current) =>
+      current.map((student) => (student.key === key ? { ...student, [field]: value } : student)),
+    )
+    setExtraErrors((current) => ({
+      ...current,
+      [key]: { ...current[key], [field]: undefined },
+    }))
+  }
+
+  /** Validates every extra card; true when all are complete. */
+  function validateExtraStudents() {
+    const next: Record<string, ExtraStudentErrors> = {}
+    for (const student of extraStudents) {
+      const studentErrors = validateExtraStudent(student)
+      if (Object.keys(studentErrors).length > 0) next[student.key] = studentErrors
+    }
+    setExtraErrors(next)
+    return Object.keys(next).length === 0
+  }
 
   function updateField<K extends keyof ProspectiveStudentFormValues>(
     field: K,
@@ -125,8 +184,9 @@ export function useProspectiveStudentForm({
 
   async function submit() {
     const isValid = validateForm(values)
+    const extrasValid = mode === 'create' ? validateExtraStudents() : true
 
-    if (!isValid) {
+    if (!isValid || !extrasValid) {
       notify('error', {
         title:
           mode === 'create'
@@ -140,6 +200,20 @@ export function useProspectiveStudentForm({
     setIsSubmitting(true)
 
     try {
+      if (mode === 'create' && extraStudents.length > 0) {
+        const created = await createStudentResponse(values, extraStudents)
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: prospectiveStudentQueryKeys.all }),
+          queryClient.invalidateQueries({ queryKey: predictionTestQueryKeys.all }),
+        ])
+        notify('success', {
+          title: 'Student response created',
+          description: `${created.map((student) => student.fullName).join(', ')} were added in one response.`,
+        })
+        void navigate({ to: '/prospective-students' })
+        return
+      }
+
       if (mode === 'create') {
         const created = await createProspectiveStudent(values)
         await queryClient.invalidateQueries({
@@ -193,9 +267,22 @@ export function useProspectiveStudentForm({
       })
       void navigate({ to: '/prospective-students' })
     } catch (error) {
-      const fieldErrors = formErrorsFromApi(error)
-      if (Object.keys(fieldErrors).length > 0) {
-        setErrors(fieldErrors)
+      const perStudent = studentErrorsFromApi(error)
+      if (Object.keys(perStudent).length > 0) {
+        // Bulk create: index 0 is the main form, the rest are the extra cards.
+        setErrors(fieldErrors(perStudent['0']))
+        const next: Record<string, ExtraStudentErrors> = {}
+        extraStudents.forEach((student, index) => {
+          const studentErrors = fieldErrors(perStudent[String(index + 1)])
+          if (Object.keys(studentErrors).length > 0) {
+            next[student.key] = studentErrors as ExtraStudentErrors
+          }
+        })
+        setExtraErrors(next)
+      }
+      const apiFieldErrors = formErrorsFromApi(error)
+      if (Object.keys(apiFieldErrors).length > 0) {
+        setErrors(apiFieldErrors)
       }
       notify('error', {
         title:
@@ -220,5 +307,10 @@ export function useProspectiveStudentForm({
     updateField,
     submit,
     cancel,
+    extraStudents,
+    extraErrors,
+    addExtraStudent,
+    removeExtraStudent,
+    updateExtraStudent,
   }
 }

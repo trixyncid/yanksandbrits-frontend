@@ -46,6 +46,12 @@ export type ProspectiveStudentListItem = {
   isStudent: boolean
   isConsult: boolean
   canEnroll: boolean
+  /** The student response this student came in with. */
+  responseId: string | null
+  /** How many students share that response (1 when on their own). */
+  responseSize: number
+  /** Everyone in the response, this student included (detail view only). */
+  responseStudents: { id: string; fullName: string; status: ProspectiveStudentStatus }[]
 }
 
 export type ProspectiveStudentFormValues = {
@@ -77,3 +83,22 @@ export type ProspectiveStudentFormValues = {
 export type ProspectiveStudentFormErrors = Partial<
   Record<keyof ProspectiveStudentFormValues, string>
 >
+
+/**
+ * Another student in the same student response. They share the first
+ * student's Consult & Source details and only need their own personal ones.
+ */
+export type ExtraStudentValues = {
+  key: string
+  fullName: string
+  email: string
+  phone: string
+  gender: ProspectiveStudentGender | ''
+  age: string
+  course: CourseCode | ''
+  status: Exclude<ProspectiveStudentStatus, 'enrolled'>
+  srNumber: string
+  address: string
+}
+
+export type ExtraStudentErrors = Partial<Record<keyof ExtraStudentValues, string>>

@@ -42,9 +42,10 @@ import {
 import { useUserQuery } from '../hooks/use-user-query'
 import type { StaffEntityConfig } from '../lib/staff-entity-config'
 import { useAuthUser } from '../../auth/hooks/use-permissions'
-import { hasAuthPermission } from '../../auth/types/auth'
+import { hasAuthPermission, hasAuthRole } from '../../auth/types/auth'
+import { StaffTrainingTab } from '../../tutor-training/components/staff-training-tab'
 
-type DetailTab = 'schedule' | 'salary' | 'leave'
+type DetailTab = 'schedule' | 'training' | 'salary' | 'leave'
 
 /** Any of these lets a role read salary setups. */
 const PAY_PERMISSIONS = [
@@ -74,6 +75,10 @@ const TAB_COPY: Record<
   leave: {
     title: 'Paid leave',
     description: 'How much paid leave is left, and past requests.',
+  },
+  training: {
+    title: 'Training program',
+    description: 'Training run by their academic leader, and everything on their schedule.',
   },
 }
 
@@ -132,6 +137,14 @@ export function StaffUserDetailPage({
   const canReadPay = PAY_PERMISSIONS.some((permission) =>
     hasAuthPermission(authUser, permission),
   )
+  // Tutor training: academic leaders, managers and admins, or the tutor themselves.
+  const canSeeTraining =
+    user.isTutor &&
+    (Boolean(authUser?.is_superuser) ||
+      hasAuthRole(authUser, 'academic-leader') ||
+      hasAuthRole(authUser, 'branch-manager') ||
+      hasAuthRole(authUser, 'systemadmin') ||
+      String(authUser?.id) === user.id)
   // Freelancers have no paid leave, so they get no Leave tab.
   const isFreelance = user.employmentType === 'FL'
   const tabs = (
@@ -143,6 +156,11 @@ export function StaffUserDetailPage({
       : BASE_TABS
   )
     .filter((item) => !(isFreelance && item.id === 'leave'))
+    .flatMap((item) =>
+      item.id === 'schedule' && canSeeTraining
+        ? [item, { id: 'training' as const, label: 'Training' }]
+        : [item],
+    )
     // Pay data is restricted: only roles that can read salaries see the tab.
     .filter((item) => item.id !== 'salary' || canReadPay)
   const activeTab = tabs.some((item) => item.id === tab) ? tab : tabs[0]!.id
@@ -404,6 +422,7 @@ export function StaffUserDetailPage({
               </div>
 
               {activeTab === 'schedule' ? <StaffScheduleTab user={user} /> : null}
+              {activeTab === 'training' ? <StaffTrainingTab user={user} /> : null}
               {activeTab === 'salary' ? <StaffSalaryTab user={user} /> : null}
               {activeTab === 'leave' ? <StaffLeaveTab user={user} /> : null}
             </div>

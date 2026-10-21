@@ -74,6 +74,8 @@ type TutorSalaryDto = {
   bonus_salary?: number
   leader_bonus?: number
   tutor_headcount?: number
+  training_sessions?: number
+  training_salary?: number
   total_salary?: number
   bookkeeping: number | null
 }
@@ -124,13 +126,16 @@ function mapTutorSalary(dto: TutorSalaryDto): BookkeepingTutorSalaryItem {
     bonusSalary: dto.bonus_salary ?? 0,
     leaderBonus: dto.leader_bonus ?? 0,
     tutorHeadcount: dto.tutor_headcount ?? 0,
+    trainingSessions: dto.training_sessions ?? 0,
+    trainingSalary: dto.training_salary ?? 0,
     totalSalary:
       dto.total_salary ??
       (dto.main_salary ?? 0) +
         (dto.session_salary ?? 0) +
         (dto.overtime_salary ?? 0) +
         (dto.bonus_salary ?? 0) +
-        (dto.leader_bonus ?? 0),
+        (dto.leader_bonus ?? 0) +
+        (dto.training_salary ?? 0),
   }
 }
 

@@ -20,6 +20,7 @@ type ProgramDto = {
   title: string
   description: string | null
   subject?: string | null
+  audience?: string | null
   is_active: boolean
   background_color: string | null
   text_color: string | null
@@ -46,6 +47,7 @@ function mapProgram(dto: ProgramDto): ProgramListItem {
     title: dto.title,
     description: dto.description ?? '',
     subject: (dto.subject ?? '') as ProgramListItem['subject'],
+    audience: (dto.audience || 'student') as ProgramListItem['audience'],
     isActive: dto.is_active,
     backgroundColor: dto.background_color || '#FFFFFF',
     textColor: dto.text_color || '#000000',
@@ -62,6 +64,7 @@ function toWritePayload(values: ProgramFormValues) {
     title: values.title.trim(),
     description: values.description.trim() || null,
     subject: values.subject,
+    audience: values.audience,
     is_active: values.isActive,
     background_color: values.backgroundColor.trim(),
     text_color: values.textColor.trim(),
@@ -110,6 +113,7 @@ export async function fetchFilteredPrograms(
     title: program.title,
     description: '',
     subject: '',
+    audience: 'student',
     isActive: true,
     backgroundColor: '#FFFFFF',
     textColor: '#000000',
@@ -200,6 +204,7 @@ export function programToFormValues(
     title: program.title,
     description: program.description,
     subject: program.subject,
+    audience: program.audience,
     isActive: program.isActive,
     backgroundColor: program.backgroundColor,
     textColor: program.textColor,
@@ -211,6 +216,7 @@ export const emptyProgramFormValues: ProgramFormValues = {
   title: '',
   description: '',
   subject: '',
+  audience: 'student',
   isActive: true,
   backgroundColor: '#253CA1',
   textColor: '#FFFFFF',

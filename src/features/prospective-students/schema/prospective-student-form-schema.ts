@@ -84,3 +84,25 @@ export const prospectiveStudentFormSchema = z
       })
     }
   })
+
+/** Personal details for another student in the same response. */
+export const extraStudentSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name is required.'),
+  email: z.union([z.literal(''), z.string().trim().email('Enter a valid email.')]),
+  phone: z.string().trim().min(8, 'Phone number is required.'),
+  gender: z.enum(['male', 'female'], { message: 'Select a gender.' }),
+  course: z.enum(['TOE', 'IEL', 'GET', 'SAT', 'HSK', 'GEN', 'IT', 'NON'], {
+    message: 'Select a prediction test.',
+  }),
+  status: z.enum(['consult', 'prediction_test', 'cancelled']),
+  srNumber: z.string().trim().min(1, 'SR number is required.'),
+  age: z
+    .string()
+    .trim()
+    .min(1, 'Age is required.')
+    .refine((value) => {
+      const age = Number(value)
+      return Number.isInteger(age) && age > 0 && age < 120
+    }, 'Enter a valid age.'),
+  address: z.string().trim().min(1, 'Address is required.'),
+})
