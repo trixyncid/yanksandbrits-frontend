@@ -97,7 +97,7 @@ export const bookkeepingStaffSalaryColumns: ColumnDef<BookkeepingStaffSalaryItem
   {
     accessorKey: 'commissionSalary',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Finance commission" align="right" />
+      <DataTableColumnHeader column={column} title="Commission" align="right" />
     ),
     cell: ({ row }) =>
       row.original.commissionSalary > 0 || row.original.enrollmentCount > 0 ? (
@@ -106,8 +106,12 @@ export const bookkeepingStaffSalaryColumns: ColumnDef<BookkeepingStaffSalaryItem
             {formatCurrency(row.original.commissionSalary)}
           </p>
           <p className="text-[11px] text-slate-400">
-            {row.original.enrollmentCount} new student
-            {row.original.enrollmentCount === 1 ? '' : 's'}
+            {row.original.enrollmentCount}{' '}
+            {row.original.commissionBasis === 'student_response'
+              ? 'student response'
+              : 'new student'}
+            {row.original.enrollmentCount === 1 ? '' : 's'} ×{' '}
+            {formatCurrency(row.original.commissionRate)}
           </p>
         </div>
       ) : (

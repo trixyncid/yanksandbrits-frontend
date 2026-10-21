@@ -10,15 +10,12 @@ export type TmFeePeriod = {
   branchName: string
   consultFee: number
   studentDealFee: number
-  financeEnrollmentFee: number
 }
 
 /** The one TM fee setting, the period(s) it prices now, and every period's amounts. */
 export type TmFees = {
   consultFee: number
   studentDealFee: number
-  /** Paid to each finance staff member per new student enrolled in the period. */
-  financeEnrollmentFee: number
   updatedAt: string | null
   updatedBy: string
   currentPeriods: TmFeePeriod[]
@@ -33,13 +30,11 @@ type TmFeePeriodDto = {
   branch_name?: string | null
   tm_consult_fee: number
   tm_student_deal_fee: number
-  finance_enrollment_fee: number
 }
 
 type TmFeesDto = {
   consult_fee: number
   student_deal_fee: number
-  finance_enrollment_fee: number
   updated_at: string | null
   updated_by_name: string | null
   current_periods: TmFeePeriodDto[]
@@ -59,7 +54,6 @@ function mapPeriod(dto: TmFeePeriodDto): TmFeePeriod {
     branchName: dto.branch_name ?? '',
     consultFee: dto.tm_consult_fee,
     studentDealFee: dto.tm_student_deal_fee,
-    financeEnrollmentFee: dto.finance_enrollment_fee,
   }
 }
 
@@ -67,7 +61,6 @@ function mapFees(dto: TmFeesDto): TmFees {
   return {
     consultFee: dto.consult_fee,
     studentDealFee: dto.student_deal_fee,
-    financeEnrollmentFee: dto.finance_enrollment_fee,
     updatedAt: dto.updated_at,
     updatedBy: dto.updated_by_name ?? '',
     currentPeriods: dto.current_periods.map(mapPeriod),
@@ -85,14 +78,12 @@ export async function fetchTmFees(): Promise<TmFees> {
 export async function updateTmFees(fees: {
   consultFee: number
   studentDealFee: number
-  financeEnrollmentFee: number
 }): Promise<TmFees> {
   const { data } = await httpClient.patch<ApiSuccessEnvelope<TmFeesDto>>(
     adminPath('/bookkeepings/tm-fees'),
     {
       consult_fee: fees.consultFee,
       student_deal_fee: fees.studentDealFee,
-      finance_enrollment_fee: fees.financeEnrollmentFee,
     },
   )
   return mapFees(data.data)

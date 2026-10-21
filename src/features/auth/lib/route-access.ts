@@ -1,6 +1,7 @@
 import {
   hasAuthPermission,
   hasAuthRole,
+  canManageRoles,
   canViewFinancePerformance,
   canViewMarketingPerformance,
   isTutorUser,
@@ -148,10 +149,7 @@ export function canAccessRoute(
   }
 
   if (requirement.managerOnly) {
-    return (
-      hasAuthRole(user, 'branch-manager') ||
-      hasAuthRole(user, 'manager') // legacy code
-    )
+    return canManageRoles(user)
   }
 
   if (requirement.view && !hasAuthPermission(user, requirement.view)) {

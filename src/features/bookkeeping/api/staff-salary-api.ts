@@ -15,9 +15,13 @@ export type BookkeepingStaffSalaryItem = {
   /** Academic leader bonus from tutor headcount; 0 for other staff. */
   bonusSalary: number
   tutorHeadcount: number
-  /** Finance commission per new student enrolled in the period; 0 for other staff. */
+  /** Commission (Finance, CRO, Digital Marketing); 0 for other staff. */
   commissionSalary: number
+  /** New students (Finance / CRO) or student responses (Digital Marketing). */
   enrollmentCount: number
+  /** The person's rate per item when this pay was saved. */
+  commissionRate: number
+  commissionBasis: 'new_student' | 'student_response' | ''
   totalSalary: number
 }
 
@@ -33,6 +37,8 @@ type StaffSalaryDto = {
   tutor_headcount?: number
   commission_salary?: number
   enrollment_count?: number
+  commission_rate?: number
+  commission_basis?: 'new_student' | 'student_response' | ''
   total_salary: number
 }
 
@@ -49,6 +55,8 @@ function mapStaffSalary(dto: StaffSalaryDto): BookkeepingStaffSalaryItem {
     tutorHeadcount: dto.tutor_headcount ?? 0,
     commissionSalary: dto.commission_salary ?? 0,
     enrollmentCount: dto.enrollment_count ?? 0,
+    commissionRate: dto.commission_rate ?? 0,
+    commissionBasis: dto.commission_basis ?? '',
     totalSalary: dto.total_salary ?? 0,
   }
 }

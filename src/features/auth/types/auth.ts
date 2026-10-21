@@ -42,6 +42,19 @@ export function hasAuthRole(
   return (user.roles ?? []).some((role) => role.code === code)
 }
 
+/** The Roles page: superusers, branch managers and finance (matches the API). */
+export function canManageRoles(
+  user: Pick<AuthUser, 'roles' | 'is_superuser'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return (
+    Boolean(user.is_superuser) ||
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') || // legacy code
+    hasAuthRole(user, 'finance')
+  )
+}
+
 /** Education Counsellor or Branch Manager (Marketing List family). */
 export function isMarketingFamilyUser(
   user: Pick<AuthUser, 'roles' | 'is_marketing'> | null | undefined,

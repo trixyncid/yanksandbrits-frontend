@@ -98,7 +98,9 @@ export function FinanceDashboardHero({
             </DashboardChip>
           ) : null}
           <DashboardChip icon={Layers} className="bg-white/50 text-slate-600">
-            {metrics.period.branchName || 'All branches'}
+            {metrics.period.branchName
+              ? `New students: all branches · Collections: ${metrics.period.branchName}`
+              : 'All branches'}
           </DashboardChip>
         </div>
       ) : null}

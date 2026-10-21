@@ -570,6 +570,8 @@ export type StaffSalary = {
   id: string
   staffId: string
   mainSalary: number
+  /** Finance and CRO only: paid per new student enrolled in the period. */
+  enrollmentCommission: number
   updatedAt: string
 }
 
@@ -577,6 +579,7 @@ type StaffSalaryDto = {
   id: number
   staff: number
   main_salary: number
+  enrollment_commission?: number
   updated_at: string
 }
 
@@ -585,6 +588,7 @@ function mapStaffSalary(dto: StaffSalaryDto): StaffSalary {
     id: String(dto.id),
     staffId: String(dto.staff),
     mainSalary: dto.main_salary ?? 0,
+    enrollmentCommission: dto.enrollment_commission ?? 0,
     updatedAt: dto.updated_at,
   }
 }
@@ -600,10 +604,16 @@ export async function fetchStaffSalary(userId: string): Promise<StaffSalary | nu
 
 export async function saveStaffSalary(
   userId: string,
-  mainSalary: number,
+  pay: { mainSalary: number; enrollmentCommission?: number },
   existingId?: string,
 ): Promise<StaffSalary> {
-  const payload = { staff: Number(userId), main_salary: mainSalary }
+  const payload = {
+    staff: Number(userId),
+    main_salary: pay.mainSalary,
+    ...(pay.enrollmentCommission === undefined
+      ? {}
+      : { enrollment_commission: pay.enrollmentCommission }),
+  }
   const { data } = existingId
     ? await httpClient.patch<ApiSuccessEnvelope<StaffSalaryDto>>(
         adminPath(`/staff-salaries/${existingId}`),

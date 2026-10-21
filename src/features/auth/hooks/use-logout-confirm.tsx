@@ -43,6 +43,7 @@ export function useLogoutConfirm() {
     <LogoutConfirmDialog
       open={open}
       onOpenChange={setOpen}
+      isLoggingOut={isLoggingOut}
       onConfirm={() => {
         void confirmLogout()
       }}
