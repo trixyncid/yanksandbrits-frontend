@@ -139,6 +139,17 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     singular: 'marketing salary setting',
     description: 'Base salary settings for marketing staff.',
   },
+  staffsalary: {
+    label: 'Staff base pay',
+    singular: 'staff salary setting',
+    description:
+      'Base salary and new student commission for finance, CRO and academic leaders.',
+  },
+  academicleaderbonustier: {
+    label: 'Academic leader bonus tiers',
+    singular: 'academic leader bonus tier',
+    description: 'Bonus brackets paid to academic leaders.',
+  },
   marketingbonustier: {
     label: 'Marketing bonus tiers',
     singular: 'bonus tier',
