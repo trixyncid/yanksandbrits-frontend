@@ -31,6 +31,8 @@ export type PredictionTestListItem = {
   generalEnglishWriting: GeneralEnglishWritingChecks
   description: string
   amount: number
+  /** YYYY-MM-DD, or empty when not recorded. */
+  paymentDate: string
   status: PredictionTestStatus
   educationCounsellor: string
   attachments: PredictionTestAttachment[]
@@ -56,6 +58,7 @@ export type PredictionTestFormValues = {
   generalEnglishWriting: GeneralEnglishWritingChecks
   description: string
   amount: string
+  paymentDate: string
   status: PredictionTestStatus
   paymentProofFiles: File[]
 }

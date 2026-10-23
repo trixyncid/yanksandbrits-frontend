@@ -118,6 +118,7 @@ const paymentFields = {
     .refine((value) => Number(value.replace(/[^\d]/g, '')) >= 0, {
       message: 'Amount must be 0 or greater.',
     }),
+  paymentDate: z.string(),
 }
 
 /** Full schema for roles that manage payment. */
@@ -131,4 +132,5 @@ export const academicLeaderPredictionTestFormSchema = z.object({
   ...baseFields,
   branchId: z.string(),
   amount: z.string(),
+  paymentDate: z.string(),
 })

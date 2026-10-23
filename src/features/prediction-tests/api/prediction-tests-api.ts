@@ -73,6 +73,7 @@ type PredictionTestDto = {
   > | null
   description: string | null
   amount: number
+  payment_date?: string | null
   status: string
   attachments?: PredictionTestAttachmentDto[]
   imageURL: string | null
@@ -144,6 +145,7 @@ function mapItem(dto: PredictionTestDto): PredictionTestListItem {
     ),
     description: dto.description ?? '',
     amount: dto.amount ?? 0,
+    paymentDate: dto.payment_date ?? '',
     status: mapApprovalStatusFromApi(dto.status),
     educationCounsellor: dto.marketing_name ?? '—',
     attachments,
@@ -200,6 +202,7 @@ function toJsonPayload(
   if (!options.omitPayment) {
     payload.branch = values.branchId ? Number(values.branchId) : null
     payload.amount = parseCurrencyValue(values.amount)
+    payload.payment_date = values.paymentDate || null
     payload.status = mapApprovalStatusToApi(values.status)
   }
 
@@ -353,6 +356,7 @@ export function predictionTestToFormValues(
     generalEnglishWriting: test.generalEnglishWriting,
     description: test.description,
     amount: String(test.amount),
+    paymentDate: test.paymentDate,
     status: test.status,
     paymentProofFiles: [],
   }
@@ -372,6 +376,7 @@ export const emptyPredictionTestFormValues: PredictionTestFormValues = {
   generalEnglishWriting: emptyGeneralEnglishWriting(),
   description: '',
   amount: '',
+  paymentDate: '',
   status: 'pending',
   paymentProofFiles: [],
 }

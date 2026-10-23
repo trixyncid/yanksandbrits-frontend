@@ -10,6 +10,7 @@ import {
   UserRoundSearch,
   X,
 } from 'lucide-react'
+import { parseISO } from 'date-fns'
 import { useMemo, type FormEvent, type ReactNode } from 'react'
 
 import {
@@ -21,6 +22,7 @@ import { useObjectUrls } from '../../../shared/hooks/use-object-urls'
 import { cn } from '../../../shared/lib/cn'
 import { formatCurrencyAmount, parseCurrencyValue } from '../../../shared/lib/currency'
 import { CurrencyInput } from '../../../shared/components/ui/currency-input'
+import { DatePicker } from '../../../shared/components/ui/date-picker'
 import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { SearchableSelect } from '../../../shared/components/ui/searchable-select'
@@ -60,6 +62,23 @@ import type {
   PredictionTestListItem,
 } from '../types/prediction-test'
 import { PredictionTestStatusPill } from './prediction-test-status-pill'
+
+function parseDateValue(value: string) {
+  if (!value) return undefined
+  try {
+    return parseISO(value)
+  } catch {
+    return undefined
+  }
+}
+
+function toDateString(date: Date | undefined) {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 function FieldError({ message }: { message?: string }) {
   if (!message) {
@@ -519,7 +538,7 @@ export function PredictionTestForm({
             <div className="flex items-start gap-2.5 rounded-2xl bg-amber-50 px-3.5 py-3 text-xs text-amber-900">
               <Lock className="mt-0.5 size-3.5 shrink-0" />
               <p>
-                Approved by Finance — amount, branch and proof are locked. Ask
+                Approved by Finance — amount, payment date, branch and proof are locked. Ask
                 Finance if anything needs to change.
               </p>
             </div>
@@ -571,27 +590,47 @@ export function PredictionTestForm({
             </Field>
           </div>
 
-          <Field
-            label="Payment branch"
-            htmlFor="branchId"
-            error={errors.branchId}
-            required
-            hint="Where this payment was received. Used for commission."
-          >
-            <Select
-              id="branchId"
-              value={values.branchId}
-              onChange={(event) => onChange('branchId', event.target.value)}
-              disabled={branchesQuery.isLoading || paymentLocked}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Payment date"
+              htmlFor="paymentDate"
+              error={errors.paymentDate}
+              hint="The day the fee was paid."
             >
-              <option value="">Select branch...</option>
-              {(branchesQuery.data?.data ?? []).map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+              <DatePicker
+                value={parseDateValue(values.paymentDate)}
+                onChange={(date) => onChange('paymentDate', toDateString(date))}
+                placeholder="Pick payment date"
+                title="Payment date"
+                className="h-11 w-full justify-start rounded-full px-4 font-medium"
+                align="start"
+                disabled={paymentLocked}
+                disabledDays={{ after: new Date() }}
+              />
+            </Field>
+
+            <Field
+              label="Payment branch"
+              htmlFor="branchId"
+              error={errors.branchId}
+              required
+              hint="Where this payment was received. Used for commission."
+            >
+              <Select
+                id="branchId"
+                value={values.branchId}
+                onChange={(event) => onChange('branchId', event.target.value)}
+                disabled={branchesQuery.isLoading || paymentLocked}
+              >
+                <option value="">Select branch...</option>
+                {(branchesQuery.data?.data ?? []).map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="paymentProof">Payment proof</Label>

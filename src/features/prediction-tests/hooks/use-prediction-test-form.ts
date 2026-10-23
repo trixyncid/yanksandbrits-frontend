@@ -45,6 +45,7 @@ const apiFieldToFormField: Record<string, keyof PredictionTestFormValues> = {
   math: 'math',
   description: 'description',
   amount: 'amount',
+  payment_date: 'paymentDate',
   status: 'status',
   general_english_tutor: 'generalEnglishTutorId',
 }
