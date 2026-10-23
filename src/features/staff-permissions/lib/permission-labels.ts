@@ -9,10 +9,6 @@ export type PermissionModuleCopy = {
   description: string
 }
 
-export type PermissionAppCopy = {
-  label: string
-}
-
 const MODEL_COPY: Record<string, PermissionModuleCopy> = {
   student: {
     label: 'Students',
@@ -213,46 +209,6 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
   },
 }
 
-const APP_COPY: Record<string, PermissionAppCopy> = {
-  students: { label: 'Students' },
-  prospects: { label: 'Leads' },
-  programs: { label: 'Academics' },
-  classrooms: { label: 'Academics' },
-  tutor_allocations: { label: 'Academics' },
-  schedules: { label: 'Academics' },
-  account: { label: 'Access' },
-  auth: { label: 'Access' },
-  lookups: { label: 'Settings' },
-  organization: { label: 'Settings' },
-  leave: { label: 'People' },
-  compensation: { label: 'Finance' },
-  payroll: { label: 'Finance' },
-  api_dashboard: { label: 'Pages' },
-  admin: { label: 'System' },
-  contenttypes: { label: 'System' },
-  sessions: { label: 'System' },
-  token_blacklist: { label: 'System' },
-}
-
-/**
- * Internal Django apps shown as one "System" filter chip.
- * `auth` stays out so Roles / permissions land under Access with Users.
- */
-export const SYSTEM_APP_LABELS = new Set([
-  'admin',
-  'contenttypes',
-  'sessions',
-  'token_blacklist',
-])
-
-export const SYSTEM_APP_FILTER_ID = 'system'
-
-export type PermissionAppFilter = {
-  id: string
-  label: string
-  appLabels: string[]
-}
-
 function titleCase(value: string) {
   return value
     .split(/[_\s]+/)
@@ -271,116 +227,4 @@ export function getPermissionModuleCopy(
       description: 'Records in this part of the system.',
     }
   )
-}
-
-export function getPermissionAppLabel(appLabel: string) {
-  if (SYSTEM_APP_LABELS.has(appLabel)) {
-    return 'System'
-  }
-  return APP_COPY[appLabel]?.label ?? titleCase(appLabel)
-}
-
-/**
- * Build unique filter chips. System apps are merged into one chip
- * so admins don't see four tabs all named "System".
- */
-export function buildPermissionAppFilters(
-  appLabels: string[],
-): PermissionAppFilter[] {
-  const filters: PermissionAppFilter[] = []
-  const seen = new Set<string>()
-  const systemLabels: string[] = []
-
-  for (const appLabel of [...appLabels].sort((a, b) => a.localeCompare(b))) {
-    if (SYSTEM_APP_LABELS.has(appLabel)) {
-      systemLabels.push(appLabel)
-      continue
-    }
-
-    const label = getPermissionAppLabel(appLabel)
-    if (seen.has(label)) {
-      const existing = filters.find((filter) => filter.label === label)
-      existing?.appLabels.push(appLabel)
-      continue
-    }
-
-    seen.add(label)
-    filters.push({
-      id: appLabel,
-      label,
-      appLabels: [appLabel],
-    })
-  }
-
-  if (systemLabels.length > 0) {
-    filters.push({
-      id: SYSTEM_APP_FILTER_ID,
-      label: 'System (advanced)',
-      appLabels: systemLabels,
-    })
-  }
-
-  return filters
-}
-
-const CODENAME_LABEL_OVERRIDES: Record<string, string> = {
-  view_dashboard: 'Open the dashboard',
-  view_marketing_dashboard: 'Open marketing performance',
-  view_student_report: 'Open student reports',
-  view_appointment_by_tutor: 'Open tutor sessions',
-}
-
-const CODENAME_HINT_OVERRIDES: Record<string, string> = {
-  view_dashboard:
-    'Allows this role to open the business dashboard and see KPIs.',
-  view_marketing_dashboard:
-    'Allows this role to open the personal marketing performance dashboard.',
-  view_student_report:
-    'Allows this role to open the student registration report.',
-  view_appointment_by_tutor:
-    'Allows this role to open the tutor sessions / appointment report.',
-}
-
-export function getPermissionActionLabel(
-  codename: string,
-  moduleLabel: string,
-  fallback: string,
-) {
-  if (CODENAME_LABEL_OVERRIDES[codename]) {
-    return CODENAME_LABEL_OVERRIDES[codename]
-  }
-  const prefix = codename.split('_')[0] ?? ''
-  const subject = moduleLabel.toLowerCase()
-  const labels: Record<string, string> = {
-    add: `Add ${subject}`,
-    change: `Edit ${subject}`,
-    delete: `Delete ${subject}`,
-    view: `View ${subject}`,
-  }
-  return labels[prefix] ?? fallback
-}
-
-export function getPermissionActionHint(
-  codename: string,
-  module: PermissionModuleCopy,
-) {
-  if (CODENAME_HINT_OVERRIDES[codename]) {
-    return CODENAME_HINT_OVERRIDES[codename]
-  }
-  const prefix = codename.split('_')[0] ?? ''
-  const subject = module.singular
-
-  if (prefix === 'view') {
-    return `Allows this role to open ${module.label.toLowerCase()} and see existing records.`
-  }
-  if (prefix === 'add') {
-    return `Allows this role to create a new ${subject}.`
-  }
-  if (prefix === 'change') {
-    return `Allows this role to update an existing ${subject}.`
-  }
-  if (prefix === 'delete') {
-    return `Allows this role to permanently delete a ${subject}.`
-  }
-  return `Special action: ${codename}`
 }

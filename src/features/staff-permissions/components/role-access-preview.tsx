@@ -110,17 +110,17 @@ export function RoleAccessPreview({
             ) : (
               <ul className="mt-2 space-y-1">
                 {changes.map((change) => (
-                  <li key={change.label} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate font-medium">{change.label}</span>
-                    <span className="shrink-0 text-white/60">
-                      {LEVEL_LABEL[change.from]} →{' '}
+                  <li key={change.label} className="flex items-start justify-between gap-2 text-xs">
+                    <span className="min-w-0 font-medium">{change.label}</span>
+                    <span className="shrink-0 text-right text-white/60">
+                      {change.from} →{' '}
                       <span
                         className={cn(
                           'font-semibold',
-                          change.to === 'hidden' ? 'text-rose-300' : 'text-brand-200',
+                          change.removed ? 'text-rose-300' : 'text-brand-200',
                         )}
                       >
-                        {LEVEL_LABEL[change.to]}
+                        {change.to}
                       </span>
                     </span>
                   </li>

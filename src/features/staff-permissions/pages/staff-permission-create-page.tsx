@@ -27,8 +27,6 @@ export default function StaffPermissionCreatePage() {
           errors={form.errors}
           isSubmitting={form.isSubmitting}
           onChange={form.updateField}
-          onTogglePermission={form.togglePermission}
-          onSetPermissionGroup={form.setPermissionGroup}
           onSubmit={form.submit}
           onCancel={form.cancel}
         />

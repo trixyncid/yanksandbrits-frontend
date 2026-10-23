@@ -41,34 +41,6 @@ export function useStaffPermissionForm({
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
-  function togglePermission(permissionId: string) {
-    setValues((current) => {
-      const selected = new Set(current.permissionIds)
-      if (selected.has(permissionId)) {
-        selected.delete(permissionId)
-      } else {
-        selected.add(permissionId)
-      }
-      return { ...current, permissionIds: Array.from(selected) }
-    })
-    setErrors((current) => ({ ...current, permissionIds: undefined }))
-  }
-
-  function setPermissionGroup(ids: string[], selected: boolean) {
-    setValues((current) => {
-      const next = new Set(current.permissionIds)
-      for (const id of ids) {
-        if (selected) {
-          next.add(id)
-        } else {
-          next.delete(id)
-        }
-      }
-      return { ...current, permissionIds: Array.from(next) }
-    })
-    setErrors((current) => ({ ...current, permissionIds: undefined }))
-  }
-
   function validateForm(nextValues: StaffPermissionFormValues) {
     const result = staffPermissionFormSchema.safeParse(nextValues)
 
@@ -156,8 +128,6 @@ export function useStaffPermissionForm({
     errors,
     isSubmitting,
     updateField,
-    togglePermission,
-    setPermissionGroup,
     submit,
     cancel,
   }
