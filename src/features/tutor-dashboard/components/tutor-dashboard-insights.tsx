@@ -109,14 +109,13 @@ export function TutorDashboardGoals({
 }) {
   const { kpis, workload, earnings } = metrics
   const bonus = kpis.bonusProgress
-  const totalSessions = Math.max(
-    workload.regularSessions + workload.overtimeSessions,
-    1,
-  )
-  const otShare = Math.round(
-    (workload.overtimeSessions / totalSessions) * 100,
-  )
-  const regularShare = Math.max(100 - otShare, 0)
+  const totalSessions =
+    workload.regularSessions + workload.overtimeSessions
+  // No sessions yet reads as 0%, not 100% regular.
+  const regularShare =
+    totalSessions > 0
+      ? Math.round((workload.regularSessions / totalSessions) * 100)
+      : 0
   const bonusPct = Math.min(Math.max(bonus.progressPct, 0), 100)
 
   const goals = [

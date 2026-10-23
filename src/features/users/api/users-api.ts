@@ -537,7 +537,7 @@ export const emptyUserFormValues: UserFormValues = {
   homePhone: '',
   otherPhone: '',
   isActive: true,
-  staffTypes: ['English'],
+  staffTypes: [],
   employmentType: '',
   workingDaysPerWeek: '',
   branchId: '',

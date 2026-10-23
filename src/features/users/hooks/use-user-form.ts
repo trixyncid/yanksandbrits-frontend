@@ -82,16 +82,18 @@ export function useUserForm({
     }
 
     if (entity.kind === 'marketing') {
-      delete nextErrors.staffTypes
       if (!nextValues.initial.trim()) {
         nextErrors.initial =
           'Initials are required so commission can be attributed.'
       }
-    } else if (nextValues.staffTypes.length === 0) {
-      nextErrors.staffTypes =
-        entity.kind === 'tutor'
-          ? 'Select at least one subject.'
-          : 'Staff type is required.'
+    }
+    // Subjects are only for tutors (and academic leaders, who are tutors too).
+    if (entity.kind === 'tutor') {
+      if (nextValues.staffTypes.length === 0) {
+        nextErrors.staffTypes = 'Select at least one subject.'
+      }
+    } else {
+      delete nextErrors.staffTypes
     }
 
     setErrors(nextErrors)

@@ -27,7 +27,6 @@ import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
 import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import {
   EMPLOYMENT_TYPE_OPTIONS,
-  STAFF_TYPE_OPTIONS,
   WORKING_DAYS_PER_WEEK_OPTIONS,
   type UserFormErrors,
   type UserFormValues,
@@ -435,37 +434,6 @@ function StaffAccountForm({
                   {(branchesQuery.data?.data ?? []).map((branch) => (
                     <option key={branch.id} value={branch.id}>
                       {branch.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field
-                label="Staff type"
-                htmlFor="staffType"
-                error={errors.staffTypes}
-                required
-              >
-                <Select
-                  id="staffType"
-                  containerClassName="w-full sm:w-full"
-                  value={values.staffTypes[0] ?? ''}
-                  onChange={(event) =>
-                    onChange(
-                      'staffTypes',
-                      event.target.value
-                        ? [
-                            event.target
-                              .value as UserFormValues['staffTypes'][number],
-                          ]
-                        : [],
-                    )
-                  }
-                >
-                  <option value="">Select staff type</option>
-                  {STAFF_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
                     </option>
                   ))}
                 </Select>

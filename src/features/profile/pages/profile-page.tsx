@@ -336,7 +336,9 @@ export default function ProfilePage() {
               />
               <dl className="grid grid-cols-2 gap-2">
                 <Field label="Staff PIN" value={user.pin} />
-                <Field label="Staff type" value={user.staffType} />
+                {user.subjects !== null ? (
+                  <Field label="Subjects" value={user.subjects} />
+                ) : null}
                 <Field label="Position" value={user.position} />
                 <Field label="Branch" value={user.branch} />
               </dl>

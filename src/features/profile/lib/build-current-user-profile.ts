@@ -84,7 +84,7 @@ export function buildCurrentUserProfile(
     homePhone: detail?.homePhone?.trim() || '—',
     othersPhone: detail?.otherPhone?.trim() || '—',
     branch: detail?.branchName?.trim() || '—',
-    staffType: detail?.staffType?.trim() || '—',
+    subjects: detail?.isTutor ? detail.staffType?.trim() || '—' : null,
     dateJoined: detail?.dateJoined || null,
     lastLogin: detail?.lastLogin ?? null,
     paidLeaveLeft: detail?.paidLeaveLeft ?? 0,

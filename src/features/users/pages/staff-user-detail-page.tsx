@@ -306,9 +306,9 @@ export function StaffUserDetailPage({
                     label="Branch"
                     value={user.branchName ?? '—'}
                   />
-                  {entity.kind === 'marketing' ? null : (
+                  {entity.kind !== 'tutor' ? null : (
                     <StaffDetailItem
-                      label={entity.kind === 'tutor' ? 'Subjects' : 'Staff type'}
+                      label="Subjects"
                       value={
                         user.staffTypes.length > 0
                           ? user.staffTypes.join(', ')
