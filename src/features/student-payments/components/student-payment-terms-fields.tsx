@@ -1,8 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  CheckCircle2,
   ChevronDown,
-  Hourglass,
   ImagePlus,
   Lock,
   Plus,
@@ -120,80 +118,6 @@ function splitLabel(parts: number) {
   return parts === 1 ? 'Pay in full' : '2 payments'
 }
 
-function InstallmentPlanNotice({
-  termCount,
-  savedTermCount,
-  approved,
-  approvedBy,
-  canApprove,
-  isApproving,
-  onApprove,
-}: {
-  termCount: number
-  savedTermCount: number
-  approved: boolean
-  approvedBy: string
-  canApprove: boolean
-  isApproving: boolean
-  onApprove?: () => void
-}) {
-  if (termCount < 2) return null
-
-  const savedAndApproved = approved
-  if (savedAndApproved) {
-    return (
-      <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-        <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-        2-payment plan approved
-        {approvedBy ? ` by ${approvedBy}` : ''}.
-      </div>
-    )
-  }
-
-  if (canApprove && savedTermCount >= 1 && onApprove) {
-    return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 px-4 py-3">
-        <p className="text-sm text-amber-950">
-          This 2-payment plan is waiting for approval. Payments stay pending
-          until it is approved.
-        </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="ink"
-          disabled={isApproving}
-          onClick={onApprove}
-        >
-          {isApproving ? 'Approving…' : 'Approve 2-payment plan'}
-        </Button>
-      </div>
-    )
-  }
-
-  if (canApprove) {
-    return (
-      <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
-        Saving approves this 2-payment plan. Enter each payment amount yourself.
-        They do not have to match.
-      </div>
-    )
-  }
-
-  return (
-    <div className="rounded-2xl bg-amber-50 px-4 py-3 text-amber-950">
-      <p className="flex items-center gap-2 text-sm font-semibold">
-        <Hourglass className="size-4 text-amber-600" />
-        Needs manager approval
-      </p>
-      <p className="mt-0.5 text-sm">
-        Save this plan to send it for approval. Once a manager approves it,
-        you can come back and enter the two payments. They can be different
-        amounts.
-      </p>
-    </div>
-  )
-}
-
 export function StudentPaymentTermsFields({
   terms,
   errors,
@@ -205,13 +129,7 @@ export function StudentPaymentTermsFields({
   defaultBranchId = '',
   installmentPlan = '',
   onInstallmentPlanChange,
-  installmentPlanApproved = false,
-  installmentPlanApprovedBy = '',
-  canApproveInstallmentPlan = false,
   canEditApprovedPayment = true,
-  isApprovingInstallmentPlan = false,
-  savedTermCount = 0,
-  onApproveInstallmentPlan,
   onAdd,
   onReplace,
   onRemove,
@@ -228,14 +146,8 @@ export function StudentPaymentTermsFields({
   defaultBranchId?: string
   installmentPlan?: 'full' | 'two' | ''
   onInstallmentPlanChange?: (plan: 'full' | 'two') => void
-  installmentPlanApproved?: boolean
-  installmentPlanApprovedBy?: string
-  canApproveInstallmentPlan?: boolean
   /** False for counsellors: approved installments and the plan choice turn read-only. */
   canEditApprovedPayment?: boolean
-  isApprovingInstallmentPlan?: boolean
-  savedTermCount?: number
-  onApproveInstallmentPlan?: () => void
   onAdd: (initial?: Partial<StudentPaymentTermFormValues>) => void | string
   onReplace: (terms: StudentPaymentTermFormValues[]) => void
   onRemove: (key: string) => void
@@ -264,10 +176,6 @@ export function StudentPaymentTermsFields({
     savedTerms?.find((item) => item.id === term.id)?.status === 'approved'
   // Once anything on the plan is approved, its shape is fixed for counsellors.
   const planLocked = terms.some(isApprovedLocked)
-  const amountsLocked =
-    installmentPlan === 'two' &&
-    !installmentPlanApproved &&
-    !canApproveInstallmentPlan
   const planChoice: 1 | 2 | null =
     installmentPlan === 'two'
       ? 2
@@ -304,7 +212,7 @@ export function StudentPaymentTermsFields({
   }
 
   function addSecondPayment() {
-    if (amountsLocked || planChoice !== 2 || terms.length !== 1) return
+    if (planChoice !== 2 || terms.length !== 1) return
     const key = onAdd({
       amount: '',
       status: 'pending',
@@ -351,10 +259,7 @@ export function StudentPaymentTermsFields({
         const firstAmount = parseCurrencyValue(terms[0].amount)
         const holdsEntirePlan =
           terms.length === 1 && firstAmount > 0 && firstAmount >= planned
-        if (
-          (holdsEntirePlan && terms[0].status !== 'approved') ||
-          (!canApproveInstallmentPlan && !installmentPlanApproved)
-        ) {
+        if (holdsEntirePlan && terms[0].status !== 'approved') {
           onChange(terms[0].key, { amount: '' })
         }
       }
@@ -499,17 +404,6 @@ export function StudentPaymentTermsFields({
               )
             })}
           </div>
-          {planChoice === 2 || pendingSplit === 2 ? (
-            <InstallmentPlanNotice
-              termCount={Math.max(terms.length, planChoice === 2 || pendingSplit === 2 ? 2 : 0)}
-              savedTermCount={savedTermCount}
-              approved={installmentPlanApproved}
-              approvedBy={installmentPlanApprovedBy}
-              canApprove={canApproveInstallmentPlan}
-              isApproving={isApprovingInstallmentPlan}
-              onApprove={onApproveInstallmentPlan}
-            />
-          ) : null}
           {pendingSplit ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3">
               <p className="text-sm text-amber-900">
@@ -571,7 +465,7 @@ export function StudentPaymentTermsFields({
         </div>
       ) : null}
 
-      {amountsLocked ? null : terms.length === 0 ? (
+      {terms.length === 0 ? (
         <div className="rounded-3xl bg-canvas px-4 py-8 text-center">
           <p className="text-sm font-semibold text-ink">
             No installments yet
@@ -594,7 +488,6 @@ export function StudentPaymentTermsFields({
               open={openKey === term.key}
               selected={selectedKeys.includes(term.key)}
               lockStatus={lockStatus}
-              lockAmount={amountsLocked}
               readOnly={isApprovedLocked(term)}
               hideFillAmount={planChoice === 2 && index === 0}
               showSelection={!lockStatus && terms.length > 1}
@@ -616,7 +509,7 @@ export function StudentPaymentTermsFields({
         </ol>
       )}
 
-      {terms.length > 0 && !amountsLocked ? (
+      {terms.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {planChoice === 2 && terms.length === 1 ? (
             <Button
@@ -656,7 +549,6 @@ function InstallmentCard({
   open,
   selected,
   lockStatus,
-  lockAmount = false,
   readOnly = false,
   hideFillAmount = false,
   showSelection,
@@ -681,7 +573,6 @@ function InstallmentCard({
   open: boolean
   selected: boolean
   lockStatus: boolean
-  lockAmount?: boolean
   /** Approved installment viewed by someone who cannot edit approved payments. */
   readOnly?: boolean
   hideFillAmount?: boolean
@@ -836,8 +727,7 @@ function InstallmentCard({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor={`installment-amount-${term.key}`}>Amount</Label>
-                {!lockAmount &&
-                !readOnly &&
+                {!readOnly &&
                 !hideFillAmount &&
                 term.status !== 'void' &&
                 room > 0 &&
@@ -853,17 +743,13 @@ function InstallmentCard({
               </div>
               <CurrencyInput
                 id={`installment-amount-${term.key}`}
-                value={lockAmount ? '' : term.amount}
+                value={term.amount}
                 onValueChange={(digits) => onChange({ amount: digits })}
                 placeholder="0"
-                disabled={lockAmount || readOnly}
+                disabled={readOnly}
                 aria-invalid={Boolean(errors?.amount) || exceeds}
               />
-              {lockAmount ? (
-                <p className="text-xs text-slate-500">
-                  Available after the 2-payment plan is approved.
-                </p>
-              ) : exceeds ? (
+              {exceeds ? (
                 <p className="text-xs font-medium text-rose-600">
                   {errors?.amount ||
                     'This amount is above what is left on the plan.'}

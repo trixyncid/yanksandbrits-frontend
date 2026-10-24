@@ -30,6 +30,9 @@ export type ProspectiveStudentListItem = {
   referralStudentName: string
   referralName: string
   teleMarketing: TeleMarketingCode | ''
+  /** Who invited a Telemarketing guest (earns TM - Consult). Null for walk-ins. */
+  teleMarketerId: string | null
+  teleMarketerName: string
   age: number | null
   address: string
   languageTest: LanguageTestCode | ''
@@ -68,6 +71,8 @@ export type ProspectiveStudentFormValues = {
   referralStudentId: string
   referralName: string
   teleMarketing: TeleMarketingCode | ''
+  /** Empty means the same person as the education counsellor. */
+  teleMarketerId: string
   age: string
   address: string
   hasTakenLanguageTest: boolean

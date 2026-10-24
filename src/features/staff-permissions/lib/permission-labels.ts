@@ -177,6 +177,11 @@ const MODEL_COPY: Record<string, PermissionModuleCopy> = {
     singular: 'marketing pay report',
     description: 'Calculated marketing payroll for a period.',
   },
+  staffsalarycalculation: {
+    label: 'Staff pay reports',
+    singular: 'staff pay report',
+    description: 'Calculated staff payroll for a period.',
+  },
   tutorsalarycalculation: {
     label: 'Tutor pay reports',
     singular: 'tutor pay report',

@@ -69,9 +69,8 @@ type StudentPaymentDto = {
   prediction_folded_into_commission?: boolean
   prediction_claimed_elsewhere?: boolean
   installment_plan?: string
-  installment_plan_approved?: boolean
-  installment_plan_approved_at?: string | null
-  installment_plan_approved_by_name?: string | null
+  recorded_by?: number | null
+  recorded_by_name?: string | null
   terms?: StudentPaymentTermDto[]
   created_at: string
   created_by_name?: string | null
@@ -155,9 +154,8 @@ function mapPayment(
       dto.installment_plan === 'two' || (dto.terms?.length ?? 0) >= 2
         ? 'two'
         : 'full',
-    installmentPlanApproved: dto.installment_plan_approved ?? false,
-    installmentPlanApprovedAt: dto.installment_plan_approved_at ?? '',
-    installmentPlanApprovedBy: dto.installment_plan_approved_by_name ?? '',
+    recordedById: dto.recorded_by == null ? null : String(dto.recorded_by),
+    recordedByName: dto.recorded_by_name ?? '',
   }
 }
 
@@ -172,6 +170,8 @@ function toWritePayload(
     ...(values.installmentPlan
       ? { installment_plan: values.installmentPlan }
       : {}),
+    // The server ignores this unless Finance or a system admin sends it.
+    ...(values.recordedById ? { recorded_by: Number(values.recordedById) } : {}),
     terms: values.terms.map((term) => {
       const termPayload: Record<string, unknown> = {
         amount: parseCurrencyValue(term.amount),
@@ -327,16 +327,6 @@ export async function deleteStudentPaymentTerm(
   return mapPayment(data.data, studentsById)
 }
 
-export async function approveStudentPaymentInstallmentPlan(
-  paymentId: string,
-): Promise<StudentPaymentListItem> {
-  const { data } = await httpClient.post<ApiSuccessEnvelope<StudentPaymentDto>>(
-    adminPath(`/payments/${paymentId}/approve-installment-plan`),
-  )
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
-}
-
 export async function bulkUpdateStudentPaymentTermStatus(
   paymentId: string,
   termIds: string[],
@@ -425,6 +415,7 @@ export function studentPaymentToFormValues(
     fullAmount: String(payment.fullAmount || ''),
     discountAmount: String(payment.discountAmount || ''),
     installmentPlan: payment.installmentPlan,
+    recordedById: payment.recordedById ?? '',
     terms:
       payment.terms.length > 0
         ? payment.terms.map((term) => ({
@@ -448,6 +439,7 @@ export function createEmptyStudentPaymentFormValues(): StudentPaymentFormValues 
     fullAmount: '',
     discountAmount: '',
     installmentPlan: '',
+    recordedById: '',
     terms: [],
   }
 }

@@ -1,4 +1,4 @@
-import { BadgeCheck, Hourglass, Plus, ReceiptText, Wallet } from 'lucide-react'
+import { BadgeCheck, Plus, ReceiptText, Wallet } from 'lucide-react'
 
 import {
   HeroPillButton,
@@ -17,7 +17,6 @@ function summarize(rows: StudentPaymentListItem[]) {
   let collected = 0
   let openPlans = 0
   let paidPlans = 0
-  let awaitingApproval = 0
 
   for (const row of rows) {
     const due = planAmountDue(
@@ -29,12 +28,9 @@ function summarize(rows: StudentPaymentListItem[]) {
     owed += Math.max(0, due - row.paidAmount)
     if (row.status === 'complete') paidPlans += 1
     else openPlans += 1
-    if (row.installmentPlan === 'two' && !row.installmentPlanApproved) {
-      awaitingApproval += 1
-    }
   }
 
-  return { owed, collected, openPlans, paidPlans, awaitingApproval }
+  return { owed, collected, openPlans, paidPlans }
 }
 
 export function StudentPaymentHero({
@@ -118,14 +114,6 @@ export function StudentPaymentHero({
         </Can>
       }
     >
-      {loaded && summary.awaitingApproval > 0 ? (
-        <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
-          <Hourglass className="size-3.5 text-amber-300" />
-          {plural(summary.awaitingApproval, '2-payment plan')}{' '}
-          {summary.awaitingApproval === 1 ? 'is' : 'are'} waiting for a
-          manager&apos;s approval
-        </p>
-      ) : null}
     </PageHero>
   )
 }

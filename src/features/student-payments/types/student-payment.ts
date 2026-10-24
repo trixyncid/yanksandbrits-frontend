@@ -51,12 +51,11 @@ export type StudentPaymentListItem = {
   predictionFoldedIntoCommission: boolean
   /** True when matched pretest exists but another plan owns the claim. */
   predictionClaimedElsewhere: boolean
-  /** Pay in full, or a 2-payment plan that needs approval before amounts are entered. */
+  /** Pay in full, or 2 payments (amounts can differ). */
   installmentPlan: 'full' | 'two'
-  /** Set when a 2-payment plan has been approved. Pay in full leaves this false. */
-  installmentPlanApproved: boolean
-  installmentPlanApprovedAt: string
-  installmentPlanApprovedBy: string
+  /** Education counsellor or branch manager who brought in this payment. */
+  recordedById: string | null
+  recordedByName: string
 }
 
 export type StudentPaymentTermFormValues = {
@@ -78,6 +77,8 @@ export type StudentPaymentFormValues = {
   fullAmount: string
   discountAmount: string
   installmentPlan: 'full' | 'two' | ''
+  /** Empty lets the server decide (the recorder themselves, or the student's counsellor). */
+  recordedById: string
   terms: StudentPaymentTermFormValues[]
 }
 
@@ -91,6 +92,7 @@ export type StudentPaymentFormErrors = {
   title?: string
   fullAmount?: string
   discountAmount?: string
+  recordedById?: string
   terms?: string
   termErrors?: Record<string, StudentPaymentTermFieldErrors>
 }

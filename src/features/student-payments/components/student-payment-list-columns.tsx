@@ -38,7 +38,8 @@ function formatDate(value: string) {
 export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
   {
     id: 'studentDetail',
-    accessorFn: (row) => `${row.studentName} ${row.studentPin} ${row.title}`,
+    accessorFn: (row) =>
+      `${row.studentName} ${row.studentPin} ${row.title} ${row.recordedByName}`,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Student" />
     ),
@@ -74,6 +75,11 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {row.original.title || '—'}
             </p>
+            {row.original.recordedByName ? (
+              <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                Recorded by {row.original.recordedByName}
+              </p>
+            ) : null}
           </div>
         </div>
       )
@@ -161,15 +167,7 @@ export const studentPaymentListColumns: ColumnDef<StudentPaymentListItem>[] = [
         </p>
         {row.original.installmentPlan === 'two' ? (
           <div className="flex justify-center">
-            <StatusPill
-              tone={
-                row.original.installmentPlanApproved ? 'success' : 'warning'
-              }
-            >
-              {row.original.installmentPlanApproved
-                ? '2-payment plan approved'
-                : 'Awaiting approval'}
-            </StatusPill>
+            <StatusPill tone="neutral">2 payments</StatusPill>
           </div>
         ) : null}
       </div>

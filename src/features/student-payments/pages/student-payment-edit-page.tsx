@@ -2,9 +2,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
-  CheckCircle2,
   CreditCard,
-  Hourglass,
   UserRound,
   Wallet,
 } from 'lucide-react'
@@ -21,7 +19,6 @@ import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import {
-  approveStudentPaymentInstallmentPlan,
   deleteStudentPayment,
   studentPaymentToFormValues,
 } from '../api/student-payments-api'
@@ -102,12 +99,10 @@ function StudentPaymentEditForm({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [payment, setPayment] = useState(initialPayment)
-  const [isApprovingPlan, setIsApprovingPlan] = useState(false)
   const form = useStudentPaymentForm({
     mode: 'edit',
     paymentId: payment.id,
     initialValues,
-    installmentPlanApproved: payment.installmentPlanApproved,
   })
   const plan =
     form.values.installmentPlan === 'two' ||
@@ -118,28 +113,6 @@ function StudentPaymentEditForm({
   const personLabel = payment.studentPin
     ? `${payment.studentPin} · ${payment.studentName}`
     : payment.studentName
-
-  async function handleApproveInstallmentPlan() {
-    setIsApprovingPlan(true)
-    try {
-      const updated = await approveStudentPaymentInstallmentPlan(payment.id)
-      setPayment(updated)
-      await queryClient.invalidateQueries({
-        queryKey: studentPaymentQueryKeys.all,
-      })
-      notify('success', {
-        title: '2-payment plan approved',
-        description: 'Installments on this plan can now be approved.',
-      })
-    } catch (error) {
-      notify('error', {
-        title: 'Unable to approve installment plan',
-        description: getApiErrorMessage(error),
-      })
-    } finally {
-      setIsApprovingPlan(false)
-    }
-  }
 
   function handleDelete() {
     requestDeleteConfirm({
@@ -213,21 +186,7 @@ function StudentPaymentEditForm({
                 </span>
               ) : null}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-                {plan === 'two' ? (
-                  payment.installmentPlanApproved ? (
-                    <>
-                      <CheckCircle2 className="size-3.5 text-emerald-300" />
-                      2-payment plan approved
-                    </>
-                  ) : (
-                    <>
-                      <Hourglass className="size-3.5 text-amber-300" />
-                      2-payment plan awaiting approval
-                    </>
-                  )
-                ) : (
-                  'Pay in full'
-                )}
+                {plan === 'two' ? '2 payments' : 'Pay in full'}
               </span>
               <PersonLink payment={payment} label={personLabel} />
             </>
@@ -250,10 +209,6 @@ function StudentPaymentEditForm({
           onCancel={form.cancel}
           onDelete={handleDelete}
           onPretestCredit={form.setPretestCredit}
-          onApproveInstallmentPlan={() => {
-            void handleApproveInstallmentPlan()
-          }}
-          isApprovingInstallmentPlan={isApprovingPlan}
         />
       </div>
     </AdminShell>

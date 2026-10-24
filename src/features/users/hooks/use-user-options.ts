@@ -27,10 +27,13 @@ export function useTutorOptionsQuery(filters: {
 }
 
 /** Every active education counsellor, not limited to the caller's branch. */
-export function useEducationCounsellorOptionsQuery() {
+export function useEducationCounsellorOptionsQuery({
+  enabled = true,
+}: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['users', 'options', 'education-counsellors'],
     queryFn: fetchEducationCounsellorOptions,
+    enabled,
   })
 }
 

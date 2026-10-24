@@ -42,6 +42,8 @@ type ProspectiveStudentListDto = {
   referral_student_name?: string | null
   referral_name?: string | null
   tele_marketing?: TeleMarketingCode | null
+  tele_marketer?: number | null
+  tele_marketer_name?: string | null
   age?: number | null
   address?: string | null
   language_test?: LanguageTestCode | null
@@ -105,6 +107,8 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     referralStudentName: dto.referral_student_name ?? '',
     referralName: dto.referral_name ?? '',
     teleMarketing: (dto.tele_marketing as TeleMarketingCode | null) ?? '',
+    teleMarketerId: dto.tele_marketer == null ? null : String(dto.tele_marketer),
+    teleMarketerName: dto.tele_marketer_name ?? '',
     age: dto.age ?? null,
     address: dto.address ?? '',
     languageTest,
@@ -167,6 +171,11 @@ function toWritePayload(values: ProspectiveStudentFormValues) {
     referral_name:
       values.referralType === 'other' ? values.referralName.trim() || null : null,
     tele_marketing: values.teleMarketing || null,
+    // Telemarketing only; empty lets the server use the education counsellor.
+    tele_marketer:
+      values.teleMarketing === 'TM' && (values.teleMarketerId || values.marketingId)
+        ? Number(values.teleMarketerId || values.marketingId)
+        : null,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim() || null,
     language_test: hasTakenLanguageTest ? values.languageTest || null : null,
@@ -305,6 +314,11 @@ export async function createProspectiveStudent(
     referralStudentName: '',
     referralName: '',
     teleMarketing: values.teleMarketing,
+    teleMarketerId:
+      values.teleMarketing === 'TM'
+        ? values.teleMarketerId || values.marketingId || null
+        : null,
+    teleMarketerName: '',
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim(),
     languageTest: values.hasTakenLanguageTest ? values.languageTest : '',
@@ -386,6 +400,11 @@ export function prospectiveStudentToFormValues(
     referralStudentId: student.referralStudentId ?? '',
     referralName: student.referralName,
     teleMarketing: student.teleMarketing || '',
+    // Same as the counsellor stays empty, so it keeps following them.
+    teleMarketerId:
+      student.teleMarketerId && student.teleMarketerId !== student.marketingId
+        ? student.teleMarketerId
+        : '',
     age: student.age == null ? '' : String(student.age),
     address: student.address,
     hasTakenLanguageTest: Boolean(student.languageTest),
@@ -422,6 +441,7 @@ export function emptyProspectiveStudentFormValues(): ProspectiveStudentFormValue
     referralStudentId: '',
     referralName: '',
     teleMarketing: '',
+    teleMarketerId: '',
     age: '',
     address: '',
     hasTakenLanguageTest: false,

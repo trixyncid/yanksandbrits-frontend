@@ -728,6 +728,39 @@ export function ProspectiveStudentForm({
                   />
                 </Field>
               </div>
+
+              {values.teleMarketing === 'TM' ? (
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Invited by"
+                    htmlFor="teleMarketerId"
+                    error={errors.teleMarketerId}
+                    locked={lockConsultFields}
+                    hint={
+                      lockConsultFields
+                        ? 'Education counsellors cannot change who invited the guest.'
+                        : 'The education counsellor who invited the guest earns the TM - Consult fee. Same as the education counsellor unless you pick someone else.'
+                    }
+                  >
+                    <SearchableSelect
+                      id="teleMarketerId"
+                      value={values.teleMarketerId || values.marketingId}
+                      options={counsellorOptions}
+                      onChange={(next) =>
+                        // Picking the counsellor again goes back to following them.
+                        onChange(
+                          'teleMarketerId',
+                          next === values.marketingId ? '' : next,
+                        )
+                      }
+                      placeholder="Same as education counsellor"
+                      searchPlaceholder="Search counsellors..."
+                      disabled={lockConsultFields || marketingsQuery.isLoading}
+                      emptyMessage="No education counsellors found"
+                    />
+                  </Field>
+                </div>
+              ) : null}
             </div>
           </FormSectionCard>
 

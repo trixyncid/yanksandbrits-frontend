@@ -97,6 +97,12 @@ const PAGE_RELATED: Partial<Record<PageKey, RecordSet[]>> = {
       description: 'Bonus brackets by performance.',
     }),
   ],
+  bookkeeping: [
+    recordSet('payroll', 'staffsalarycalculation', {
+      label: 'Staff pay reports',
+      description: 'Saved salaries for finance, CRO and academic leaders.',
+    }),
+  ],
   users: [
     recordSet('compensation', 'staffsalary', {
       label: 'Staff base pay',

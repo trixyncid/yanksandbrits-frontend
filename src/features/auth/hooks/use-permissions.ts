@@ -156,8 +156,19 @@ export function useCanApproveTutorAllocation() {
   )
 }
 
-/** Finance, branch manager, and system admin approve a 2-payment plan. */
-export function useCanApproveInstallmentPlan() {
+/** Finance and system admin pick or change who recorded a payment. */
+export function useCanChangePaymentRecorder() {
+  const user = useAuthStore((state) => state.user)
+  if (!user) return false
+  if (user.is_superuser) return true
+  return hasAuthRole(user, 'finance') || hasAuthRole(user, 'systemadmin')
+}
+
+/**
+ * Finance, branch manager, and system admin edit an approved payment.
+ * Everyone else, including education counsellors, can only view it.
+ */
+export function useCanEditApprovedPayment() {
   const user = useAuthStore((state) => state.user)
   if (!user) return false
   if (user.is_superuser) return true
@@ -167,14 +178,6 @@ export function useCanApproveInstallmentPlan() {
     hasAuthRole(user, 'manager') ||
     hasAuthRole(user, 'systemadmin')
   )
-}
-
-/**
- * Finance, branch manager, and system admin edit an approved payment.
- * Everyone else, including education counsellors, can only view it.
- */
-export function useCanEditApprovedPayment() {
-  return useCanApproveInstallmentPlan()
 }
 
 /** Pending-queue sidebar badges — finance / systemadmin (and superuser). */

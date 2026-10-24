@@ -38,6 +38,7 @@ const apiFieldToFormField: Record<string, keyof ProspectiveStudentFormValues> = 
   referral_student: 'referralStudentId',
   referral_name: 'referralName',
   tele_marketing: 'teleMarketing',
+  tele_marketer: 'teleMarketerId',
   age: 'age',
   address: 'address',
   language_test: 'languageTest',

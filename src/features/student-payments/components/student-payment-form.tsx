@@ -3,6 +3,7 @@ import {
   Layers,
   Lock,
   ShieldCheck,
+  UserCheck,
   UserRound,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -20,13 +21,16 @@ import {
   parseCurrencyValue,
 } from '../../../shared/lib/currency'
 import {
-  useCanApproveInstallmentPlan,
+  useAuthUser,
+  useCanChangePaymentRecorder,
   useCanEditApprovedPayment,
+  useIsMarketing,
   useLocksPaymentStatus,
   useModulePermissions,
 } from '../../auth/hooks/use-permissions'
 import { useProspectiveStudentsQuery } from '../../prospective-students/hooks/use-prospective-students-query'
 import { useStudentsQuery } from '../../students/hooks/use-students-query'
+import { useEducationCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
 import type { StudentListItem } from '../../students/types/student'
 import { useLinkedPredictionTestQuery } from '../hooks/use-linked-prediction-test-query'
 import { planAmountDue } from '../lib/payment-display'
@@ -45,6 +49,12 @@ import {
 } from './student-payment-terms-fields'
 
 const EMPTY_STUDENTS: StudentListItem[] = []
+
+/** "Jane Doe (SR-012)", or just the name when there is no SR number yet. */
+function prospectLabel(prospect: { fullName: string; srNumber: string }) {
+  const sr = prospect.srNumber.trim()
+  return sr ? `${prospect.fullName} (${sr})` : prospect.fullName
+}
 
 type StudentPaymentFormProps = {
   mode: 'create' | 'edit'
@@ -72,8 +82,6 @@ type StudentPaymentFormProps = {
   onCancel: () => void
   onDelete?: () => void
   onPretestCredit?: (amount: number) => void
-  onApproveInstallmentPlan?: () => void
-  isApprovingInstallmentPlan?: boolean
 }
 
 export function StudentPaymentForm({
@@ -94,8 +102,6 @@ export function StudentPaymentForm({
   onCancel,
   onDelete,
   onPretestCredit,
-  onApproveInstallmentPlan,
-  isApprovingInstallmentPlan = false,
 }: StudentPaymentFormProps) {
   const studentsQuery = useStudentsQuery(
     mode === 'edit' ? {} : { status: 'all' },
@@ -125,35 +131,25 @@ export function StudentPaymentForm({
         .filter((prospect) => !prospect.isStudent)
         .map((prospect) => ({
           value: prospect.id,
-          label: prospect.fullName,
+          label: prospectLabel(prospect),
           keywords: `${prospect.fullName} ${prospect.email} ${prospect.srNumber}`,
         })),
     [prospectsQuery.data?.data],
   )
   const lockTransactionStatus = useLocksPaymentStatus()
-  const canApproveInstallmentPlan = useCanApproveInstallmentPlan()
   const canEditApprovedPayment = useCanEditApprovedPayment()
+  const canChangeRecorder = useCanChangePaymentRecorder()
+  const isMarketingUser = useIsMarketing()
+  const authUser = useAuthUser()
+  const counsellorsQuery = useEducationCounsellorOptionsQuery({
+    enabled: canChangeRecorder,
+  })
   // Fee fields lock for counsellors once any installment is approved.
   const feeLocked =
     !canEditApprovedPayment &&
     (payment?.terms ?? []).some((term) => term.status === 'approved')
-  const savedTermCount = payment?.terms.length ?? 0
-  const twoPaymentPlan = values.installmentPlan === 'two'
-  const planAlreadyApproved = Boolean(payment?.installmentPlanApproved)
-  const needsPlanApproval = twoPaymentPlan && !planAlreadyApproved
-  const approverWillApproveOnSave =
-    needsPlanApproval &&
-    canApproveInstallmentPlan &&
-    (mode === 'create' || savedTermCount < 2)
-  const submitForApproval = needsPlanApproval && !canApproveInstallmentPlan
   const { canDelete } = useModulePermissions('studentPayments')
-  const submitLabel = submitForApproval
-      ? 'Submit for approval'
-      : approverWillApproveOnSave
-        ? 'Save and approve'
-        : mode === 'create'
-          ? 'Create payment plan'
-          : 'Save changes'
+  const submitLabel = mode === 'create' ? 'Create payment plan' : 'Save changes'
   const selectedStudent = students.find(
     (student) => student.id === values.studentId,
   )
@@ -236,12 +232,52 @@ export function StudentPaymentForm({
 
   const ownerLabel =
     ownerMode === 'prospect' || lockProspectiveStudent
-      ? selectedProspect?.fullName
+      ? selectedProspect && prospectLabel(selectedProspect)
       : selectedStudent
         ? `${selectedStudent.pin} · ${selectedStudent.fullName}`
         : ''
 
   const ownerIsProspect = ownerMode === 'prospect' || lockProspectiveStudent
+
+  // Who recorded the payment. Mirrors StudentPaymentService: a counsellor or
+  // branch manager is credited themselves, otherwise the student's counsellor.
+  const ownerCounsellorId = values.studentId
+    ? selectedStudent?.counsellorId ?? ''
+    : selectedProspect?.marketingId ?? ''
+  const ownerCounsellorName = values.studentId
+    ? selectedStudent?.counsellor ?? ''
+    : selectedProspect?.educationCounsellor ?? ''
+  const defaultRecorderId =
+    mode === 'edit'
+      ? payment?.recordedById ?? ''
+      : isMarketingUser
+        ? String(authUser?.id ?? '')
+        : ownerCounsellorId
+  const recorderId =
+    (canChangeRecorder ? values.recordedById : '') || defaultRecorderId
+  const recorderOptions = (() => {
+    const options = (counsellorsQuery.data ?? []).map((option) => ({
+      value: option.id,
+      label: `${option.pin} | ${option.fullName}`,
+      keywords: `${option.pin} ${option.fullName} ${option.email}`,
+    }))
+    if (recorderId && !options.some((option) => option.value === recorderId)) {
+      // Locked users don't load the list; show the name we already have.
+      const name =
+        recorderId === payment?.recordedById
+          ? payment.recordedByName
+          : recorderId === String(authUser?.id)
+            ? authUser?.full_name ?? ''
+            : ownerCounsellorName
+      options.unshift({ value: recorderId, label: name || 'Unknown', keywords: name })
+    }
+    return options
+  })()
+  const recorderHint = canChangeRecorder
+    ? "Defaults to the student's counsellor. Only Finance or a system admin can change this."
+    : mode === 'create' && isMarketingUser
+      ? 'Recorded as you. Only Finance or a system admin can change this.'
+      : 'Only Finance or a system admin can change this.'
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit} noValidate>
@@ -349,6 +385,32 @@ export function StudentPaymentForm({
           ) : null}
 
           <FormSectionCard
+            icon={UserCheck}
+            title="Recorded by"
+            description="The education counsellor or branch manager who brought in this payment."
+          >
+            <Field
+              label="Education counsellor"
+              htmlFor="recordedById"
+              error={errors.recordedById}
+              hint={recorderHint}
+            >
+              <SearchableSelect
+                id="recordedById"
+                value={recorderId}
+                options={recorderOptions}
+                onChange={(next) => onChange('recordedById', next)}
+                placeholder={
+                  hasOwner ? "Student's counsellor" : 'Pick the student first'
+                }
+                searchPlaceholder="Search counsellors..."
+                emptyMessage="No education counsellors found"
+                disabled={!canChangeRecorder || counsellorsQuery.isLoading}
+              />
+            </Field>
+          </FormSectionCard>
+
+          <FormSectionCard
             icon={CircleDollarSign}
             title="Fee"
             description="Discount and a one-time pretest credit come off the course fee."
@@ -418,7 +480,7 @@ export function StudentPaymentForm({
           <FormSectionCard
             icon={Layers}
             title="Installments"
-            description="Pay in full, or split the balance into 2 payments. A 2-payment plan needs a manager's approval before the payments are entered."
+            description="Pay in full, or split the balance into 2 payments. The two amounts can be different."
             delayClassName="delay-100"
           >
             <StudentPaymentTermsFields
@@ -434,17 +496,7 @@ export function StudentPaymentForm({
               onInstallmentPlanChange={(plan) =>
                 onChange('installmentPlan', plan)
               }
-              installmentPlanApproved={Boolean(
-                payment?.installmentPlanApproved,
-              )}
-              installmentPlanApprovedBy={
-                payment?.installmentPlanApprovedBy ?? ''
-              }
-              canApproveInstallmentPlan={canApproveInstallmentPlan}
               canEditApprovedPayment={canEditApprovedPayment}
-              isApprovingInstallmentPlan={isApprovingInstallmentPlan}
-              savedTermCount={payment?.terms.length ?? 0}
-              onApproveInstallmentPlan={onApproveInstallmentPlan}
               onAdd={onAddTerm}
               onReplace={onReplaceTerms}
               onRemove={onRemoveTerm}
@@ -502,7 +554,7 @@ export function StudentPaymentForm({
             )}
           </DuskPanel>
 
-          {twoPaymentPlan || feeLocked || lockTransactionStatus ? (
+          {feeLocked || lockTransactionStatus ? (
             <section className="animate-in fade-in slide-in-from-bottom-2 space-y-2 rounded-[1.75rem] bg-white p-5 delay-75">
               <p className="flex items-center gap-2 text-sm font-bold text-ink">
                 <span className="inline-flex size-8 items-center justify-center rounded-full bg-canvas">
@@ -511,15 +563,6 @@ export function StudentPaymentForm({
                 Approvals
               </p>
               <ul className="space-y-1.5 text-xs text-slate-600">
-                {twoPaymentPlan ? (
-                  <li>
-                    {planAlreadyApproved
-                      ? 'The 2-payment plan is approved.'
-                      : canApproveInstallmentPlan
-                        ? 'You can approve this 2-payment plan.'
-                        : 'This 2-payment plan needs a manager to approve it.'}
-                  </li>
-                ) : null}
                 {lockTransactionStatus ? (
                   <li>Finance marks installments as approved or void.</li>
                 ) : null}
