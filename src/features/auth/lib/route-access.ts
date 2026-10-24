@@ -2,6 +2,7 @@ import {
   hasAuthPermission,
   hasAuthRole,
   canManageRoles,
+  canViewDigitalMarketingPerformance,
   canViewFinancePerformance,
   canViewMarketingPerformance,
   isTutorUser,
@@ -94,6 +95,17 @@ export function canAccessRoute(
     pathname.startsWith('/finance-dashboard/')
   ) {
     return Boolean(user.is_superuser) || canViewFinancePerformance(user)
+  }
+
+  // Personal digital marketing dashboard — digital marketing role only
+  // (superusers can preview).
+  if (
+    pathname === '/digital-marketing-dashboard' ||
+    pathname.startsWith('/digital-marketing-dashboard/')
+  ) {
+    return (
+      Boolean(user.is_superuser) || canViewDigitalMarketingPerformance(user)
+    )
   }
 
   // Counsellor's own students' schedule — Education Counsellor only.
@@ -202,6 +214,7 @@ export function getDefaultStaffPath(
     '/tutor-dashboard',
     '/marketing-dashboard',
     '/finance-dashboard',
+    '/digital-marketing-dashboard',
     '/dashboard',
     '/prospective-students',
     '/prediction-tests',
@@ -229,6 +242,12 @@ export function getDefaultStaffPath(
       return false
     }
     if (path === '/finance-dashboard' && !canViewFinancePerformance(user)) {
+      return false
+    }
+    if (
+      path === '/digital-marketing-dashboard' &&
+      !canViewDigitalMarketingPerformance(user)
+    ) {
       return false
     }
     return canAccessRoute(user, path)

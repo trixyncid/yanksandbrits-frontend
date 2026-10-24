@@ -26,6 +26,7 @@ export type AppPath =
   | '/marketing-dashboard'
   | '/tutor-dashboard'
   | '/finance-dashboard'
+  | '/digital-marketing-dashboard'
   | '/student-schedule'
   | '/students'
   | '/students/new'
@@ -106,6 +107,12 @@ export const adminNavigation: NavigationItem[] = [
     label: 'My Performance',
     icon: PieChart,
     to: '/finance-dashboard',
+  },
+  {
+    id: 'digital-marketing-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/digital-marketing-dashboard',
   },
   {
     id: 'student-schedule',

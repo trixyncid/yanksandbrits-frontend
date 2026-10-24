@@ -124,6 +124,15 @@ const financeDashboardRoute = createRoute({
   ),
 })
 
+const digitalMarketingDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/digital-marketing-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/digital-marketing-dashboard/pages/digital-marketing-dashboard-page'),
+  ),
+})
+
 const studentsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/students',
@@ -702,6 +711,7 @@ const routeTree = rootRoute.addChildren([
     marketingDashboardRoute,
     tutorDashboardRoute,
     financeDashboardRoute,
+    digitalMarketingDashboardRoute,
     studentScheduleRoute,
     studentsRoute,
     studentCreateRoute,
