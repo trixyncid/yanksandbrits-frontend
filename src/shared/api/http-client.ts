@@ -3,13 +3,14 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 import { refreshSession } from '../../features/auth/api/auth-api'
 import { useAuthStore } from '../../features/auth/store/auth-store'
+import { API_BASE_URL } from './paths'
 
 type RetryConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
 }
 
 export const httpClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   withCredentials: true,
   headers: {

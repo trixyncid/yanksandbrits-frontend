@@ -2,7 +2,7 @@ import axios from 'axios'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { httpClient } from '../../../shared/api/http-client'
-import { AUTH_PATHS } from '../../../shared/api/paths'
+import { API_BASE_URL, AUTH_PATHS } from '../../../shared/api/paths'
 import type { AuthUser, LoginResponse } from '../types/auth'
 
 export type LoginCredentials = {
@@ -14,7 +14,7 @@ export type LoginCredentials = {
 export { getApiErrorMessage }
 
 function getApiBaseUrl(): string {
-  return import.meta.env.VITE_API_BASE_URL ?? ''
+  return API_BASE_URL
 }
 
 export async function login(

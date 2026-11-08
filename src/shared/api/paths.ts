@@ -7,6 +7,13 @@
  * - Tutor portal: /tutor-portal/* (separate app)
  */
 
+/**
+ * API base URL. Defaults to /api/v1, which vercel.json proxies to the VPS API
+ * and the Vite dev server proxies locally, so a missing env var still works.
+ */
+export const API_BASE_URL: string =
+  import.meta.env.VITE_API_BASE_URL || '/api/v1'
+
 export const AUTH_PATHS = {
   login: '/auth/login',
   logout: '/auth/logout',
