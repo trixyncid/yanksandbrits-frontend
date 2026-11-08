@@ -162,7 +162,11 @@ export function skillSessionSlots(
       },
     ]
   }
-  if (isIeltsCourse(course) || isHskCourse(course)) {
+  if (isIeltsCourse(course)) {
+    // IELTS B: one section per skill, in exam order.
+    return [LISTENING, READING, WRITING, SPEAKING]
+  }
+  if (isHskCourse(course)) {
     return [LISTENING, WRITING, READING, SPEAKING]
   }
   return [LISTENING, WRITING, READING, SPEAKING]

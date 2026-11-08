@@ -8,11 +8,8 @@ import {
   fetchTutorWorkingSchedule,
 } from '../api/compensation-api'
 import type { UserDetail } from '../api/users-api'
-import {
-  formatStaffCurrency,
-  formatStaffTime,
-  StaffDetailItem,
-} from './staff-detail-utils'
+import { formatStaffCurrency, formatStaffTime } from './staff-detail-utils'
+import { StaffDetailItem } from './staff-detail-parts'
 import { TutorWorkingScheduleDialog } from './tutor-working-schedule-dialog'
 
 const WEEKDAYS = [

@@ -2,6 +2,7 @@ import { Inbox } from 'lucide-react'
 
 import { PageHeader } from '../../../shared/components/page'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { ExtraStudentsSection } from '../components/extra-students'
 import { ProspectiveStudentForm } from '../components/prospective-student-form'
 import { useProspectiveStudentForm } from '../hooks/use-prospective-student-form'
 
@@ -29,6 +30,15 @@ export default function ProspectiveStudentCreatePage() {
           onChange={form.updateField}
           onSubmit={form.submit}
           onCancel={form.cancel}
+          afterStudentSection={
+            <ExtraStudentsSection
+              students={form.extraStudents}
+              errors={form.extraErrors}
+              onAdd={form.addExtraStudent}
+              onRemove={form.removeExtraStudent}
+              onChange={form.updateExtraStudent}
+            />
+          }
         />
       </div>
     </AdminShell>

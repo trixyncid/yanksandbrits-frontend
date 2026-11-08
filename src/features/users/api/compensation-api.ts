@@ -9,6 +9,8 @@ export type TutorWorkingSchedule = {
   mainSalary: number
   salaryPerSession: number
   overtimeMultiplier: number
+  /** Paid per finished tutor-training session they teach. */
+  trainerFee: number
   mondayIn: string
   mondayOut: string
   tuesdayIn: string
@@ -29,6 +31,7 @@ export type TutorWorkingScheduleFormValues = {
   mainSalary: string
   salaryPerSession: string
   overtimeMultiplier: string
+  trainerFee: string
   mondayIn: string
   mondayOut: string
   tuesdayIn: string
@@ -104,6 +107,7 @@ type TutorWorkingScheduleDto = {
   main_salary: number
   salary_per_session: number
   overtime_multiplier: number
+  trainer_fee?: number
   monday_in: string | null
   monday_out: string | null
   tuesday_in: string | null
@@ -162,6 +166,7 @@ function mapSchedule(dto: TutorWorkingScheduleDto): TutorWorkingSchedule {
     mainSalary: dto.main_salary ?? 0,
     salaryPerSession: dto.salary_per_session ?? 0,
     overtimeMultiplier: dto.overtime_multiplier ?? 0,
+    trainerFee: dto.trainer_fee ?? 0,
     mondayIn: timeValue(dto.monday_in),
     mondayOut: timeValue(dto.monday_out),
     tuesdayIn: timeValue(dto.tuesday_in),
@@ -222,6 +227,7 @@ function scheduleToPayload(
     main_salary: Number(values.mainSalary) || 0,
     salary_per_session: Number(values.salaryPerSession) || 0,
     overtime_multiplier: Number(values.overtimeMultiplier) || 0,
+    trainer_fee: Number(values.trainerFee) || 0,
     monday_in: nullIfEmpty(values.mondayIn),
     monday_out: nullIfEmpty(values.mondayOut),
     tuesday_in: nullIfEmpty(values.tuesdayIn),
@@ -250,6 +256,7 @@ export function scheduleToFormValues(
     mainSalary: String(schedule.mainSalary),
     salaryPerSession: String(schedule.salaryPerSession),
     overtimeMultiplier: String(schedule.overtimeMultiplier),
+    trainerFee: String(schedule.trainerFee),
     mondayIn: schedule.mondayIn,
     mondayOut: schedule.mondayOut,
     tuesdayIn: schedule.tuesdayIn,
@@ -271,6 +278,7 @@ export const emptyScheduleFormValues: TutorWorkingScheduleFormValues = {
   mainSalary: '',
   salaryPerSession: '',
   overtimeMultiplier: '',
+  trainerFee: '',
   mondayIn: '',
   mondayOut: '',
   tuesdayIn: '',
@@ -474,13 +482,12 @@ export type TutorProgramSalary = {
   tutorId: string
   programId: string | null
   programTitle: string | null
+  /** The program's fee per session; overtime uses the tutor's base multiplier. */
   salaryPerSession: number
-  overtimeMultiplier: number
 }
 
 export type TutorProgramSalaryFormValues = {
   salaryPerSession: string
-  overtimeMultiplier: string
 }
 
 type TutorProgramSalaryDto = {
@@ -489,7 +496,6 @@ type TutorProgramSalaryDto = {
   program: number | null
   program_title: string | null
   salary_per_session: number
-  overtime_multiplier: number
 }
 
 function mapProgramSalary(dto: TutorProgramSalaryDto): TutorProgramSalary {
@@ -499,7 +505,6 @@ function mapProgramSalary(dto: TutorProgramSalaryDto): TutorProgramSalary {
     programId: dto.program == null ? null : String(dto.program),
     programTitle: dto.program_title,
     salaryPerSession: dto.salary_per_session ?? 0,
-    overtimeMultiplier: dto.overtime_multiplier ?? 0,
   }
 }
 
@@ -525,7 +530,6 @@ export async function createTutorProgramSalary(
     tutor: Number(tutorId),
     program: Number(programId),
     salary_per_session: Number(values.salaryPerSession) || 0,
-    overtime_multiplier: Number(values.overtimeMultiplier) || 0,
   })
   return mapProgramSalary(data.data)
 }
@@ -542,7 +546,6 @@ export async function updateTutorProgramSalary(
     tutor: Number(tutorId),
     program: programId == null ? null : Number(programId),
     salary_per_session: Number(values.salaryPerSession) || 0,
-    overtime_multiplier: Number(values.overtimeMultiplier) || 0,
   })
   return mapProgramSalary(data.data)
 }
@@ -551,14 +554,45 @@ export async function deleteTutorProgramSalary(salaryId: string): Promise<void> 
   await httpClient.delete(adminPath(`/tutor-salary-class-based/${salaryId}`))
 }
 
+/** Remove several program rates at once; if any is missing, none are removed. */
+export async function deleteTutorProgramSalaries(salaryIds: string[]): Promise<number> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<{ deleted: number }>>(
+    adminPath('/tutor-salary-class-based/bulk-delete'),
+    { ids: salaryIds.map(Number) },
+  )
+  return data.data.deleted
+}
+
+/**
+ * One tutor, several programs. The additional amount is added to the stored
+ * rate: programs with a rate become current + additional; new ones become
+ * salaryPerSession + additional. Overtime uses the tutor's base multiplier.
+ */
+export async function bulkApplyTutorProgramSalaries(
+  tutorId: string,
+  values: {
+    programIds: string[]
+    salaryPerSession: number | null
+    additionalAmount: number
+  },
+): Promise<TutorProgramSalary[]> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<TutorProgramSalaryDto[]>
+  >(adminPath('/tutor-salary-class-based/bulk-apply'), {
+    tutor: Number(tutorId),
+    programs: values.programIds.map(Number),
+    salary_per_session: values.salaryPerSession,
+    additional_amount: values.additionalAmount,
+  })
+  return (data.data ?? []).map(mapProgramSalary)
+}
+
 export function programSalaryToFormValues(
   salary: TutorProgramSalary | null | undefined,
 ): TutorProgramSalaryFormValues {
   return {
     salaryPerSession:
       salary == null ? '' : String(salary.salaryPerSession),
-    overtimeMultiplier:
-      salary == null ? '' : String(salary.overtimeMultiplier),
   }
 }
 
@@ -570,6 +604,10 @@ export type StaffSalary = {
   id: string
   staffId: string
   mainSalary: number
+  /** Finance and CRO only: paid per new student enrolled in the period. */
+  enrollmentCommission: number
+  /** Academic leaders on a staff salary: paid per finished training session they teach. */
+  trainerFee: number
   updatedAt: string
 }
 
@@ -577,6 +615,8 @@ type StaffSalaryDto = {
   id: number
   staff: number
   main_salary: number
+  enrollment_commission?: number
+  trainer_fee?: number
   updated_at: string
 }
 
@@ -585,6 +625,8 @@ function mapStaffSalary(dto: StaffSalaryDto): StaffSalary {
     id: String(dto.id),
     staffId: String(dto.staff),
     mainSalary: dto.main_salary ?? 0,
+    enrollmentCommission: dto.enrollment_commission ?? 0,
+    trainerFee: dto.trainer_fee ?? 0,
     updatedAt: dto.updated_at,
   }
 }
@@ -600,10 +642,17 @@ export async function fetchStaffSalary(userId: string): Promise<StaffSalary | nu
 
 export async function saveStaffSalary(
   userId: string,
-  mainSalary: number,
+  pay: { mainSalary: number; enrollmentCommission?: number; trainerFee?: number },
   existingId?: string,
 ): Promise<StaffSalary> {
-  const payload = { staff: Number(userId), main_salary: mainSalary }
+  const payload = {
+    staff: Number(userId),
+    main_salary: pay.mainSalary,
+    ...(pay.enrollmentCommission === undefined
+      ? {}
+      : { enrollment_commission: pay.enrollmentCommission }),
+    ...(pay.trainerFee === undefined ? {} : { trainer_fee: pay.trainerFee }),
+  }
   const { data } = existingId
     ? await httpClient.patch<ApiSuccessEnvelope<StaffSalaryDto>>(
         adminPath(`/staff-salaries/${existingId}`),
@@ -614,4 +663,114 @@ export async function saveStaffSalary(
         payload,
       )
   return mapStaffSalary(data.data)
+}
+
+/* ------------------------------------------------------------------ */
+/* Academic leader bonus brackets (per leader, on staff or tutor pay)  */
+/* ------------------------------------------------------------------ */
+
+export type AcademicLeaderBonusTier = {
+  id: string
+  minHeadcount: number
+  maxHeadcount: number | null
+  bonusAmount: number
+}
+
+export type AcademicLeaderBonusTierFormValues = {
+  minHeadcount: string
+  maxHeadcount: string
+  bonusAmount: string
+}
+
+type AcademicLeaderBonusTierDto = {
+  id: number
+  leader: number
+  min_headcount: number
+  max_headcount: number | null
+  bonus_amount: number
+}
+
+export const academicLeaderBonusQueryKeys = {
+  all: ['academic-leader-bonus-tiers'] as const,
+  forLeader: (leaderId: string) =>
+    [...academicLeaderBonusQueryKeys.all, leaderId] as const,
+}
+
+function mapAcademicLeaderBonusTier(
+  dto: AcademicLeaderBonusTierDto,
+): AcademicLeaderBonusTier {
+  return {
+    id: String(dto.id),
+    minHeadcount: dto.min_headcount,
+    maxHeadcount: dto.max_headcount,
+    bonusAmount: dto.bonus_amount ?? 0,
+  }
+}
+
+function academicLeaderBonusPayload(values: AcademicLeaderBonusTierFormValues) {
+  return {
+    min_headcount: Number(values.minHeadcount) || 1,
+    max_headcount: values.maxHeadcount.trim() ? Number(values.maxHeadcount) : null,
+    bonus_amount: Number(values.bonusAmount) || 0,
+  }
+}
+
+export function academicLeaderBonusTierToFormValues(
+  tier: AcademicLeaderBonusTier | null,
+): AcademicLeaderBonusTierFormValues {
+  return {
+    minHeadcount: tier ? String(tier.minHeadcount) : '',
+    maxHeadcount: tier?.maxHeadcount == null ? '' : String(tier.maxHeadcount),
+    bonusAmount: tier ? String(tier.bonusAmount) : '',
+  }
+}
+
+export function describeTutorHeadcount(tier: AcademicLeaderBonusTier) {
+  if (tier.maxHeadcount == null) {
+    return `${tier.minHeadcount}+ tutors`
+  }
+  if (tier.maxHeadcount === tier.minHeadcount) {
+    return `${tier.minHeadcount} tutor${tier.minHeadcount === 1 ? '' : 's'}`
+  }
+  return `${tier.minHeadcount} – ${tier.maxHeadcount} tutors`
+}
+
+export async function fetchAcademicLeaderBonusTiers(
+  leaderId: string,
+): Promise<AcademicLeaderBonusTier[]> {
+  const { items } = await fetchAllPages<AcademicLeaderBonusTierDto>({
+    client: httpClient,
+    path: adminPath('/academic-leader-bonus-tiers'),
+    params: { leader: Number(leaderId) },
+  })
+  return items
+    .map(mapAcademicLeaderBonusTier)
+    .sort((a, b) => a.minHeadcount - b.minHeadcount)
+}
+
+export async function createAcademicLeaderBonusTier(
+  leaderId: string,
+  values: AcademicLeaderBonusTierFormValues,
+): Promise<AcademicLeaderBonusTier> {
+  const { data } = await httpClient.post<
+    ApiSuccessEnvelope<AcademicLeaderBonusTierDto>
+  >(adminPath('/academic-leader-bonus-tiers'), {
+    leader: Number(leaderId),
+    ...academicLeaderBonusPayload(values),
+  })
+  return mapAcademicLeaderBonusTier(data.data)
+}
+
+export async function updateAcademicLeaderBonusTier(
+  id: string,
+  values: AcademicLeaderBonusTierFormValues,
+): Promise<AcademicLeaderBonusTier> {
+  const { data } = await httpClient.patch<
+    ApiSuccessEnvelope<AcademicLeaderBonusTierDto>
+  >(adminPath(`/academic-leader-bonus-tiers/${id}`), academicLeaderBonusPayload(values))
+  return mapAcademicLeaderBonusTier(data.data)
+}
+
+export async function deleteAcademicLeaderBonusTier(id: string): Promise<void> {
+  await httpClient.delete(adminPath(`/academic-leader-bonus-tiers/${id}`))
 }

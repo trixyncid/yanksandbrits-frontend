@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { ListErrorState } from '../../../shared/components/page'
@@ -7,9 +7,11 @@ import { AdminShell } from '../../admin/components/admin-shell'
 import { DashboardSection } from '../../admin/components/dashboard-section'
 import {
   BookkeepingPeriodSelect,
+} from '../../bookkeeping/components/bookkeeping-period-select'
+import {
   OPEN_BOOKKEEPING_PERIOD,
   type BookkeepingPeriodValue,
-} from '../../bookkeeping/components/bookkeeping-period-select'
+} from '../../bookkeeping/components/bookkeeping-period'
 import type { BookkeepingListItem } from '../../bookkeeping/types/bookkeeping'
 import { MarketingDashboardEarnings } from '../components/marketing-dashboard-earnings'
 import {
@@ -70,11 +72,14 @@ export default function MarketingDashboardPage() {
   const [hasUserSelectedPeriod, setHasUserSelectedPeriod] = useState(false)
   const metricsQuery = useMarketingPerformanceQuery(period)
 
-  useEffect(() => {
-    if (hasUserSelectedPeriod || !metricsQuery.data) return
-    if (period !== AUTO_BOOKKEEPING_PERIOD) return
+  // Adopt the server's default period once, unless the user already picked one.
+  if (
+    !hasUserSelectedPeriod &&
+    metricsQuery.data &&
+    period === AUTO_BOOKKEEPING_PERIOD
+  ) {
     setPeriod(toSelectValue(metricsQuery.data.defaultPeriod))
-  }, [hasUserSelectedPeriod, metricsQuery.data, period])
+  }
 
   const periods = useMemo(
     () => toBookkeepingListItems(metricsQuery.data?.availablePeriods ?? []),

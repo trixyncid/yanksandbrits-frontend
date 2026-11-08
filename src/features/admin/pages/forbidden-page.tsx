@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ShieldAlert } from 'lucide-react'
 
-import { buttonVariants } from '../../../shared/components/ui/button'
+import { buttonVariants } from '../../../shared/components/ui/button-variants'
 import { getDefaultStaffPath } from '../../auth/lib/route-access'
 import { useAuthStore } from '../../auth/store/auth-store'
 import { AdminShell } from '../components/admin-shell'

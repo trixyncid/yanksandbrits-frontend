@@ -2,7 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
 import { cn } from '../../../shared/lib/cn'
-import type { ProgramListItem } from '../types/program'
+import { programAudienceLabel, type ProgramListItem } from '../types/program'
 import { ProgramActionsCell } from './program-actions-cell'
 
 function formatDateTime(value: string) {
@@ -65,6 +65,28 @@ export const programListColumns: ColumnDef<ProgramListItem>[] = [
         ) : (
           <span className="text-xs text-slate-400">-</span>
         )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'audience',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Intended for" align="center" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        <span
+          className={cn(
+            'inline-flex rounded-full px-2.5 py-1 text-xs font-semibold',
+            row.original.audience === 'tutor'
+              ? 'bg-amber-50 text-amber-800'
+              : row.original.audience === 'both'
+                ? 'bg-violet-50 text-violet-700'
+                : 'bg-brand-50 text-brand-700',
+          )}
+        >
+          {programAudienceLabel(row.original.audience)}
+        </span>
       </div>
     ),
   },

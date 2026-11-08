@@ -175,7 +175,10 @@ export function ScheduleForm({
     studentGroupId: selectedGroupId,
   })
 
-  const filteredPrograms = filteredProgramsQuery.data ?? []
+  const filteredPrograms = useMemo(
+    () => filteredProgramsQuery.data ?? [],
+    [filteredProgramsQuery.data],
+  )
   const selectedProgramMissing =
     Boolean(values.programId) &&
     filteredProgramsQuery.isSuccess &&

@@ -12,6 +12,10 @@ import {
 
 export type TutorPortalScheduleDto = {
   id: number
+  /** Tutor training: 'trainee' (being trained) or 'trainer' (leading it). */
+  training_role?: 'trainee' | 'trainer' | null
+  /** The academic leader (for a trainee) or the tutor being trained (for a trainer). */
+  training_with?: string | null
   program: number | null
   program_title: string | null
   program_background_color?: string | null
@@ -112,8 +116,13 @@ export function mapTutorPortalSchedules(
   return rows
     .filter((row) => Boolean(row.start_time) && Boolean(row.end_time))
     .map((row) => {
-      const palette = paletteForRow(row)
+      // Training sessions are violet so they stand apart from classes.
+      const palette = row.training_role
+        ? { background: '#EDE9FE', text: '#4C1D95', accent: '#7C3AED', status: paletteForRow(row).status }
+        : paletteForRow(row)
       const subtitle =
+        (row.training_role === 'trainee' && `Training with ${row.training_with ?? 'academic leader'}`) ||
+        (row.training_role === 'trainer' && `Training ${row.training_with ?? 'tutor'}`) ||
         row.student_group_name?.trim() ||
         row.student_name?.trim() ||
         row.description?.trim() ||

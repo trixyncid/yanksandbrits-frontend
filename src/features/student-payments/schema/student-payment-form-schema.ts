@@ -38,18 +38,8 @@ const discountSchema = z
 export function createStudentPaymentFormSchema(
   pretestCredit = 0,
   maxTerms = 2,
-  requireInstallmentAmounts = true,
   allowEnrolledProspect = false,
 ) {
-  const termSchema = requireInstallmentAmounts
-    ? studentPaymentTermFormSchema
-    : // Plan awaiting approval: the installment is hidden, so amount and
-      // branch are not asked for yet (the server uses the student's branch).
-      studentPaymentTermFormSchema.extend({
-        amount: z.string(),
-        branchId: z.string(),
-      })
-
   return z
     .object({
       studentId: z.string(),
@@ -58,7 +48,7 @@ export function createStudentPaymentFormSchema(
       fullAmount: amountSchema,
       discountAmount: discountSchema,
       installmentPlan: z.enum(['full', 'two', '']),
-      terms: z.array(termSchema),
+      terms: z.array(studentPaymentTermFormSchema),
     })
     .superRefine((values, ctx) => {
       const hasStudent = Boolean(values.studentId)

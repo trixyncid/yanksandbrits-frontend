@@ -1,5 +1,5 @@
 import { BookOpen } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -83,15 +83,22 @@ export function StudentProgramDialog({
     return options
   }, [enrollment, programsQuery.data?.data])
 
-  useEffect(() => {
-    if (!open) return
-    setValues(
-      enrollment
-        ? studentProgramToFormValues(enrollment)
-        : emptyStudentProgramFormValues,
-    )
-    setIsSubmitting(false)
-  }, [open, enrollment])
+  // Reset the form whenever the dialog opens or its enrollment changes.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    enrollment: typeof enrollment
+  } | null>(null)
+  if (synced?.open !== open || synced.enrollment !== enrollment) {
+    setSynced({ open, enrollment })
+    if (open) {
+      setValues(
+        enrollment
+          ? studentProgramToFormValues(enrollment)
+          : emptyStudentProgramFormValues,
+      )
+      setIsSubmitting(false)
+    }
+  }
 
   function updateField<K extends keyof StudentProgramFormValues>(
     field: K,

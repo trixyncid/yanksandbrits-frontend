@@ -12,6 +12,19 @@ export type BookkeepingStaffSalaryItem = {
   roles: string[]
   branchName: string
   mainSalary: number
+  /** Academic leader bonus from tutor headcount; 0 for other staff. */
+  bonusSalary: number
+  tutorHeadcount: number
+  /** Commission (Finance, CRO, Digital Marketing); 0 for other staff. */
+  commissionSalary: number
+  /** New students counted for the commission (Finance, CRO, Digital Marketing). */
+  enrollmentCount: number
+  /** The person's rate per new student when this pay was saved. */
+  commissionRate: number
+  commissionBasis: 'new_student' | ''
+  /** Academic leaders on a staff salary: finished training sessions taught, and pay for them. */
+  trainingSessions: number
+  trainingSalary: number
   totalSalary: number
 }
 
@@ -23,6 +36,14 @@ type StaffSalaryDto = {
   staff_roles?: string[]
   branch_name?: string | null
   main_salary: number
+  bonus_salary?: number
+  tutor_headcount?: number
+  commission_salary?: number
+  enrollment_count?: number
+  commission_rate?: number
+  commission_basis?: 'new_student' | ''
+  training_sessions?: number
+  training_salary?: number
   total_salary: number
 }
 
@@ -35,6 +56,14 @@ function mapStaffSalary(dto: StaffSalaryDto): BookkeepingStaffSalaryItem {
     roles: dto.staff_roles ?? [],
     branchName: dto.branch_name ?? '',
     mainSalary: dto.main_salary ?? 0,
+    bonusSalary: dto.bonus_salary ?? 0,
+    tutorHeadcount: dto.tutor_headcount ?? 0,
+    commissionSalary: dto.commission_salary ?? 0,
+    enrollmentCount: dto.enrollment_count ?? 0,
+    commissionRate: dto.commission_rate ?? 0,
+    commissionBasis: dto.commission_basis ?? '',
+    trainingSessions: dto.training_sessions ?? 0,
+    trainingSalary: dto.training_salary ?? 0,
     totalSalary: dto.total_salary ?? 0,
   }
 }

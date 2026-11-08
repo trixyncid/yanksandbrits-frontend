@@ -25,6 +25,8 @@ export type ResourceItem = {
   id: string
   name: string
   isCommission: boolean
+  /** Consulted responses from this source pay Digital Marketing commission. */
+  isDigitalMarketing: boolean
   createdAt: string
   updatedAt: string
   createdBy: string | null
@@ -49,6 +51,7 @@ type ResourceDto = {
   id: number
   name: string
   is_commission: boolean
+  is_digital_marketing?: boolean
   created_at: string
   updated_at: string
   created_by?: number | null
@@ -80,6 +83,7 @@ function mapResource(item: ResourceDto): ResourceItem {
     id: String(item.id),
     name: item.name,
     isCommission: Boolean(item.is_commission),
+    isDigitalMarketing: Boolean(item.is_digital_marketing),
     createdAt: item.created_at,
     updatedAt: item.updated_at,
     createdBy: item.created_by_name ?? null,
@@ -193,12 +197,14 @@ export async function deleteOccupation(id: string): Promise<void> {
 export async function createResource(values: {
   name: string
   isCommission: boolean
+  isDigitalMarketing: boolean
 }): Promise<ResourceItem> {
   const { data } = await httpClient.post<{ data: ResourceDto }>(
     adminPath('/resources'),
     {
       name: values.name.trim(),
       is_commission: values.isCommission,
+      is_digital_marketing: values.isDigitalMarketing,
     },
   )
   return mapResource(data.data)
@@ -206,13 +212,14 @@ export async function createResource(values: {
 
 export async function updateResource(
   id: string,
-  values: { name: string; isCommission: boolean },
+  values: { name: string; isCommission: boolean; isDigitalMarketing: boolean },
 ): Promise<ResourceItem> {
   const { data } = await httpClient.patch<{ data: ResourceDto }>(
     adminPath(`/resources/${id}`),
     {
       name: values.name.trim(),
       is_commission: values.isCommission,
+      is_digital_marketing: values.isDigitalMarketing,
     },
   )
   return mapResource(data.data)

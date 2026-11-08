@@ -270,6 +270,7 @@ function TutorAllocationEditForm({
           isSubmitting={form.isSubmitting}
           approved={current.approved}
           savedMembers={current.members}
+          allocationId={current.id}
           tutorNames={current}
           onChange={form.updateField}
           onSubmit={form.submit}

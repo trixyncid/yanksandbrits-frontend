@@ -99,7 +99,7 @@ export function StaffHeader({ user, entity, onDelete }: StaffHeaderProps) {
                   />
                   {user.isActive ? 'Active' : 'Inactive'}
                 </span>
-                {entity.kind !== 'marketing' && !user.isStudent
+                {entity.kind === 'tutor' && !user.isStudent
                   ? user.staffTypes.map((subject) => (
                       <span
                         key={subject}

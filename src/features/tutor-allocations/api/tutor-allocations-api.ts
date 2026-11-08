@@ -13,6 +13,7 @@ import {
 } from '../lib/programs'
 import type {
   EligibleAllocationStudent,
+  TutorAllocationClassType,
   TutorAllocationFormValues,
   TutorAllocationListItem,
   TutorAllocationScore,
@@ -520,13 +521,20 @@ function mapEligibleStudent(dto: EligibleStudentDto): EligibleAllocationStudent 
   }
 }
 
+/**
+ * Students who can sit the class. A counsellor's private class lists only
+ * their own students; a group lists every counsellor's. When editing, the
+ * class's current students stay listed.
+ */
 export async function fetchEligibleStudents(
   program: string,
+  classType: TutorAllocationClassType,
+  allocationId?: string,
 ): Promise<EligibleAllocationStudent[]> {
   const { data } = await httpClient.get<
     ApiSuccessEnvelope<EligibleStudentDto[]>
   >(adminPath('/tutor-allocations/eligible-students'), {
-    params: { program },
+    params: { program, class_type: classType, allocation: allocationId },
   })
   return (data.data ?? []).map(mapEligibleStudent)
 }

@@ -1,5 +1,5 @@
 import { KeyRound } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { Button } from '../../../shared/components/ui/button'
@@ -48,13 +48,16 @@ export function ChangePasswordDialog({
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
+  // Clear the form whenever the dialog closes.
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (prevOpen !== open) {
+    setPrevOpen(open)
     if (!open) {
       setValues(emptyValues)
       setErrors({})
       setIsSubmitting(false)
     }
-  }, [open])
+  }
 
   function updateField<K extends keyof FormValues>(field: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }))

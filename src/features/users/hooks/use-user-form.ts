@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
@@ -39,24 +39,20 @@ export function useUserForm({
   const [errors, setErrors] = useState<UserFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (mode !== 'create' || !entity.defaultRoleCode) return
-    if (values.groupIds.length > 0) return
-    const role = rolesQuery.data?.data.find(
-      (item) => item.code === entity.defaultRoleCode,
-    )
-    if (!role) return
+  // Pre-select the entity's default role on create while no role is chosen.
+  const defaultRole =
+    mode === 'create' && entity.defaultRoleCode
+      ? rolesQuery.data?.data.find(
+          (item) => item.code === entity.defaultRoleCode,
+        )
+      : undefined
+  if (defaultRole && values.groupIds.length === 0) {
     setValues((current) =>
       current.groupIds.length > 0
         ? current
-        : { ...current, groupIds: [role.id] },
+        : { ...current, groupIds: [defaultRole.id] },
     )
-  }, [
-    mode,
-    entity.defaultRoleCode,
-    rolesQuery.data,
-    values.groupIds.length,
-  ])
+  }
 
   function updateField<K extends keyof UserFormValues>(
     field: K,
@@ -86,16 +82,18 @@ export function useUserForm({
     }
 
     if (entity.kind === 'marketing') {
-      delete nextErrors.staffTypes
       if (!nextValues.initial.trim()) {
         nextErrors.initial =
           'Initials are required so commission can be attributed.'
       }
-    } else if (nextValues.staffTypes.length === 0) {
-      nextErrors.staffTypes =
-        entity.kind === 'tutor'
-          ? 'Select at least one subject.'
-          : 'Staff type is required.'
+    }
+    // Subjects are only for tutors (and academic leaders, who are tutors too).
+    if (entity.kind === 'tutor') {
+      if (nextValues.staffTypes.length === 0) {
+        nextErrors.staffTypes = 'Select at least one subject.'
+      }
+    } else {
+      delete nextErrors.staffTypes
     }
 
     setErrors(nextErrors)

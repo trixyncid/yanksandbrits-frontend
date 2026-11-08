@@ -240,17 +240,7 @@ export function StudentPaymentsTab({ student }: StudentPaymentsTabProps) {
                         {planStatusLabel(payment.status)}
                       </DataTableBadge>
                       {payment.installmentPlan === 'two' ? (
-                        <DataTableBadge
-                          tone={
-                            payment.installmentPlanApproved
-                              ? 'success'
-                              : 'warning'
-                          }
-                        >
-                          {payment.installmentPlanApproved
-                            ? 'Plan approved'
-                            : 'Awaiting approval'}
-                        </DataTableBadge>
+                        <DataTableBadge>2 payments</DataTableBadge>
                       ) : null}
                     </div>
                     <p className="mt-2 text-2xl font-bold tracking-tight text-ink tabular-nums">

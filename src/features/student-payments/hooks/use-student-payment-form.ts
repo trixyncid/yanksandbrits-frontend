@@ -5,10 +5,7 @@ import { useCallback, useRef, useState } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
 import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
-import {
-  useCanApproveInstallmentPlan,
-  useLocksPaymentStatus,
-} from '../../auth/hooks/use-permissions'
+import { useLocksPaymentStatus } from '../../auth/hooks/use-permissions'
 import {
   createStudentPayment,
   createEmptyStudentPaymentFormValues,
@@ -39,7 +36,6 @@ type UseStudentPaymentFormOptions = {
   returnToStudentId?: string
   /** After cancel/create without student return, go back to prospective students. */
   returnToProspectiveStudents?: boolean
-  installmentPlanApproved?: boolean
 }
 
 export function useStudentPaymentForm({
@@ -48,7 +44,6 @@ export function useStudentPaymentForm({
   initialValues = createEmptyStudentPaymentFormValues(),
   returnToStudentId,
   returnToProspectiveStudents = false,
-  installmentPlanApproved = false,
 }: UseStudentPaymentFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -60,7 +55,6 @@ export function useStudentPaymentForm({
       Boolean(initialValues.studentId && initialValues.prospectiveStudentId),
   )
   const lockTransactionStatus = useLocksPaymentStatus()
-  const canApproveInstallmentPlan = useCanApproveInstallmentPlan()
   const [values, setValues] = useState<StudentPaymentFormValues>(initialValues)
   const [errors, setErrors] = useState<StudentPaymentFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -150,15 +144,9 @@ export function useStudentPaymentForm({
   }, [])
 
   function validateForm(nextValues: StudentPaymentFormValues) {
-    const requireInstallmentAmounts = !(
-      nextValues.installmentPlan === 'two' &&
-      !installmentPlanApproved &&
-      !canApproveInstallmentPlan
-    )
     const result = createStudentPaymentFormSchema(
       pretestCreditRef.current,
       scheduleCapRef.current,
-      requireInstallmentAmounts,
       allowEnrolledProspectRef.current,
     ).safeParse(nextValues)
 
@@ -259,12 +247,6 @@ export function useStudentPaymentForm({
         ? payment.studentName
         : 'this student'
     const plan = payment.title ? `“${payment.title}”` : 'The payment plan'
-    if (payment.installmentPlan === 'two' && !payment.installmentPlanApproved) {
-      return {
-        title: `Sent for approval · ${payer}`,
-        description: `${plan} is waiting for a manager to approve the 2-payment plan before payments can be entered.`,
-      }
-    }
     return action === 'created'
       ? {
           title: `Payment recorded for ${payer}`,

@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 import type { ColumnDef } from '@tanstack/react-table'
 
 import {
@@ -21,6 +22,15 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+/** "2026-10-05" -> "Paid Oct 5, 2026", read as a local date. */
+function formatPaymentDate(value: string) {
+  return `Paid ${new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parseISO(value))}`
 }
 
 function getInitials(name: string) {
@@ -184,8 +194,13 @@ export function getPredictionTestListColumns(options?: {
           />
         ),
         cell: ({ row }) => (
-          <div className="text-center">
+          <div className="flex flex-col items-center gap-1">
             <PredictionTestStatusPill status={row.original.status} />
+            {row.original.paymentDate ? (
+              <span className="text-[11px] font-medium text-slate-500">
+                {formatPaymentDate(row.original.paymentDate)}
+              </span>
+            ) : null}
           </div>
         ),
       },

@@ -1,5 +1,5 @@
 import { Wallet } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -45,12 +45,18 @@ export function MarketingSalaryDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isUpdate = Boolean(salary)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens or switches to another salary.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    salary: MarketingSalary | null
+  }>({ open: false, salary: null })
+  if (synced.open !== open || synced.salary !== salary) {
+    setSynced({ open, salary })
     if (open) {
       setValues(marketingSalaryToFormValues(salary))
       setIsSubmitting(false)
     }
-  }, [open, salary])
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

@@ -5,6 +5,8 @@ import {
 } from '../../admin/config/navigation'
 import { canAccessRoute } from '../lib/route-access'
 import {
+  canViewDigitalMarketingPerformance,
+  canViewFinancePerformance,
   canViewMarketingPerformance,
   isTutorUser,
   type AuthUser,
@@ -49,6 +51,18 @@ export function filterNavigationForUser(
     if (item.id === 'marketing-dashboard' && !canViewMarketingPerformance(user)) {
       return []
     }
+    if (item.id === 'finance-dashboard' && !canViewFinancePerformance(user)) {
+      return []
+    }
+    if (
+      item.id === 'digital-marketing-dashboard' &&
+      !canViewDigitalMarketingPerformance(user)
+    ) {
+      return []
+    }
+    if (item.id === 'student-schedule' && !canViewMarketingPerformance(user)) {
+      return []
+    }
 
     if (!item.to || canAccessRoute(user, item.to)) {
       return [item]
@@ -57,12 +71,17 @@ export function filterNavigationForUser(
     return []
   })
 
-  // Personal home: pin My Performance at the top for tutors / counsellors.
+  // Personal home: pin My Performance at the top for tutors / counsellors /
+  // finance / digital marketing.
   const pinId = isTutorUser(user)
     ? 'tutor-dashboard'
     : canViewMarketingPerformance(user)
       ? 'marketing-dashboard'
-      : null
+      : canViewFinancePerformance(user)
+        ? 'finance-dashboard'
+        : canViewDigitalMarketingPerformance(user)
+          ? 'digital-marketing-dashboard'
+          : null
 
   if (!pinId) {
     return filtered

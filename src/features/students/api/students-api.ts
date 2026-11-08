@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
@@ -36,6 +38,7 @@ type StudentListDto = {
   referral: number | null
   referral_name: string | null
   gender: 'M' | 'F'
+  age?: number | null
   grn: string | null
   prospective_student?: number | null
   user: number | null
@@ -97,6 +100,7 @@ function mapListItem(dto: StudentListDto): StudentListItem {
     email: dto.email ?? '',
     mobilePhone: dto.mobile_phone ?? '',
     gender: dto.gender,
+    age: dto.age ?? null,
     enrollmentDate: dto.enrollment_date,
     counsellor: dto.referral_name ?? '—',
     counsellorId: dto.referral == null ? null : String(dto.referral),
@@ -165,6 +169,7 @@ function mapDetail(
     gender: dto.gender,
     birthPlace: dto.birth_place ?? '',
     birthDate: dto.birth_date ?? '',
+    age: dto.age ?? null,
     address: dto.address ?? '',
     mobilePhone: dto.mobile_phone ?? '',
     homePhone: dto.home_phone ?? '',
@@ -191,6 +196,7 @@ function mapDetail(
     createdBy: dto.created_by_name ?? '—',
     updatedBy: dto.updated_by_name ?? '—',
     programs,
+    canViewPrograms: true,
   }
 }
 
@@ -229,6 +235,7 @@ function toWritePayload(
     gender: values.gender,
     birth_place: emptyToNull(values.birthPlace),
     birth_date: emptyToNull(values.birthDate),
+    age: values.age.trim() ? Number(values.age.trim()) : null,
     address: emptyToNull(values.address),
     mobile_phone: normalizePhone(values.mobilePhone),
     home_phone: normalizePhone(values.homePhone),
@@ -351,12 +358,24 @@ export const emptyStudentProgramFormValues: StudentProgramFormValues = {
   status: 'ongoing',
 }
 
+/** Some roles may view students but not their programs; still show the profile. */
+async function mapDetailWithPrograms(dto: StudentDetailDto) {
+  try {
+    const programs = await fetchStudentPrograms(String(dto.id))
+    return mapDetail(dto, programs)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      return { ...mapDetail(dto), canViewPrograms: false }
+    }
+    throw error
+  }
+}
+
 export async function fetchStudent(id: string): Promise<StudentDetail> {
   const { data } = await httpClient.get<ApiSuccessEnvelope<StudentDetailDto>>(
     adminPath(`/students/${id}`),
   )
-  const programs = await fetchStudentPrograms(id)
-  return mapDetail(data.data, programs)
+  return mapDetailWithPrograms(data.data)
 }
 
 export async function createStudent(
@@ -379,8 +398,7 @@ export async function updateStudent(
     adminPath(`/students/${id}`),
     toWritePayload(values, options),
   )
-  const programs = await fetchStudentPrograms(id)
-  return mapDetail(data.data, programs)
+  return mapDetailWithPrograms(data.data)
 }
 
 export async function deleteStudent(id: string): Promise<void> {
@@ -410,6 +428,7 @@ export function studentToFormValues(student: StudentDetail): StudentFormValues {
     gender: student.gender,
     birthPlace: student.birthPlace,
     birthDate: student.birthDate,
+    age: student.age == null ? '' : String(student.age),
     address: student.address,
     mobilePhone: student.mobilePhone,
     homePhone: student.homePhone,
@@ -435,6 +454,7 @@ export const emptyStudentFormValues: StudentFormValues = {
   gender: 'M',
   birthPlace: '',
   birthDate: '',
+  age: '',
   address: '',
   mobilePhone: '',
   homePhone: '',

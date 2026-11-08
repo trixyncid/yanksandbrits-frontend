@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BookOpen,
+  CalendarClock,
   CalendarDays,
   ClipboardList,
   CreditCard,
   FolderKanban,
   GraduationCap,
+  HandCoins,
   UserRound,
   KeyRound,
   LayoutDashboard,
@@ -23,6 +25,9 @@ export type AppPath =
   | '/dashboard'
   | '/marketing-dashboard'
   | '/tutor-dashboard'
+  | '/finance-dashboard'
+  | '/digital-marketing-dashboard'
+  | '/student-schedule'
   | '/students'
   | '/students/new'
   | '/student-groups'
@@ -56,6 +61,7 @@ export type AppPath =
   | '/bookkeeping/new'
   | '/tutor-report'
   | '/tutor-salary-bonus'
+  | '/tm-fees'
   | '/marketing-report'
   | '/appointment-by-tutor'
   | '/profile'
@@ -95,6 +101,24 @@ export const adminNavigation: NavigationItem[] = [
     label: 'My Performance',
     icon: PieChart,
     to: '/marketing-dashboard',
+  },
+  {
+    id: 'finance-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/finance-dashboard',
+  },
+  {
+    id: 'digital-marketing-dashboard',
+    label: 'My Performance',
+    icon: PieChart,
+    to: '/digital-marketing-dashboard',
+  },
+  {
+    id: 'student-schedule',
+    label: 'Student Schedule',
+    icon: CalendarClock,
+    to: '/student-schedule',
   },
   {
     id: 'dashboard',
@@ -255,6 +279,12 @@ export const adminNavigation: NavigationItem[] = [
         label: 'Tutor Salary Bonus',
         icon: ClipboardList,
         to: '/tutor-salary-bonus',
+      },
+      {
+        id: 'tm-fees',
+        label: 'TM Fees',
+        icon: HandCoins,
+        to: '/tm-fees',
       },
       {
         id: 'marketing-report',

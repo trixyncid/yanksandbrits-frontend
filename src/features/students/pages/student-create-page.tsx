@@ -47,6 +47,7 @@ async function loadProspectValues(
     email: prospect.email,
     gender: mapGenderToApi(prospect.gender ?? ''),
     address: prospect.address,
+    age: prospect.age == null ? '' : String(prospect.age),
     mobilePhone: prospect.phone,
     enrollmentDate: todayDateString(),
     grn: prospect.srNumber,

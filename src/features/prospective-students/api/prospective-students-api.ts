@@ -12,6 +12,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import type {
+  ExtraStudentValues,
   ProspectiveStudentFormValues,
   ProspectiveStudentListItem,
 } from '../types/prospective-student'
@@ -37,7 +38,12 @@ type ProspectiveStudentListDto = {
   date?: string | null
   resource?: number | null
   resource_name?: string | null
+  referral_student?: number | null
+  referral_student_name?: string | null
+  referral_name?: string | null
   tele_marketing?: TeleMarketingCode | null
+  tele_marketer?: number | null
+  tele_marketer_name?: string | null
   age?: number | null
   address?: string | null
   language_test?: LanguageTestCode | null
@@ -48,6 +54,9 @@ type ProspectiveStudentListDto = {
   is_student: boolean
   is_consult?: boolean
   can_enroll?: boolean
+  response?: number | null
+  response_size?: number | null
+  response_students?: Array<{ id: number; full_name: string; status: string }>
   marketing: number | null
   marketing_name: string | null
   branch: number | null
@@ -93,7 +102,13 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     date: dto.date ?? '',
     resourceId: dto.resource == null ? null : String(dto.resource),
     resource: dto.resource_name ?? '',
+    referralStudentId:
+      dto.referral_student == null ? null : String(dto.referral_student),
+    referralStudentName: dto.referral_student_name ?? '',
+    referralName: dto.referral_name ?? '',
     teleMarketing: (dto.tele_marketing as TeleMarketingCode | null) ?? '',
+    teleMarketerId: dto.tele_marketer == null ? null : String(dto.tele_marketer),
+    teleMarketerName: dto.tele_marketer_name ?? '',
     age: dto.age ?? null,
     address: dto.address ?? '',
     languageTest,
@@ -110,6 +125,28 @@ function mapItem(dto: ProspectiveStudentListDto): ProspectiveStudentListItem {
     isStudent: dto.is_student,
     isConsult: Boolean(dto.is_consult),
     canEnroll: Boolean(dto.can_enroll),
+    responseId: dto.response == null ? null : String(dto.response),
+    responseSize: dto.response_size ?? dto.response_students?.length ?? 1,
+    responseStudents: (dto.response_students ?? []).map((student) => ({
+      id: String(student.id),
+      fullName: student.full_name,
+      status: mapResponseStatusFromApi(student.status),
+    })),
+  }
+}
+
+/** Personal details only: the response's Consult & Source details apply. */
+function toExtraStudentPayload(student: ExtraStudentValues) {
+  return {
+    full_name: student.fullName.trim(),
+    email: student.email.trim() || null,
+    phone: student.phone.trim(),
+    gender: mapGenderToApi(student.gender),
+    course: student.course as CourseCode,
+    status: mapResponseStatusToApi(student.status),
+    sr_number: student.srNumber.trim() || null,
+    age: student.age.trim() ? Number(student.age.trim()) : null,
+    address: student.address.trim() || null,
   }
 }
 
@@ -126,7 +163,19 @@ function toWritePayload(values: ProspectiveStudentFormValues) {
     sr_number: values.srNumber.trim() || null,
     date: values.date.trim() || null,
     resource: values.resourceId ? Number(values.resourceId) : null,
+    // The API clears both referral fields unless the resource is a referral.
+    referral_student:
+      values.referralType === 'student' && values.referralStudentId
+        ? Number(values.referralStudentId)
+        : null,
+    referral_name:
+      values.referralType === 'other' ? values.referralName.trim() || null : null,
     tele_marketing: values.teleMarketing || null,
+    // Telemarketing only; empty lets the server use the education counsellor.
+    tele_marketer:
+      values.teleMarketing === 'TM' && (values.teleMarketerId || values.marketingId)
+        ? Number(values.teleMarketerId || values.marketingId)
+        : null,
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim() || null,
     language_test: hasTakenLanguageTest ? values.languageTest || null : null,
@@ -261,7 +310,15 @@ export async function createProspectiveStudent(
     date: values.date,
     resourceId: values.resourceId || null,
     resource: '',
+    referralStudentId: null,
+    referralStudentName: '',
+    referralName: '',
     teleMarketing: values.teleMarketing,
+    teleMarketerId:
+      values.teleMarketing === 'TM'
+        ? values.teleMarketerId || values.marketingId || null
+        : null,
+    teleMarketerName: '',
     age: values.age.trim() ? Number(values.age.trim()) : null,
     address: values.address.trim(),
     languageTest: values.hasTakenLanguageTest ? values.languageTest : '',
@@ -281,7 +338,37 @@ export async function createProspectiveStudent(
       values.status === 'prediction_test' ||
       values.status === 'enrolled',
     canEnroll: false,
+    responseId: null,
+    responseSize: 1,
+    responseStudents: [],
   }
+}
+
+/**
+ * One student response with several students: the first carries the
+ * Consult & Source details the others share. All are saved, or none.
+ */
+export async function createStudentResponse(
+  first: ProspectiveStudentFormValues,
+  others: ExtraStudentValues[],
+): Promise<ProspectiveStudentListItem[]> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ProspectiveStudentListDto[]>>(
+    adminPath('/prospective-students/bulk-create'),
+    { students: [toWritePayload(first), ...others.map(toExtraStudentPayload)] },
+  )
+  return (data.data ?? []).map(mapItem)
+}
+
+/** Add another student to an existing response (shares its Consult & Source). */
+export async function addStudentToResponse(
+  responseId: string,
+  student: ExtraStudentValues,
+): Promise<ProspectiveStudentListItem> {
+  const { data } = await httpClient.post<ApiSuccessEnvelope<ProspectiveStudentListDto>>(
+    adminPath('/prospective-students'),
+    { ...toExtraStudentPayload(student), response: Number(responseId) },
+  )
+  return mapItem(data.data)
 }
 
 export async function updateProspectiveStudent(
@@ -309,7 +396,15 @@ export function prospectiveStudentToFormValues(
     srNumber: student.srNumber,
     date: student.date,
     resourceId: student.resourceId ?? '',
+    referralType: student.referralName ? 'other' : 'student',
+    referralStudentId: student.referralStudentId ?? '',
+    referralName: student.referralName,
     teleMarketing: student.teleMarketing || '',
+    // Same as the counsellor stays empty, so it keeps following them.
+    teleMarketerId:
+      student.teleMarketerId && student.teleMarketerId !== student.marketingId
+        ? student.teleMarketerId
+        : '',
     age: student.age == null ? '' : String(student.age),
     address: student.address,
     hasTakenLanguageTest: Boolean(student.languageTest),
@@ -342,7 +437,11 @@ export function emptyProspectiveStudentFormValues(): ProspectiveStudentFormValue
     srNumber: '',
     date: todayDateString(),
     resourceId: '',
+    referralType: 'student',
+    referralStudentId: '',
+    referralName: '',
     teleMarketing: '',
+    teleMarketerId: '',
     age: '',
     address: '',
     hasTakenLanguageTest: false,

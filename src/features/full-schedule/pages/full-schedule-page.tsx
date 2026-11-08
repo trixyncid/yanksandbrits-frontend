@@ -16,7 +16,7 @@ import {
   MousePointerClick,
   Timer,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import type {
   TimetableColumn,
@@ -36,10 +36,8 @@ import {
   useModulePermissions,
 } from '../../auth/hooks/use-permissions'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
-import {
-  ScheduleFormDialog,
-  useScheduleDialogState,
-} from '../../schedules/components/schedule-form-dialog'
+import { ScheduleFormDialog } from '../../schedules/components/schedule-form-dialog'
+import { useScheduleDialogState } from '../../schedules/components/use-schedule-dialog-state'
 import { useDayScheduleQuery } from '../../schedules/hooks/use-day-schedule-query'
 import {
   mapDayRowsToWeekEvents,
@@ -47,15 +45,11 @@ import {
 } from '../../schedules/lib/map-week-schedule-events'
 import { AdminWeekCalendar } from '../components/admin-week-calendar'
 import { AdminWeekToolbar } from '../components/admin-week-toolbar'
-import {
-  buildTutorMonthMarkers,
-  TutorMonthCalendar,
-} from '../components/tutor-month-calendar'
+import { TutorMonthCalendar } from '../components/tutor-month-calendar'
+import { buildTutorMonthMarkers } from '../lib/tutor-month-markers'
 import { TutorDayTimeline } from '../components/tutor-day-timeline'
-import {
-  sessionsForUpcomingPanel,
-  TutorUpcomingClasses,
-} from '../components/tutor-upcoming-classes'
+import { TutorUpcomingClasses } from '../components/tutor-upcoming-classes'
+import { sessionsForUpcomingPanel } from '../lib/tutor-upcoming-sessions'
 import { useTutorDayScheduleQuery } from '../hooks/use-tutor-day-schedule-query'
 import { useTutorScheduleRangeQuery } from '../hooks/use-tutor-schedule-range-query'
 import type { TutorDaySession } from '../lib/map-tutor-day-sessions'
@@ -91,20 +85,19 @@ export default function FullSchedulePage() {
   const [visibleMonth, setVisibleMonth] = useState(() =>
     startOfMonth(new Date()),
   )
-  const [branchId, setBranchId] = useState('')
+  const [selectedBranchId, setSelectedBranchId] = useState('')
   const scheduleDialog = useScheduleDialogState()
   const timelineRef = useRef<HTMLDivElement>(null)
 
   const branchesQuery = useBranchesQuery()
-  const branches = branchesQuery.data?.data ?? []
-
-  useEffect(() => {
-    if (isTutor) return
-    if (!branchId && branches.length > 0) {
-      const main = branches.find((branch) => branch.isMain)
-      setBranchId(main?.id ?? branches[0]!.id)
-    }
-  }, [branchId, branches, isTutor])
+  const branches = useMemo(
+    () => branchesQuery.data?.data ?? [],
+    [branchesQuery.data?.data],
+  )
+  // Staff default to the main branch until they pick one.
+  const defaultBranchId =
+    branches.find((branch) => branch.isMain)?.id ?? branches[0]?.id ?? ''
+  const branchId = selectedBranchId || (isTutor ? '' : defaultBranchId)
 
   const dateKey = format(selectedDate, 'yyyy-MM-dd')
   const monthStartKey = format(startOfMonth(visibleMonth), 'yyyy-MM-dd')
@@ -134,8 +127,14 @@ export default function FullSchedulePage() {
     [staffScheduleQuery.data?.rows, dateKey],
   )
 
-  const tutorSessions = tutorScheduleQuery.data ?? []
-  const monthSessions = monthRangeQuery.data ?? []
+  const tutorSessions = useMemo(
+    () => tutorScheduleQuery.data ?? [],
+    [tutorScheduleQuery.data],
+  )
+  const monthSessions = useMemo(
+    () => monthRangeQuery.data ?? [],
+    [monthRangeQuery.data],
+  )
   const monthMarkers = useMemo(
     () => buildTutorMonthMarkers(monthSessions),
     [monthSessions],
@@ -360,7 +359,7 @@ export default function FullSchedulePage() {
               value={branchId}
               aria-label="Select branch"
               disabled={branchesQuery.isLoading || branches.length === 0}
-              onChange={(event) => setBranchId(event.target.value)}
+              onChange={(event) => setSelectedBranchId(event.target.value)}
               containerClassName="w-full sm:min-w-56 sm:w-auto"
               className="h-11 min-w-0 rounded-full border-transparent bg-white py-1.5 font-semibold text-ink shadow-sm"
             >

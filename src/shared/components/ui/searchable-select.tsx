@@ -65,10 +65,7 @@ export function SearchableSelect({
   }, [options, query])
 
   useEffect(() => {
-    if (!open) {
-      setQuery('')
-      return
-    }
+    if (!open) return
 
     const frame = window.requestAnimationFrame(() => {
       searchRef.current?.focus()
@@ -76,13 +73,19 @@ export function SearchableSelect({
     return () => window.cancelAnimationFrame(frame)
   }, [open])
 
+  function changeOpen(nextOpen: boolean) {
+    setOpen(nextOpen)
+    // Start each opening with an empty search.
+    if (!nextOpen) setQuery('')
+  }
+
   function selectOption(nextValue: string) {
     onChange(nextValue)
-    setOpen(false)
+    changeOpen(false)
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={changeOpen}>
       <PopoverTrigger asChild>
         <button
           id={id}

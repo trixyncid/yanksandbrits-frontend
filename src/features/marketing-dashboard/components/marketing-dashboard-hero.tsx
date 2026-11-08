@@ -48,7 +48,7 @@ export function MarketingDashboardHero({
     },
     {
       id: 'consults',
-      label: 'Tele Marketing',
+      label: 'Telemarketing',
       icon: MessageSquareText,
       value: kpis ? kpis.consults.current.toLocaleString('en-US') : '–',
       caption: kpis ? changeCaption(kpis.consults) : undefined,
@@ -70,7 +70,7 @@ export function MarketingDashboardHero({
     <PageHero
       eyebrow="My performance"
       title="Performance overview"
-      description="Your leads, Tele Marketing and expected pay for the bookkeeping period you pick."
+      description="Your leads, Telemarketing and expected pay for the bookkeeping period you pick."
       theme="dawn"
       pattern="ribbons"
       actions={periodPicker}

@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BadgeDollarSign, BadgeMinus, Megaphone, Plus } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useMemo, useState, type FormEvent } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import {
@@ -39,6 +39,7 @@ import { LookupRowActions } from '../components/lookup-row-actions'
 type ResourceFormValues = {
   name: string
   isCommission: boolean
+  isDigitalMarketing: boolean
 }
 
 const resourceQueryKey = ['resources', 'list'] as const
@@ -58,6 +59,7 @@ function filterResource(row: ResourceItem, search: string) {
   const haystack = [
     row.name,
     row.isCommission ? 'commission' : 'no commission',
+    row.isDigitalMarketing ? 'digital marketing' : '',
     row.createdBy ?? '',
     row.updatedBy ?? '',
   ]
@@ -83,6 +85,7 @@ export default function ResourceListPage() {
   const [values, setValues] = useState<ResourceFormValues>({
     name: '',
     isCommission: true,
+    isDigitalMarketing: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [filters, setFilters] = useSessionState<ResourceFilterState>(
@@ -97,7 +100,7 @@ export default function ResourceListPage() {
 
   function openCreateDialog() {
     setEditing(null)
-    setValues({ name: '', isCommission: true })
+    setValues({ name: '', isCommission: true, isDigitalMarketing: false })
     setDialogOpen(true)
   }
 
@@ -106,33 +109,37 @@ export default function ResourceListPage() {
     setValues({
       name: item.name,
       isCommission: item.isCommission,
+      isDigitalMarketing: item.isDigitalMarketing,
     })
     setDialogOpen(true)
   }
 
-  async function handleDelete(item: ResourceItem) {
-    requestDeleteConfirm({
-      title: `Delete ${item.name}?`,
-      description: `This will permanently remove the lead source ${item.name}. This action cannot be undone.`,
-      onConfirm: () => {
-        void (async () => {
-          try {
-            await deleteResource(item.id)
-            await queryClient.invalidateQueries({ queryKey: resourceQueryKey })
-            notify('success', {
-              title: 'Resource deleted',
-              description: `${item.name} has been removed.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to delete resource',
-              description: getApiErrorMessage(error),
-            })
-          }
-        })()
-      },
-    })
-  }
+  const handleDelete = useCallback(
+    async (item: ResourceItem) => {
+      requestDeleteConfirm({
+        title: `Delete ${item.name}?`,
+        description: `This will permanently remove the lead source ${item.name}. This action cannot be undone.`,
+        onConfirm: () => {
+          void (async () => {
+            try {
+              await deleteResource(item.id)
+              await queryClient.invalidateQueries({ queryKey: resourceQueryKey })
+              notify('success', {
+                title: 'Resource deleted',
+                description: `${item.name} has been removed.`,
+              })
+            } catch (error) {
+              notify('error', {
+                title: 'Unable to delete resource',
+                description: getApiErrorMessage(error),
+              })
+            }
+          })()
+        },
+      })
+    },
+    [queryClient],
+  )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -236,6 +243,37 @@ export default function ResourceListPage() {
         ),
       },
       {
+        accessorKey: 'isDigitalMarketing',
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Digital Marketing"
+            align="center"
+          />
+        ),
+        cell: ({ row }) => (
+          <div className="text-center">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+                row.original.isDigitalMarketing
+                  ? 'bg-violet-50 text-violet-700'
+                  : 'bg-canvas text-slate-500',
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'size-1.5 rounded-full',
+                  row.original.isDigitalMarketing ? 'bg-violet-500' : 'bg-slate-400',
+                )}
+              />
+              {row.original.isDigitalMarketing ? 'Counts' : 'Not counted'}
+            </span>
+          </div>
+        ),
+      },
+      {
         accessorKey: 'updatedAt',
         header: ({ column }) => (
           <DataTableColumnHeader
@@ -271,7 +309,7 @@ export default function ResourceListPage() {
         ),
       },
     ],
-    [],
+    [handleDelete],
   )
 
   const allResources = useMemo(
@@ -439,6 +477,27 @@ export default function ResourceListPage() {
             }
             activeLabel="Earns commission"
             inactiveLabel="No commission"
+          />
+        </LookupField>
+
+        <LookupField
+          label="Digital Marketing commission"
+          htmlFor="resource-is-digital-marketing-active"
+          hint={
+            values.isDigitalMarketing
+              ? 'Each student who enrolls from this source pays every Digital Marketing staff member their own rate.'
+              : 'Student responses from this source do not count toward Digital Marketing commission.'
+          }
+        >
+          <StatusToggle
+            id="resource-is-digital-marketing"
+            label=""
+            value={values.isDigitalMarketing}
+            onChange={(isDigitalMarketing) =>
+              setValues((prev) => ({ ...prev, isDigitalMarketing }))
+            }
+            activeLabel="Counts"
+            inactiveLabel="Not counted"
           />
         </LookupField>
       </LookupDialog>

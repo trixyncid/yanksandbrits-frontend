@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
 import { DateRangePicker } from '../../../shared/components/ui/date-range-picker'
@@ -28,12 +28,17 @@ export default function AppointmentByTutorPage() {
 
   const branchesQuery = useBranchesQuery()
   const tutorsQuery = useTutorOptionsQuery()
-  const branches = branchesQuery.data?.data ?? []
-  const tutors = tutorsQuery.data ?? []
+  const branches = useMemo(
+    () => branchesQuery.data?.data ?? [],
+    [branchesQuery.data?.data],
+  )
+  const tutors = useMemo(() => tutorsQuery.data ?? [], [tutorsQuery.data])
 
-  useEffect(() => {
+  function selectBranch(nextBranchId: string) {
+    setBranchId(nextBranchId)
+    // The tutor list is filtered by branch, so a previous pick may no longer apply.
     setTutorId('')
-  }, [branchId])
+  }
 
   const tutorOptions = useMemo(() => {
     return tutors
@@ -143,7 +148,7 @@ export default function AppointmentByTutorPage() {
               value={branchId}
               containerClassName="w-full sm:w-full"
               disabled={branchesQuery.isLoading}
-              onChange={(event) => setBranchId(event.target.value)}
+              onChange={(event) => selectBranch(event.target.value)}
             >
               <option value="all">All branches</option>
               {branches.map((branch) => (

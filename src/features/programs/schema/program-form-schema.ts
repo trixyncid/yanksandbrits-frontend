@@ -10,6 +10,7 @@ export const programFormSchema = z.object({
   title: z.string().trim().min(2, 'Program title is required.'),
   description: z.string().trim(),
   subject: z.enum(['', 'English', 'Mandarin', 'IT', 'Accounting']),
+  audience: z.enum(['student', 'tutor', 'both']),
   isActive: z.boolean(),
   backgroundColor: hexColor,
   textColor: hexColor,

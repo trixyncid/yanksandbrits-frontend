@@ -74,6 +74,8 @@ type TutorAllocationFormProps = {
   errors: TutorAllocationFormErrors
   isSubmitting: boolean
   savedMembers?: TutorAllocationScore[]
+  /** The class being edited; keeps its current students in the list. */
+  allocationId?: string
   tutorNames?: TutorAllocationListItem
   onChange: <K extends keyof TutorAllocationFormValues>(
     field: K,
@@ -185,6 +187,7 @@ export function TutorAllocationForm({
   errors,
   isSubmitting,
   savedMembers = [],
+  allocationId,
   tutorNames,
   onChange,
   approved = false,
@@ -225,7 +228,11 @@ export function TutorAllocationForm({
         ? studentGroupPermissions.canChange
         : studentGroupPermissions.canAdd))
 
-  const eligibleQuery = useEligibleStudentsQuery(values.program)
+  const eligibleQuery = useEligibleStudentsQuery(
+    values.program,
+    values.classType,
+    allocationId,
+  )
   const students = useMemo(
     () => eligibleQuery.data ?? [],
     [eligibleQuery.data],
@@ -644,6 +651,13 @@ export function TutorAllocationForm({
             />
           </div>
         </div>
+        {isCounsellor && canEditMembers ? (
+          <p className="text-xs text-slate-500">
+            {values.classType === 'private'
+              ? 'A private class lists only your own students. Choose Group to add students from other counsellors.'
+              : 'A group class can include students from any counsellor in your branch.'}
+          </p>
+        ) : null}
         {values.classType === 'group' ? (
           <div className="grid gap-2 sm:grid-cols-3">
             <div className={cn(!canEditMembers && 'pointer-events-none opacity-70')}>

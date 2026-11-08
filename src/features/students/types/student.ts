@@ -9,6 +9,7 @@ export type StudentListItem = {
   email: string
   mobilePhone: string
   gender: StudentGender
+  age: number | null
   enrollmentDate: string
   counsellor: string
   counsellorId: string | null
@@ -59,6 +60,7 @@ export type StudentDetail = {
   gender: StudentGender
   birthPlace: string
   birthDate: string
+  age: number | null
   address: string
   mobilePhone: string
   homePhone: string
@@ -85,6 +87,8 @@ export type StudentDetail = {
   createdBy: string
   updatedBy: string
   programs: StudentProgramItem[]
+  /** False when the viewer's role cannot list student programs. */
+  canViewPrograms: boolean
 }
 
 export type StudentFormValues = {
@@ -94,6 +98,7 @@ export type StudentFormValues = {
   gender: StudentGender
   birthPlace: string
   birthDate: string
+  age: string
   address: string
   mobilePhone: string
   homePhone: string

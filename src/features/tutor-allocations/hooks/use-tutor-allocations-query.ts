@@ -5,6 +5,7 @@ import {
   fetchTutorAllocations,
 } from '../api/tutor-allocations-api'
 import { tutorAllocationQueryKeys } from '../api/tutor-allocation-query-keys'
+import type { TutorAllocationClassType } from '../types/tutor-allocation'
 
 export function useTutorAllocationsQuery() {
   return useQuery({
@@ -13,10 +14,14 @@ export function useTutorAllocationsQuery() {
   })
 }
 
-export function useEligibleStudentsQuery(program: string) {
+export function useEligibleStudentsQuery(
+  program: string,
+  classType: TutorAllocationClassType,
+  allocationId?: string,
+) {
   return useQuery({
-    queryKey: tutorAllocationQueryKeys.eligibleStudents(program),
-    queryFn: () => fetchEligibleStudents(program),
+    queryKey: tutorAllocationQueryKeys.eligibleStudents(program, classType, allocationId),
+    queryFn: () => fetchEligibleStudents(program, classType, allocationId),
     enabled: Boolean(program),
   })
 }

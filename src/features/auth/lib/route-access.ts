@@ -1,6 +1,9 @@
 import {
   hasAuthPermission,
   hasAuthRole,
+  canManageRoles,
+  canViewDigitalMarketingPerformance,
+  canViewFinancePerformance,
   canViewMarketingPerformance,
   isTutorUser,
   type AuthUser,
@@ -20,13 +23,16 @@ type RoutePrefixRule = {
   managerOnly?: boolean
 }
 
-// Pages are looked up in the page catalog; only the Roles page is gated by
-// role instead of a permission.
+// Pages are looked up in the page catalog; only the Roles page and the pay
+// settings pages below are gated by role instead of a permission.
 const ROUTE_PREFIX_RULES: RoutePrefixRule[] = [
   { prefix: '/staff-permissions', managerOnly: true },
 ]
 
 const PUBLIC_PATHS = new Set(['/profile', '/notifications', '/forbidden'])
+
+// Pay settings set by Finance and System Admin, whatever their page grants.
+const PAY_SETTINGS_PATHS = ['/tm-fees']
 
 function ruleForPath(pathname: string): RoutePrefixRule | null {
   const sorted = [...ROUTE_PREFIX_RULES].sort(
@@ -83,6 +89,33 @@ export function canAccessRoute(
     return Boolean(user.is_superuser) || isTutorUser(user)
   }
 
+  // Personal finance dashboard — finance role only (superusers can preview).
+  if (
+    pathname === '/finance-dashboard' ||
+    pathname.startsWith('/finance-dashboard/')
+  ) {
+    return Boolean(user.is_superuser) || canViewFinancePerformance(user)
+  }
+
+  // Personal digital marketing dashboard — digital marketing role only
+  // (superusers can preview).
+  if (
+    pathname === '/digital-marketing-dashboard' ||
+    pathname.startsWith('/digital-marketing-dashboard/')
+  ) {
+    return (
+      Boolean(user.is_superuser) || canViewDigitalMarketingPerformance(user)
+    )
+  }
+
+  // Counsellor's own students' schedule — Education Counsellor only.
+  if (
+    pathname === '/student-schedule' ||
+    pathname.startsWith('/student-schedule/')
+  ) {
+    return canViewMarketingPerformance(user)
+  }
+
   // Personal marketing dashboard — Education Counsellor only (not CRO).
   if (
     pathname === '/marketing-dashboard' ||
@@ -93,6 +126,14 @@ export function canAccessRoute(
 
   if (user.is_superuser) {
     return true
+  }
+
+  if (
+    PAY_SETTINGS_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  ) {
+    return hasAuthRole(user, 'finance') || hasAuthRole(user, 'systemadmin')
   }
 
   if (
@@ -120,10 +161,7 @@ export function canAccessRoute(
   }
 
   if (requirement.managerOnly) {
-    return (
-      hasAuthRole(user, 'branch-manager') ||
-      hasAuthRole(user, 'manager') // legacy code
-    )
+    return canManageRoles(user)
   }
 
   if (requirement.view && !hasAuthPermission(user, requirement.view)) {
@@ -175,6 +213,8 @@ export function getDefaultStaffPath(
   const candidates = [
     '/tutor-dashboard',
     '/marketing-dashboard',
+    '/finance-dashboard',
+    '/digital-marketing-dashboard',
     '/dashboard',
     '/prospective-students',
     '/prediction-tests',
@@ -199,6 +239,15 @@ export function getDefaultStaffPath(
     // Don't land system admins / superusers on personal performance homes.
     if (path === '/tutor-dashboard' && !isTutorUser(user)) return false
     if (path === '/marketing-dashboard' && !canViewMarketingPerformance(user)) {
+      return false
+    }
+    if (path === '/finance-dashboard' && !canViewFinancePerformance(user)) {
+      return false
+    }
+    if (
+      path === '/digital-marketing-dashboard' &&
+      !canViewDigitalMarketingPerformance(user)
+    ) {
       return false
     }
     return canAccessRoute(user, path)

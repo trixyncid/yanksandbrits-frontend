@@ -31,6 +31,20 @@ export type MarketingSpifProgress = {
   progressPct: number
 }
 
+/** Distance to the next EC SPIF (flat bonus tier on the payment range). */
+export type MarketingEcSpifProgress = {
+  hasTiers: boolean
+  rangeAmount: number
+  currentBonus: number
+  /** Null once the top tier is reached. */
+  nextBonus: number | null
+  nextMinAmount: number | null
+  remaining: number | null
+  progressPct: number
+  /** Set when payments span branches: the branch closest to its next tier. */
+  branchName: string
+}
+
 export type MarketingStudentPayments = {
   completed: number
   incomplete: number
@@ -86,6 +100,7 @@ export type MarketingPerformanceMetrics = {
     expectedPay: MarketingKpiValue
     studentPayments: MarketingStudentPayments
     spifProgress: MarketingSpifProgress
+    ecSpifProgress: MarketingEcSpifProgress
   }
   funnel: MarketingFunnelItem[]
   pipeline: MarketingPipeline

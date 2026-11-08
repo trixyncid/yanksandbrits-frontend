@@ -17,10 +17,10 @@ import {
   ProgramListLoadingState,
 } from '../components/program-list-states'
 import { useProgramsQuery } from '../hooks/use-programs-query'
-import type { ProgramListItem } from '../types/program'
+import { PROGRAM_AUDIENCE_OPTIONS, type ProgramListItem } from '../types/program'
 
 function filterProgram(row: ProgramListItem, search: string) {
-  return [row.code, row.title, row.description, row.subject]
+  return [row.code, row.title, row.description, row.subject, row.audience]
     .join(' ')
     .toLowerCase()
     .includes(search)
@@ -28,10 +28,16 @@ function filterProgram(row: ProgramListItem, search: string) {
 
 type ProgramListFilterState = {
   subject: string
+  audience: string
   status: string
 }
 
-const EMPTY_FILTERS: ProgramListFilterState = { subject: '', status: '' }
+const EMPTY_FILTERS: ProgramListFilterState = { subject: '', audience: '', status: '' }
+
+const AUDIENCE_FILTER_OPTIONS = [
+  { value: '', label: 'Everyone' },
+  ...PROGRAM_AUDIENCE_OPTIONS,
+]
 
 const SUBJECT_FILTER_OPTIONS = [
   { value: '', label: 'All subjects' },
@@ -60,7 +66,7 @@ export default function ProgramListPage() {
     () => programsQuery.data?.data ?? [],
     [programsQuery.data?.data],
   )
-  const hasActiveFilters = Boolean(filters.subject || filters.status)
+  const hasActiveFilters = Boolean(filters.subject || filters.audience || filters.status)
 
   const programs = useMemo(
     () =>
@@ -73,11 +79,12 @@ export default function ProgramListPage() {
         ) {
           return false
         }
+        if (filters.audience && program.audience !== filters.audience) return false
         if (filters.status === 'active' && !program.isActive) return false
         if (filters.status === 'inactive' && program.isActive) return false
         return true
       }),
-    [allPrograms, filters.subject, filters.status],
+    [allPrograms, filters.subject, filters.audience, filters.status],
   )
 
   const loaded = programsQuery.isSuccess
@@ -93,6 +100,13 @@ export default function ProgramListPage() {
           setFilters((current) => ({ ...current, subject }))
         }
         options={SUBJECT_FILTER_OPTIONS}
+      />
+      <ListFilterSelect
+        label="Intended for"
+        ariaLabel="Filter by who the program is for"
+        value={filters.audience ?? ''}
+        onChange={(audience) => setFilters((current) => ({ ...current, audience }))}
+        options={AUDIENCE_FILTER_OPTIONS}
       />
       <ListFilterSelect
         label="Status"
@@ -121,9 +135,9 @@ export default function ProgramListPage() {
           statusFilter={filters.status}
           subjectFilter={filters.subject}
           onShowAll={() => setFilters({ ...EMPTY_FILTERS })}
-          onShowActive={() => setFilters({ subject: '', status: 'active' })}
+          onShowActive={() => setFilters({ ...EMPTY_FILTERS, status: 'active' })}
           onShowWithoutSubject={() =>
-            setFilters({ subject: 'none', status: '' })
+            setFilters({ ...EMPTY_FILTERS, subject: 'none' })
           }
           onAdd={() => void navigate({ to: '/programs/new' })}
         />

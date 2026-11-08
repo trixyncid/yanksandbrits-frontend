@@ -4,10 +4,11 @@ import { cn } from '../../../shared/lib/cn'
 import { DropdownSelect } from '../../../shared/components/ui/dropdown-select'
 import { Select } from '../../../shared/components/ui/select'
 import type { BookkeepingListItem } from '../types/bookkeeping'
-
-export const OPEN_BOOKKEEPING_PERIOD = 'open' as const
-
-export type BookkeepingPeriodValue = typeof OPEN_BOOKKEEPING_PERIOD | string
+import {
+  OPEN_BOOKKEEPING_PERIOD,
+  type BookkeepingPeriodValue,
+  formatBookkeepingPeriodOption,
+} from './bookkeeping-period'
 
 type BookkeepingPeriodSelectProps = {
   value: BookkeepingPeriodValue
@@ -18,30 +19,6 @@ type BookkeepingPeriodSelectProps = {
   variant?: 'default' | 'pill'
   className?: string
   onChange: (value: BookkeepingPeriodValue) => void
-}
-
-function formatDateLabel(isoDate: string) {
-  const date = new Date(`${isoDate}T00:00:00`)
-  if (Number.isNaN(date.getTime())) {
-    return isoDate
-  }
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-export function formatBookkeepingPeriodOption(item: BookkeepingListItem) {
-  const range = `${formatDateLabel(item.startDate)} – ${formatDateLabel(item.endDate)}`
-  const title = item.title.trim()
-  const status =
-    item.status === 'approved'
-      ? ''
-      : item.status === 'pending'
-        ? ' (Pending)'
-        : ' (Void)'
-  return title ? `${title} · ${range}${status}` : `${range}${status}`
 }
 
 function PillPeriodSelect({

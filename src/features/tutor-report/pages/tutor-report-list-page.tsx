@@ -21,9 +21,11 @@ import { AdminShell } from '../../admin/components/admin-shell'
 import { PayMixBar } from '../../student-payments/components/payment-ui'
 import {
   BookkeepingPeriodSelect,
+} from '../../bookkeeping/components/bookkeeping-period-select'
+import {
   OPEN_BOOKKEEPING_PERIOD,
   type BookkeepingPeriodValue,
-} from '../../bookkeeping/components/bookkeeping-period-select'
+} from '../../bookkeeping/components/bookkeeping-period'
 import { useBookkeepingQuery } from '../../bookkeeping/hooks/use-bookkeeping-query'
 import { refreshTutorSalaries } from '../api/tutor-report-api'
 import { tutorReportListColumns } from '../components/tutor-report-list-columns'

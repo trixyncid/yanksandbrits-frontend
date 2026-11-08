@@ -1,13 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { FileDown } from 'lucide-react'
-import { useState } from 'react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
-import { getApiErrorMessage } from '../../../shared/api/errors'
-import { notify } from '../../../shared/lib/notify'
-import { downloadTutorSalaryPdf } from '../../tutor-report/api/tutor-report-api'
 import { getInitials } from '../../student-payments/lib/payment-ui'
 import type { BookkeepingTutorSalaryItem } from '../types/bookkeeping'
+import { TutorPdfButton } from './bookkeeping-tutor-salary-cells'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -15,50 +11,6 @@ function formatCurrency(amount: number) {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount)
-}
-
-function TutorPdfButton({ item }: { item: BookkeepingTutorSalaryItem }) {
-  const [isDownloading, setIsDownloading] = useState(false)
-
-  return (
-    <button
-      type="button"
-      disabled={isDownloading}
-      onClick={() => {
-        void (async () => {
-          setIsDownloading(true)
-          try {
-            await downloadTutorSalaryPdf(
-              {
-                id: item.id,
-                tutorId: null,
-                source: 'bookkeeping',
-                tutorPin: item.tutorPin,
-              },
-              `tutor-salary-${item.tutorPin}.pdf`,
-            )
-            notify('success', {
-              title: 'PDF downloaded',
-              description: `${item.tutorName} salary report saved.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to download PDF',
-              description: getApiErrorMessage(error),
-            })
-          } finally {
-            setIsDownloading(false)
-          }
-        })()
-      }}
-      title="Download salary PDF"
-      aria-label={`Download salary PDF for ${item.tutorName}`}
-      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-canvas px-3.5 text-xs font-semibold text-ink transition hover:bg-ink hover:text-white disabled:cursor-wait disabled:opacity-60"
-    >
-      <FileDown className="size-3.5" />
-      {isDownloading ? 'Saving…' : 'PDF'}
-    </button>
-  )
 }
 
 export const bookkeepingTutorSalaryColumns: ColumnDef<BookkeepingTutorSalaryItem>[] =
@@ -175,6 +127,47 @@ export const bookkeepingTutorSalaryColumns: ColumnDef<BookkeepingTutorSalaryItem
           {formatCurrency(row.original.overtimeSalary)}
         </p>
       ),
+    },
+    {
+      id: 'bonuses',
+      accessorFn: (row) => row.bonusSalary + row.leaderBonus,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Bonus" align="center" />
+      ),
+      cell: ({ row }) => (
+        <div className="text-center">
+          <p className="text-xs font-medium text-slate-600 tabular-nums">
+            {formatCurrency(row.original.bonusSalary + row.original.leaderBonus)}
+          </p>
+          {row.original.leaderBonus > 0 ? (
+            <p className="text-[11px] text-slate-400">
+              incl. leader {formatCurrency(row.original.leaderBonus)} ·{' '}
+              {row.original.tutorHeadcount} tutor
+              {row.original.tutorHeadcount === 1 ? '' : 's'}
+            </p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'trainingSalary',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Training pay" align="center" />
+      ),
+      cell: ({ row }) =>
+        row.original.trainingSessions > 0 ? (
+          <div className="text-center">
+            <p className="text-xs font-medium text-slate-600 tabular-nums">
+              {formatCurrency(row.original.trainingSalary)}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {row.original.trainingSessions} session
+              {row.original.trainingSessions === 1 ? '' : 's'} taught
+            </p>
+          </div>
+        ) : (
+          <p className="text-center text-xs text-slate-400">—</p>
+        ),
     },
     {
       accessorKey: 'totalSalary',

@@ -6,12 +6,14 @@ export type NavBadges = {
   predictionTestsPending: number
   studentPaymentsPending: number
   tutorSwitchesPending: number
+  tutorAllocationsPending: number
 }
 
 type NavBadgesDto = {
   prediction_tests_pending: number
   student_payments_pending: number
   tutor_switches_pending?: number
+  tutor_allocations_pending?: number
 }
 
 export async function fetchNavBadges(): Promise<NavBadges> {
@@ -23,6 +25,7 @@ export async function fetchNavBadges(): Promise<NavBadges> {
     predictionTestsPending: payload.prediction_tests_pending ?? 0,
     studentPaymentsPending: payload.student_payments_pending ?? 0,
     tutorSwitchesPending: payload.tutor_switches_pending ?? 0,
+    tutorAllocationsPending: payload.tutor_allocations_pending ?? 0,
   }
 }
 
@@ -35,5 +38,6 @@ export function badgeCountForNavItem(
   if (itemId === 'prediction-test') return badges.predictionTestsPending
   if (itemId === 'student-payment') return badges.studentPaymentsPending
   if (itemId === 'full-schedule') return badges.tutorSwitchesPending
+  if (itemId === 'tutor-allocation') return badges.tutorAllocationsPending
   return 0
 }

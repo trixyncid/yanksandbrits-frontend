@@ -35,6 +35,7 @@ import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { AdminShell } from '../../admin/components/admin-shell'
 import { Can } from '../../auth/components/can'
+import { useModulePermissions } from '../../auth/hooks/use-permissions'
 import { StudentProgramsTab } from '../components/student-programs-tab'
 import { StudentPaymentsTab } from '../components/student-payments-tab'
 import { deleteStudent } from '../api/students-api'
@@ -312,6 +313,11 @@ function StudentProfile({ student }: { student: StudentDetail }) {
             label="Birth date"
             value={birth && age ? `${birth} · ${age}` : birth}
           />
+          <Fact
+            icon={UserRound}
+            label="Age"
+            value={student.age == null ? '' : `${student.age} years old`}
+          />
           <Fact icon={MapPin} label="Birth place" value={student.birthPlace} />
           <Fact
             icon={UserRound}
@@ -327,7 +333,6 @@ function StudentProfile({ student }: { student: StudentDetail }) {
             icon={GraduationCap}
             label="Institution"
             value={student.institutionName}
-            wide
           />
         </Panel>
 
@@ -405,6 +410,7 @@ export default function StudentDetailPage() {
   const { studentId } = useParams({ strict: false }) as { studentId: string }
   const studentQuery = useStudentQuery(studentId)
   const [tab, setTab] = useState<DetailTab>('profile')
+  const { canView: canViewPayments } = useModulePermissions('studentPayments')
 
   if (studentQuery.isLoading) {
     return <StudentDetailSkeleton />
@@ -484,8 +490,12 @@ export default function StudentDetailPage() {
 
   const tabs = [
     { id: 'profile' as const, label: 'Profile', count: null },
-    { id: 'programs' as const, label: 'Programs', count: programCount },
-    { id: 'payments' as const, label: 'Payments', count: null },
+    ...(student.canViewPrograms
+      ? [{ id: 'programs' as const, label: 'Programs', count: programCount }]
+      : []),
+    ...(canViewPayments
+      ? [{ id: 'payments' as const, label: 'Payments', count: null }]
+      : []),
   ]
 
   return (
@@ -570,7 +580,12 @@ export default function StudentDetailPage() {
           }
         />
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className={cn(
+            'grid gap-3 sm:grid-cols-2',
+            student.canViewPrograms && 'lg:grid-cols-4',
+          )}
+        >
           <SnapshotTile
             icon={CalendarDays}
             label="Enrolled"
@@ -583,29 +598,33 @@ export default function StudentDetailPage() {
             value={student.counsellor || 'Unassigned'}
             hint="Education counsellor"
           />
-          <SnapshotTile
-            icon={BookOpen}
-            label="Programs"
-            value={programCount === 0 ? 'None yet' : `${programCount} enrolled`}
-            hint={
-              programCount === 0
-                ? 'Add a program to track sessions'
-                : `${ongoing} ongoing`
-            }
-            onClick={() => setTab('programs')}
-          />
-          <SnapshotTile
-            icon={Hash}
-            label="Sessions"
-            value={sessions === 0 ? 'None yet' : `${sessionsUsed} / ${sessions}`}
-            hint={
-              sessions === 0
-                ? 'No sessions on file'
-                : `${sessionProgress}% complete`
-            }
-            progress={sessions === 0 ? undefined : sessionProgress}
-            onClick={() => setTab('programs')}
-          />
+          {student.canViewPrograms ? (
+            <>
+              <SnapshotTile
+                icon={BookOpen}
+                label="Programs"
+                value={programCount === 0 ? 'None yet' : `${programCount} enrolled`}
+                hint={
+                  programCount === 0
+                    ? 'Add a program to track sessions'
+                    : `${ongoing} ongoing`
+                }
+                onClick={() => setTab('programs')}
+              />
+              <SnapshotTile
+                icon={Hash}
+                label="Sessions"
+                value={sessions === 0 ? 'None yet' : `${sessionsUsed} / ${sessions}`}
+                hint={
+                  sessions === 0
+                    ? 'No sessions on file'
+                    : `${sessionProgress}% complete`
+                }
+                progress={sessions === 0 ? undefined : sessionProgress}
+                onClick={() => setTab('programs')}
+              />
+            </>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">

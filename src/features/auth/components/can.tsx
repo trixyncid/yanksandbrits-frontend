@@ -7,13 +7,14 @@ import {
   canViewModule,
 } from '../lib/route-access'
 import { useAuthStore } from '../store/auth-store'
-import { hasAuthPermission, hasAuthRole } from '../types/auth'
+import { canManageRoles, hasAuthPermission } from '../types/auth'
 import type { PermissionModuleKey } from '../lib/permission-catalog'
 
 type CanProps = {
   children: ReactNode
   permission?: string
   anyOf?: readonly string[]
+  /** Role management (the Roles page): superusers, branch managers and finance. */
   managerOnly?: boolean
   module?: PermissionModuleKey
   action?: 'view' | 'add' | 'change' | 'delete'
@@ -36,7 +37,7 @@ export function Can({
   }
 
   if (managerOnly) {
-    return user.is_superuser || hasAuthRole(user, 'manager') ? children : fallback
+    return canManageRoles(user) ? children : fallback
   }
 
   if (module) {

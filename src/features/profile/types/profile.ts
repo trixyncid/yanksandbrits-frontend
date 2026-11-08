@@ -13,7 +13,8 @@ export type CurrentUserProfile = {
   homePhone: string
   othersPhone: string
   branch: string
-  staffType: string
+  /** Tutors only; null for other staff. */
+  subjects: string | null
   dateJoined: string | null
   lastLogin: string | null
   paidLeaveLeft: number

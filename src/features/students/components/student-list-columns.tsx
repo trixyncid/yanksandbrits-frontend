@@ -83,6 +83,17 @@ export const studentListColumns: ColumnDef<StudentListItem>[] = [
     ),
   },
   {
+    accessorKey: 'age',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Age" align="center" />
+    ),
+    cell: ({ row }) => (
+      <p className="text-center text-xs font-medium text-slate-600 tabular-nums">
+        {row.original.age ?? '—'}
+      </p>
+    ),
+  },
+  {
     accessorKey: 'counsellor',
     header: ({ column }) => (
       <DataTableColumnHeader

@@ -1,5 +1,5 @@
 import { Percent } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -59,13 +59,19 @@ export function MarketingCommissionTierDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isUpdate = Boolean(tier)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens or switches to another tier.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    tier: MarketingCommissionTier | null
+  }>({ open: false, tier: null })
+  if (synced.open !== open || synced.tier !== tier) {
+    setSynced({ open, tier })
     if (open) {
       setValues(tier ? commissionTierToFormValues(tier) : emptyValues)
       setErrors({})
       setIsSubmitting(false)
     }
-  }, [open, tier])
+  }
 
   function setField(
     field: keyof MarketingCommissionTierFormValues,

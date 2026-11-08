@@ -3,12 +3,10 @@ import { Link } from '@tanstack/react-router'
 import { ArrowRight, CalendarDays } from 'lucide-react'
 
 import { ClassroomTimetable } from '../../../shared/components/timetable'
-import { buttonVariants } from '../../../shared/components/ui/button'
+import { buttonVariants } from '../../../shared/components/ui/button-variants'
 import type { TimetableColumn, TimetableEvent } from '../../../shared/components/timetable'
-import {
-  ScheduleFormDialog,
-  useScheduleDialogState,
-} from '../../schedules/components/schedule-form-dialog'
+import { ScheduleFormDialog } from '../../schedules/components/schedule-form-dialog'
+import { useScheduleDialogState } from '../../schedules/components/use-schedule-dialog-state'
 import { DashboardPanel } from './dashboard-section'
 
 export type DashboardTimetableProps = {

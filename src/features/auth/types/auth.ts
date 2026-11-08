@@ -42,6 +42,19 @@ export function hasAuthRole(
   return (user.roles ?? []).some((role) => role.code === code)
 }
 
+/** The Roles page: superusers, branch managers and finance (matches the API). */
+export function canManageRoles(
+  user: Pick<AuthUser, 'roles' | 'is_superuser'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return (
+    Boolean(user.is_superuser) ||
+    hasAuthRole(user, 'branch-manager') ||
+    hasAuthRole(user, 'manager') || // legacy code
+    hasAuthRole(user, 'finance')
+  )
+}
+
 /** Education Counsellor or Branch Manager (Marketing List family). */
 export function isMarketingFamilyUser(
   user: Pick<AuthUser, 'roles' | 'is_marketing'> | null | undefined,
@@ -70,6 +83,22 @@ export function canViewMarketingPerformance(
     // Legacy code from older sessions / cached payloads
     hasAuthRole(user, 'marketing')
   )
+}
+
+/** Finance role users who get the personal performance home. */
+export function canViewFinancePerformance(
+  user: Pick<AuthUser, 'roles'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return hasAuthRole(user, 'finance')
+}
+
+/** Digital Marketing role users who get the personal performance home. */
+export function canViewDigitalMarketingPerformance(
+  user: Pick<AuthUser, 'roles'> | null | undefined,
+): boolean {
+  if (!user) return false
+  return hasAuthRole(user, 'digital-marketing')
 }
 
 /** Tutor role users who get the personal performance home. */

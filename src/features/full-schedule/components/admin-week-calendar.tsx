@@ -1,5 +1,4 @@
-import { format, parseISO } from 'date-fns'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 
 import type { TimetableColumn } from '../../../shared/components/timetable'
 import { formatHourLabel } from '../../../shared/components/timetable/utils'
@@ -65,10 +64,16 @@ function jakartaNowParts(now = new Date()) {
 
 function useJakartaNow(enabled: boolean) {
   const [now, setNow] = useState(() => jakartaNowParts())
+  const [prevEnabled, setPrevEnabled] = useState(enabled)
+
+  // Refresh immediately when the clock switches on (e.g. navigating to today).
+  if (enabled !== prevEnabled) {
+    setPrevEnabled(enabled)
+    if (enabled) setNow(jakartaNowParts())
+  }
 
   useEffect(() => {
     if (!enabled) return
-    setNow(jakartaNowParts())
     const id = window.setInterval(() => setNow(jakartaNowParts()), 30_000)
     return () => window.clearInterval(id)
   }, [enabled])
@@ -120,28 +125,19 @@ export function AdminWeekCalendar({
     startHour: number
     endHour: number
   } | null>(null)
-  const dragRef = useRef(drag)
-  dragRef.current = drag
-  const onSlotSelectRef = useRef(onSlotSelect)
-  onSlotSelectRef.current = onSlotSelect
-  const classroomsRef = useRef(classrooms)
-  classroomsRef.current = classrooms
+
+  const finishDrag = useEffectEvent(() => {
+    if (!drag) return
+    const classroom = classrooms.find((item) => item.id === drag.classroomId)
+    if (classroom) {
+      onSlotSelect?.(classroom, drag.startHour, drag.endHour)
+    }
+    setDrag(null)
+  })
 
   useEffect(() => {
     function onUp() {
-      const current = dragRef.current
-      if (!current) return
-      const classroom = classroomsRef.current.find(
-        (item) => item.id === current.classroomId,
-      )
-      if (classroom) {
-        onSlotSelectRef.current?.(
-          classroom,
-          current.startHour,
-          current.endHour,
-        )
-      }
-      setDrag(null)
+      finishDrag()
     }
 
     window.addEventListener('mouseup', onUp)
@@ -333,11 +329,4 @@ export function AdminWeekCalendar({
       </div>
     </div>
   )
-}
-
-export const ADMIN_WEEK_HOURS = { startHour: START_HOUR, endHour: END_HOUR }
-
-/** Format a yyyy-MM-dd key for display helpers. */
-export function formatAdminScheduleDate(dateKey: string) {
-  return format(parseISO(dateKey), 'EEEE, d MMM yyyy')
 }

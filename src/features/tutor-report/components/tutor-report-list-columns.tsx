@@ -1,13 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { FileDown } from 'lucide-react'
-import { useState } from 'react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
-import { getApiErrorMessage } from '../../../shared/api/errors'
-import { notify } from '../../../shared/lib/notify'
-import { downloadTutorSalaryPdf } from '../api/tutor-report-api'
 import { getInitials } from '../../student-payments/lib/payment-ui'
 import type { TutorReportListItem } from '../types/tutor-report'
+import { TutorPdfButton } from './tutor-report-list-cells'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -15,45 +11,6 @@ function formatCurrency(amount: number) {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount)
-}
-
-function TutorPdfButton({ item }: { item: TutorReportListItem }) {
-  const [isDownloading, setIsDownloading] = useState(false)
-
-  return (
-    <button
-      type="button"
-      disabled={isDownloading}
-      onClick={() => {
-        void (async () => {
-          setIsDownloading(true)
-          try {
-            await downloadTutorSalaryPdf(
-              item,
-              `tutor-salary-${item.tutorPin}.pdf`,
-            )
-            notify('success', {
-              title: 'PDF downloaded',
-              description: `${item.tutorName} salary report saved.`,
-            })
-          } catch (error) {
-            notify('error', {
-              title: 'Unable to download PDF',
-              description: getApiErrorMessage(error),
-            })
-          } finally {
-            setIsDownloading(false)
-          }
-        })()
-      }}
-      title="Download salary PDF"
-      aria-label={`Download salary PDF for ${item.tutorName}`}
-      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-canvas px-3.5 text-xs font-semibold text-ink transition hover:bg-ink hover:text-white disabled:cursor-wait disabled:opacity-60"
-    >
-      <FileDown className="size-3.5" />
-      {isDownloading ? 'Saving…' : 'PDF'}
-    </button>
-  )
 }
 
 export const tutorReportListColumns: ColumnDef<TutorReportListItem>[] = [

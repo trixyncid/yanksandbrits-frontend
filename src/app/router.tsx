@@ -14,10 +14,6 @@ import { RootLayout } from './root-layout'
 import { AppLoadingScreen } from './ui/app-loading-screen'
 import { RouteErrorScreen } from './ui/route-error-screen'
 
-function AuthenticatedLayout() {
-  return <Outlet />
-}
-
 const rootRoute = createRootRoute({
   component: RootLayout,
   pendingComponent: AppLoadingScreen,
@@ -75,7 +71,7 @@ const resetPasswordRoute = createRoute({
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authenticated',
-  component: AuthenticatedLayout,
+  component: Outlet,
   beforeLoad: async ({ location }) => {
     await useAuthStore.getState().hydrate()
     if (!useAuthStore.getState().isAuthenticated) {
@@ -117,6 +113,39 @@ const tutorDashboardRoute = createRoute({
   component: lazyRouteComponent(
     () =>
       import('../features/tutor-dashboard/pages/tutor-dashboard-page'),
+  ),
+})
+
+const studentScheduleRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/student-schedule',
+  validateSearch: (search: Record<string, unknown>) => ({
+    range: search.range === 'past' ? ('past' as const) : undefined,
+    student:
+      typeof search.student === 'string' && search.student ? search.student : undefined,
+    program:
+      typeof search.program === 'string' && search.program ? search.program : undefined,
+  }),
+  component: lazyRouteComponent(
+    () => import('../features/student-schedule/pages/student-schedule-page'),
+  ),
+})
+
+const financeDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/finance-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/finance-dashboard/pages/finance-dashboard-page'),
+  ),
+})
+
+const digitalMarketingDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/digital-marketing-dashboard',
+  component: lazyRouteComponent(
+    () =>
+      import('../features/digital-marketing-dashboard/pages/digital-marketing-dashboard-page'),
   ),
 })
 
@@ -622,6 +651,14 @@ const tutorSalaryBonusRoute = createRoute({
   ),
 })
 
+const tmFeesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/tm-fees',
+  component: lazyRouteComponent(
+    () => import('../features/tm-fees/pages/tm-fees-page'),
+  ),
+})
+
 const marketingReportRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/marketing-report',
@@ -692,6 +729,9 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     marketingDashboardRoute,
     tutorDashboardRoute,
+    financeDashboardRoute,
+    digitalMarketingDashboardRoute,
+    studentScheduleRoute,
     studentsRoute,
     studentCreateRoute,
     studentDetailRoute,
@@ -749,6 +789,7 @@ const routeTree = rootRoute.addChildren([
     bookkeepingEditRoute,
     tutorReportRoute,
     tutorSalaryBonusRoute,
+    tmFeesRoute,
     marketingReportRoute,
     appointmentByTutorRoute,
     profileRoute,

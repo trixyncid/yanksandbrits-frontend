@@ -1,5 +1,5 @@
 import { Banknote } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
@@ -58,13 +58,19 @@ export function MarketingBonusTierDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isUpdate = Boolean(tier)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens or switches to another tier.
+  const [synced, setSynced] = useState<{
+    open: boolean
+    tier: MarketingBonusTier | null
+  }>({ open: false, tier: null })
+  if (synced.open !== open || synced.tier !== tier) {
+    setSynced({ open, tier })
     if (open) {
       setValues(tier ? bonusTierToFormValues(tier) : emptyValues)
       setErrors({})
       setIsSubmitting(false)
     }
-  }, [open, tier])
+  }
 
   function setField(
     field: keyof MarketingBonusTierFormValues,

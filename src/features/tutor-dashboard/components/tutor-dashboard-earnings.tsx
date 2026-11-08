@@ -51,6 +51,28 @@ export function TutorDashboardEarnings({
       hint: 'Tier bonus for finished session volume',
       accent: BRAND_CHART.brand300,
     },
+    // Only tutors who also lead see this row.
+    ...(earnings.leaderBonus > 0 || earnings.tutorHeadcount > 0
+      ? [
+          {
+            label: 'Academic leader bonus',
+            amount: earnings.leaderBonus,
+            hint: `${earnings.tutorHeadcount} of your tutor${earnings.tutorHeadcount === 1 ? '' : 's'} hit a session bonus`,
+            accent: BRAND_CHART.brand200,
+          },
+        ]
+      : []),
+    // Only academic leaders who taught tutor training see this row.
+    ...(earnings.trainingSessions > 0
+      ? [
+          {
+            label: 'Tutor training',
+            amount: earnings.trainingSalary,
+            hint: `${earnings.trainingSessions} training session${earnings.trainingSessions === 1 ? '' : 's'} at your trainer fee`,
+            accent: BRAND_CHART.brand100,
+          },
+        ]
+      : []),
   ]
 
   const header = (

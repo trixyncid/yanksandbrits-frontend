@@ -25,9 +25,11 @@ import { AdminShell } from '../../admin/components/admin-shell'
 import { DuskPanel } from '../../student-payments/components/payment-ui'
 import {
   BookkeepingPeriodSelect,
+} from '../../bookkeeping/components/bookkeeping-period-select'
+import {
   OPEN_BOOKKEEPING_PERIOD,
   type BookkeepingPeriodValue,
-} from '../../bookkeeping/components/bookkeeping-period-select'
+} from '../../bookkeeping/components/bookkeeping-period'
 import { useBookkeepingQuery } from '../../bookkeeping/hooks/use-bookkeeping-query'
 import { refreshMarketingSalaries } from '../api/marketing-report-api'
 import { marketingReportListColumns } from '../components/marketing-report-list-columns'

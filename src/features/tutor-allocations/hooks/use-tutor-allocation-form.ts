@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { useInvalidateNavBadges } from '../../admin/hooks/use-nav-badges-query'
 import {
   createTutorAllocation,
   emptyTutorAllocationFormValues,
@@ -38,6 +39,7 @@ export function useTutorAllocationForm({
 }: UseTutorAllocationFormOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const invalidateNavBadges = useInvalidateNavBadges()
   const [values, setValues] = useState<TutorAllocationFormValues>(initialValues)
   const [errors, setErrors] = useState<TutorAllocationFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,6 +93,7 @@ export function useTutorAllocationForm({
       await queryClient.invalidateQueries({
         queryKey: tutorAllocationQueryKeys.all,
       })
+      invalidateNavBadges()
       if (!outcome?.notified) {
         notify('success', {
           title:
