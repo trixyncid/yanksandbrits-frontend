@@ -130,11 +130,6 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
         consultFee: parseCurrencyValue(consult),
         studentDealFee: parseCurrencyValue(deal),
       })
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tmFeeQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: bookkeepingQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: marketingDashboardQueryKeys.all }),
-      ])
       notify('success', {
         title: 'TM fees updated',
         description: updated.currentPeriods.length
@@ -147,6 +142,12 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
         description: getApiErrorMessage(error),
       })
     } finally {
+      // Also after a timeout: the server may still have saved and recalculated.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tmFeeQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: bookkeepingQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: marketingDashboardQueryKeys.all }),
+      ])
       setSaving(false)
     }
   }
@@ -183,7 +184,7 @@ function TmFeesForm({ fees }: { fees: TmFees }) {
             ? `Last changed ${formatDateTime(fees.updatedAt)}${fees.updatedBy ? ` by ${fees.updatedBy}` : ''}`
             : 'Not changed yet'}
         </p>
-        <Button type="submit" variant="ink" size="sm" disabled={saving || !changed}>
+        <Button type="submit" variant="ink" size="sm" disabled={saving || !changed || !consult || !deal}>
           {saving ? 'Saving…' : 'Save fees'}
         </Button>
       </div>

@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 import type { ColumnDef } from '@tanstack/react-table'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
@@ -18,7 +19,7 @@ function formatDate(value: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(parseISO(value))
 }
 
 function formatDateTime(value: string) {
@@ -28,7 +29,7 @@ function formatDateTime(value: string) {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(parseISO(value))
 }
 
 function statusTone(status: PaidLeaveStatus) {

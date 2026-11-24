@@ -44,11 +44,17 @@ export function StaffPermissionActionsCell({
           icon={Trash2}
           tone="delete"
           onClick={() =>
-            requestDeleteConfirm({
+            // The API refuses to delete a role that still has members.
+            group.memberCount > 0
+              ? notify('warning', {
+                  title: `${group.name} is still in use`,
+                  description: `Move its ${memberText(group.memberCount)} to another role before deleting it.`,
+                })
+              : requestDeleteConfirm({
               title: `Delete the ${group.name} role?`,
               description: group.isSystem
-                ? `${group.name} is a built-in role. Deleting it removes it from ${memberText(group.memberCount)}, who will lose the access it gave them. This cannot be undone.`
-                : `This removes ${group.name} from ${memberText(group.memberCount)}. Anyone who only had this role will lose that access. This cannot be undone.`,
+                ? `${group.name} is a built-in role with no members. This cannot be undone.`
+                : `${group.name} has no members. This cannot be undone.`,
               onConfirm: () => {
                 void (async () => {
                   try {

@@ -9,6 +9,7 @@ import { useLocksPaymentStatus } from '../../auth/hooks/use-permissions'
 import {
   createStudentPayment,
   createEmptyStudentPaymentFormValues,
+  studentPaymentToFormValues,
   updateStudentPayment,
   uploadStudentPaymentTermProof,
 } from '../api/student-payments-api'
@@ -300,139 +301,6 @@ export function useStudentPaymentForm({
     return latest
   }
 
-  async function persistTerm(
-    key: string,
-    patch: Partial<StudentPaymentTermFormValues>,
-  ): Promise<StudentPaymentListItem | null> {
-    const existing = values.terms.find((term) => term.key === key)
-    if (!existing) return null
-
-    const patchedTerm = { ...existing, ...patch }
-    updateTerm(key, patch)
-
-    if (!paymentId || !patchedTerm.id) {
-      return null
-    }
-
-    const updated = await updateStudentPayment(
-      paymentId,
-      { ...values, terms: [patchedTerm] },
-      { omitStatus: lockTransactionStatus },
-    )
-
-    setValues((current) => ({
-      ...current,
-      terms: current.terms.map((term) => {
-        if (term.key !== key) return term
-        const server = updated.terms.find((item) => item.id === term.id)
-        if (!server) {
-          return { ...term, ...patch, proofFiles: patch.proofFiles }
-        }
-        return {
-          ...term,
-          id: server.id,
-          amount: String(server.amount || ''),
-          // Prefer the applied patch for status so the UI updates even if the
-          // response briefly lags; fall back to the server value otherwise.
-          status: patch.status ?? server.status,
-          description:
-            patch.description !== undefined
-              ? patch.description
-              : server.description,
-          paymentDate: patch.paymentDate ?? server.paymentDate,
-          branchId:
-            patch.branchId !== undefined
-              ? patch.branchId
-              : (server.branchId ?? ''),
-          proofFiles: patch.proofFiles,
-        }
-      }),
-    }))
-
-    return updated
-  }
-
-  async function persistNewTerm(
-    initial?: Partial<StudentPaymentTermFormValues>,
-  ): Promise<{
-    payment: StudentPaymentListItem
-    termKey: string
-    termId: string
-  } | null> {
-    const newTerm: StudentPaymentTermFormValues = {
-      ...emptyTermFormValues(
-        initial?.status ?? 'pending',
-        initial?.branchId ?? '',
-      ),
-      ...initial,
-      key: createTermFormKey(),
-    }
-    const proofFiles = newTerm.proofFiles ?? []
-    const termForSave = { ...newTerm, proofFiles: undefined }
-    const nextTerms = [...values.terms, termForSave]
-
-    setValues((current) => ({
-      ...current,
-      terms: [...current.terms, newTerm],
-    }))
-    setErrors((current) => ({ ...current, terms: undefined }))
-
-    if (!paymentId) {
-      return null
-    }
-
-    const updated = await updateStudentPayment(
-      paymentId,
-      { ...values, terms: nextTerms },
-      { omitStatus: lockTransactionStatus },
-    )
-
-    const knownIds = new Set(
-      values.terms
-        .map((term) => term.id)
-        .filter((id): id is string => Boolean(id)),
-    )
-    const unmatched = updated.terms.filter((term) => !knownIds.has(term.id))
-    const matchedId = takeMatchingServerTermId(termForSave, unmatched)
-
-    setValues((current) => ({
-      ...current,
-      terms: current.terms.map((term) => {
-        if (term.id) {
-          const server = updated.terms.find((item) => item.id === term.id)
-          if (!server) return term
-          return {
-            ...term,
-            id: server.id,
-            amount: String(server.amount || ''),
-            status: server.status,
-            description: server.description,
-            paymentDate: server.paymentDate,
-            branchId: server.branchId ?? '',
-            proofFiles:
-              term.key === newTerm.key ? proofFiles : term.proofFiles,
-          }
-        }
-        if (term.key !== newTerm.key) return term
-        return {
-          ...term,
-          id: matchedId,
-          proofFiles,
-        }
-      }),
-    }))
-
-    if (!matchedId) {
-      return { payment: updated, termKey: newTerm.key, termId: '' }
-    }
-
-    return {
-      payment: updated,
-      termKey: newTerm.key,
-      termId: matchedId,
-    }
-  }
-
   async function submit() {
     const validationMessages = validateForm(values)
 
@@ -447,37 +315,24 @@ export function useStudentPaymentForm({
       return
     }
 
+    if (mode === 'edit' && !paymentId) {
+      return
+    }
+
     setIsSubmitting(true)
 
+    let saved: StudentPaymentListItem
     try {
-      if (mode === 'create') {
-        const created = await createStudentPayment(values, {
-          omitStatus: lockTransactionStatus,
-        })
-        await uploadStagedProofs(created, values.terms)
-        await refreshAfterPaymentSave()
-        invalidateNavBadges()
-        notify('success', savedPaymentMessage(created, 'created'))
-        void navigate({ to: '/student-payments' })
-        return
-      }
-
-      if (!paymentId) {
-        return
-      }
-
-      const updated = await uploadStagedProofs(
-        await updateStudentPayment(paymentId, values, {
-          omitStatus: lockTransactionStatus,
-        }),
-        values.terms,
-      )
-      await refreshAfterPaymentSave()
-      invalidateNavBadges()
-      notify('success', savedPaymentMessage(updated, 'updated'))
-      void navigate({ to: '/student-payments' })
-      return updated
+      saved =
+        mode === 'create'
+          ? await createStudentPayment(values, {
+              omitStatus: lockTransactionStatus,
+            })
+          : await updateStudentPayment(paymentId!, values, {
+              omitStatus: lockTransactionStatus,
+            })
     } catch (error) {
+      setIsSubmitting(false)
       notify('error', {
         title:
           mode === 'create'
@@ -486,6 +341,41 @@ export function useStudentPaymentForm({
         description: getApiErrorMessage(error),
       })
       return null
+    }
+
+    // The plan is saved now; an upload failure must not look like a failed
+    // save, or the user resubmits and creates a duplicate plan or terms.
+    try {
+      saved = await uploadStagedProofs(saved, values.terms)
+    } catch {
+      await refreshAfterPaymentSave()
+      invalidateNavBadges()
+      setIsSubmitting(false)
+      notify('warning', {
+        title: 'Payment saved, but a proof upload failed',
+        description: 'Please re-upload the proof.',
+      })
+      if (mode === 'create') {
+        void navigate({
+          to: '/student-payments/$paymentId/edit',
+          params: { paymentId: saved.id },
+        })
+      } else {
+        // Pick up server term ids so a resubmit does not re-create new terms.
+        setValues(studentPaymentToFormValues(saved))
+      }
+      return saved
+    }
+
+    try {
+      await refreshAfterPaymentSave()
+      invalidateNavBadges()
+      notify(
+        'success',
+        savedPaymentMessage(saved, mode === 'create' ? 'created' : 'updated'),
+      )
+      void navigate({ to: '/student-payments' })
+      return saved
     } finally {
       setIsSubmitting(false)
     }
@@ -502,8 +392,6 @@ export function useStudentPaymentForm({
     updateField,
     setPretestCredit,
     updateTerm,
-    persistTerm,
-    persistNewTerm,
     addTerm,
     replaceTerms,
     removeTerm,

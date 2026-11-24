@@ -12,7 +12,7 @@ import {
   deletePaidLeave,
   paidLeaveToFormValues,
 } from '../api/paid-leaves-api'
-import { paidLeaveQueryKeys } from '../api/paid-leave-query-keys'
+import { invalidatePaidLeaveQueries } from '../api/paid-leave-query-keys'
 import { PaidLeaveForm } from '../components/paid-leave-form'
 import { PaidLeaveListLoadingState } from '../components/paid-leave-list-states'
 import { usePaidLeaveForm } from '../hooks/use-paid-leave-form'
@@ -107,9 +107,7 @@ function PaidLeaveEditForm({
         void (async () => {
           try {
             await deletePaidLeave(leave.id)
-            await queryClient.invalidateQueries({
-              queryKey: paidLeaveQueryKeys.all,
-            })
+            await invalidatePaidLeaveQueries(queryClient)
             notify('success', {
               title: 'Paid leave deleted',
               description: `${leave.staffName}'s leave record has been removed.`,

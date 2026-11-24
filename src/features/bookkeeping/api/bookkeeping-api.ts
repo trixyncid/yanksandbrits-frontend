@@ -429,6 +429,8 @@ export async function updateBookkeeping(
   const { data } = await httpClient.patch<ApiSuccessEnvelope<BookkeepingDto>>(
     adminPath(`/bookkeepings/${id}`),
     toWritePayload(values),
+    // Approving a period recalculates its salaries.
+    { timeout: 60000 },
   )
   return mapBookkeeping(data.data)
 }
@@ -438,9 +440,15 @@ export async function deleteBookkeeping(id: string): Promise<void> {
 }
 
 export async function recalculateBookkeeping(id: string): Promise<void> {
-  await httpClient.post(adminPath(`/bookkeepings/${id}/recalculate`))
+  await httpClient.post(adminPath(`/bookkeepings/${id}/recalculate`), null, {
+    timeout: 60000,
+  })
 }
 
 export async function updateOpenPeriodSalaries(): Promise<void> {
-  await httpClient.post(adminPath('/bookkeepings/update-open-period-salaries'))
+  await httpClient.post(
+    adminPath('/bookkeepings/update-open-period-salaries'),
+    null,
+    { timeout: 60000 },
+  )
 }

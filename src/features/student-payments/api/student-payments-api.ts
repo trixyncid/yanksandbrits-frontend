@@ -7,7 +7,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
 import { parseCurrencyValue } from '../../../shared/lib/currency'
-import { fetchStudents } from '../../students/api/students-api'
+import { fetchStudent, fetchStudents } from '../../students/api/students-api'
 import type { StudentListItem } from '../../students/types/student'
 import { summarizePaymentBranches } from '../lib/payment-display'
 import type {
@@ -103,7 +103,10 @@ function mapTerm(dto: StudentPaymentTermDto): StudentPaymentTerm {
 
 function mapPayment(
   dto: StudentPaymentDto,
-  studentsById: Map<string, StudentListItem>,
+  studentsById: Map<
+    string,
+    Pick<StudentListItem, 'pin' | 'fullName' | 'branch'>
+  > = new Map(),
 ): StudentPaymentListItem {
   const studentId = dto.student == null ? null : String(dto.student)
   const prospectiveStudentId =
@@ -253,13 +256,16 @@ export async function fetchStudentPayments(
 export async function fetchStudentPayment(
   id: string,
 ): Promise<StudentPaymentListItem> {
-  const [{ data }, studentsById] = await Promise.all([
-    httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(
-      adminPath(`/payments/${id}`),
-    ),
-    loadStudentLookup(),
-  ])
-  return mapPayment(data.data, studentsById)
+  const { data } = await httpClient.get<ApiSuccessEnvelope<StudentPaymentDto>>(
+    adminPath(`/payments/${id}`),
+  )
+  // The payment DTO has no student PIN, so fetch just this student for it.
+  const studentId = data.data.student
+  if (studentId == null) {
+    return mapPayment(data.data)
+  }
+  const student = await fetchStudent(String(studentId))
+  return mapPayment(data.data, new Map([[student.id, student]]))
 }
 
 export async function createStudentPayment(
@@ -270,8 +276,7 @@ export async function createStudentPayment(
     adminPath('/payments'),
     toWritePayload(values, options),
   )
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
+  return mapPayment(data.data)
 }
 
 export async function updateStudentPayment(
@@ -285,8 +290,7 @@ export async function updateStudentPayment(
     adminPath(`/payments/${id}`),
     toWritePayload(values, { ...options, omitOwner: true }),
   )
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
+  return mapPayment(data.data)
 }
 
 export async function deleteStudentPayment(id: string): Promise<void> {
@@ -310,10 +314,9 @@ export async function uploadStudentPaymentTermProof(
   >(
     adminPath(`/payments/${paymentId}/terms/${termId}/attachments`),
     formData,
-    { headers: multipartHeaders },
+    { headers: multipartHeaders, timeout: 60000 },
   )
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
+  return mapPayment(data.data)
 }
 
 export async function deleteStudentPaymentTerm(
@@ -323,8 +326,7 @@ export async function deleteStudentPaymentTerm(
   const { data } = await httpClient.delete<
     ApiSuccessEnvelope<StudentPaymentDto>
   >(adminPath(`/payments/${paymentId}/terms/${termId}`))
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
+  return mapPayment(data.data)
 }
 
 export async function bulkUpdateStudentPaymentTermStatus(
@@ -339,8 +341,7 @@ export async function bulkUpdateStudentPaymentTermStatus(
       status: mapApprovalStatusToApi(status),
     },
   )
-  const studentsById = await loadStudentLookup()
-  return mapPayment(data.data, studentsById)
+  return mapPayment(data.data)
 }
 
 export async function fetchLinkedPredictionTest(params: {

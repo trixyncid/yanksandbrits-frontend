@@ -4,6 +4,7 @@ import {
   differenceInCalendarMonths,
   differenceInYears,
   format,
+  parseISO,
 } from 'date-fns'
 import {
   ArrowLeft,
@@ -50,7 +51,8 @@ function formatDate(value: string) {
     return ''
   }
 
-  const date = new Date(value)
+  // parseISO keeps date-only values on the local calendar day (new Date parses them as UTC).
+  const date = parseISO(value)
   if (Number.isNaN(date.getTime())) {
     return ''
   }
@@ -79,7 +81,7 @@ function genderLabel(gender: StudentGender) {
 
 function ageLabel(birthDate: string) {
   if (!birthDate) return ''
-  const date = new Date(birthDate)
+  const date = parseISO(birthDate)
   if (Number.isNaN(date.getTime())) return ''
   const years = differenceInYears(new Date(), date)
   if (years < 0 || years > 120) return ''
@@ -88,7 +90,7 @@ function ageLabel(birthDate: string) {
 
 function tenureLabel(enrollmentDate: string) {
   if (!enrollmentDate) return ''
-  const start = new Date(enrollmentDate)
+  const start = parseISO(enrollmentDate)
   if (Number.isNaN(start.getTime())) return ''
   const months = differenceInCalendarMonths(new Date(), start)
   if (months < 0) return ''

@@ -24,6 +24,8 @@ import { SearchableSelect } from '../../../shared/components/ui/searchable-selec
 import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { useAuthUser } from '../../auth/hooks/use-permissions'
+import { canManageRoles } from '../../auth/types/auth'
 import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import {
   EMPLOYMENT_TYPE_OPTIONS,
@@ -169,6 +171,8 @@ export function RoleAccountForm({
   const isTutor = kind === 'tutor'
   const branchesQuery = useBranchesQuery()
   const rolesQuery = useStaffPermissionsQuery()
+  // The API refuses role changes from anyone who cannot manage roles.
+  const canEditRoles = canManageRoles(useAuthUser())
   const [showPassword, setShowPassword] = useState(false)
 
   const branches = useMemo(
@@ -776,6 +780,7 @@ export function RoleAccountForm({
                         type="checkbox"
                         className="mt-0.5 size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                         checked={checked}
+                        disabled={!canEditRoles}
                         onChange={(event) =>
                           toggleGroup(role.id, event.target.checked)
                         }

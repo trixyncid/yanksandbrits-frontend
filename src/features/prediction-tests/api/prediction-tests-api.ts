@@ -264,13 +264,8 @@ export async function createPredictionTest(
     throw new Error('Prediction test was created without an id.')
   }
 
-  const id = String(data.data.id)
-  if (!options.omitPayment) {
-    for (const file of values.paymentProofFiles) {
-      await uploadPredictionTestProof(id, file)
-    }
-  }
-  return fetchPredictionTest(id)
+  // No follow-up GET: if it failed, a saved test would look unsaved.
+  return mapItem(data.data)
 }
 
 export async function updatePredictionTest(
@@ -286,11 +281,6 @@ export async function updatePredictionTest(
     adminPath(`/prediction-tests/${id}`),
     toJsonPayload(values, options),
   )
-  if (!options.omitPayment) {
-    for (const file of values.paymentProofFiles) {
-      await uploadPredictionTestProof(id, file)
-    }
-  }
   return fetchPredictionTest(id)
 }
 
@@ -303,7 +293,7 @@ export async function uploadPredictionTestProof(
   const { data } = await httpClient.post<ApiSuccessEnvelope<PredictionTestDto>>(
     adminPath(`/prediction-tests/${id}/attachments`),
     formData,
-    { headers: multipartHeaders },
+    { headers: multipartHeaders, timeout: 60000 },
   )
   return mapItem(data.data)
 }

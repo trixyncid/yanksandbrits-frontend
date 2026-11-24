@@ -330,10 +330,6 @@ function toWritePayload(values: UserFormValues, mode: 'create' | 'edit') {
     payload.password = values.password
   }
 
-  if (mode === 'create') {
-    payload.is_staff = true
-  }
-
   return payload
 }
 
