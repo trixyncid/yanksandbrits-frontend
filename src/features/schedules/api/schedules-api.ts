@@ -73,12 +73,6 @@ const STATUS_LABEL: Record<ScheduleStatusUi, string> = {
   cancelled: 'CANCELLED',
 }
 
-function hourFromIso(iso: string | null): number {
-  if (!iso) return 0
-  const date = new Date(iso)
-  return date.getHours() + date.getMinutes() / 60
-}
-
 function pad2(value: number) {
   return String(value).padStart(2, '0')
 }
@@ -115,6 +109,15 @@ export function splitScheduleDateTime(iso: string): {
     date: `${get('year')}-${get('month')}-${get('day')}`,
     time: `${get('hour')}:${get('minute')}`,
   }
+}
+
+/** Fractional hour of day in Asia/Jakarta (e.g. 13:30 → 13.5). */
+export function hourFromIso(iso: string | null): number {
+  if (!iso) return 0
+  const { time } = splitScheduleDateTime(iso)
+  if (!time) return 0
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours + minutes / 60
 }
 
 function mapDayRows(

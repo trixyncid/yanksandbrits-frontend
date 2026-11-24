@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { notify } from '../../../shared/lib/notify'
@@ -7,7 +6,6 @@ import { LogoutConfirmDialog } from '../components/logout-confirm-dialog'
 import { useAuthStore } from '../store/auth-store'
 
 export function useLogoutConfirm() {
-  const navigate = useNavigate()
   const clearSession = useAuthStore((state) => state.clearSession)
   const [open, setOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -21,22 +19,18 @@ export function useLogoutConfirm() {
     setIsLoggingOut(true)
 
     try {
-      try {
-        await logout()
-      } catch {
-        // Best-effort blacklist; always clear local session.
-      }
-
-      clearSession()
-      setOpen(false)
-      notify('success', {
-        title: 'Signed out',
-        description: 'You have been logged out of the admin panel.',
-      })
-      await navigate({ to: '/login' })
-    } finally {
+      await logout()
+    } catch {
       setIsLoggingOut(false)
+      notify('error', {
+        title: 'Could not sign out, please try again',
+      })
+      return
     }
+
+    clearSession()
+    // Full reload drops every cached query, so the next user sees no old data.
+    window.location.assign('/login')
   }
 
   const logoutDialog = (

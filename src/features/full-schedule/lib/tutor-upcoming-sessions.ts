@@ -12,7 +12,8 @@ export function sessionsForUpcomingPanel(
   selectedDate: Date,
   rangeSessions: TutorDaySession[] = [],
   limit = 5,
-  nowIso = new Date().toISOString(),
+  // Compare instants: API times carry +07:00, so string compare against a UTC ISO is wrong.
+  nowMs = Date.now(),
 ): TutorDaySession[] {
   const today = startOfDay(new Date())
   const selected = startOfDay(selectedDate)
@@ -25,7 +26,7 @@ export function sessionsForUpcomingPanel(
     (session) =>
       session.status !== 'cancelled' &&
       session.status !== 'finished' &&
-      session.startAt >= nowIso,
+      Date.parse(session.startAt) >= nowMs,
   )
 
   if (remainingToday.length >= limit) {
@@ -38,7 +39,7 @@ export function sessionsForUpcomingPanel(
       session.dateKey > todayKey &&
       session.status !== 'cancelled' &&
       session.status !== 'finished' &&
-      session.startAt >= nowIso,
+      Date.parse(session.startAt) >= nowMs,
   )
 
   const merged = [...remainingToday]

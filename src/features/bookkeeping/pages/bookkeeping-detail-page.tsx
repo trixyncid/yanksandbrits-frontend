@@ -129,6 +129,17 @@ export default function BookkeepingDetailPage() {
     setIsRecalculating(true)
     try {
       await recalculateBookkeeping(bookkeepingId)
+      notify('success', {
+        title: 'Salaries recalculated',
+        description: 'Tutor and education counsellor salaries have been rebuilt for this period.',
+      })
+    } catch (error) {
+      notify('error', {
+        title: 'Unable to recalculate',
+        description: getApiErrorMessage(error),
+      })
+    } finally {
+      // Also after a timeout: the server may have finished recalculating.
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: bookkeepingQueryKeys.detail(bookkeepingId),
@@ -146,16 +157,6 @@ export default function BookkeepingDetailPage() {
           queryKey: bookkeepingQueryKeys.salaryBreakdown(bookkeepingId),
         }),
       ])
-      notify('success', {
-        title: 'Salaries recalculated',
-        description: 'Tutor and education counsellor salaries have been rebuilt for this period.',
-      })
-    } catch (error) {
-      notify('error', {
-        title: 'Unable to recalculate',
-        description: getApiErrorMessage(error),
-      })
-    } finally {
       setIsRecalculating(false)
     }
   }

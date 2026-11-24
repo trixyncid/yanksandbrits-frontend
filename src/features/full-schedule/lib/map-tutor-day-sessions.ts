@@ -1,5 +1,8 @@
 import type { DayScheduleRow } from '../../schedules/api/schedules-api'
-import { splitScheduleDateTime } from '../../schedules/api/schedules-api'
+import {
+  hourFromIso,
+  splitScheduleDateTime,
+} from '../../schedules/api/schedules-api'
 import {
   mapScheduleStatusFromApi,
   type ScheduleStatusUi,
@@ -53,12 +56,6 @@ const PROGRAM_FALLBACKS = [
   { background: '#E6F7F0', text: '#1F5A3D', accent: '#3D9B6E' },
   { background: '#FFF3E5', text: '#7A4A1A', accent: '#E09A3D' },
 ] as const
-
-function hourFromIso(iso: string | null): number {
-  if (!iso) return 0
-  const date = new Date(iso)
-  return date.getHours() + date.getMinutes() / 60
-}
 
 function formatClock(iso: string | null): string {
   if (!iso) return '—'

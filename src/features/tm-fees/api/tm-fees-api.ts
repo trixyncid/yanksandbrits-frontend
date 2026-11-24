@@ -85,6 +85,8 @@ export async function updateTmFees(fees: {
       consult_fee: fees.consultFee,
       student_deal_fee: fees.studentDealFee,
     },
+    // Saving recalculates every counsellor's pay for the running period.
+    { timeout: 60000 },
   )
   return mapFees(data.data)
 }

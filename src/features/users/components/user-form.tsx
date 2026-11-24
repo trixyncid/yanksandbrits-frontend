@@ -24,6 +24,8 @@ import { StatusToggle } from '../../../shared/components/ui/status-toggle'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { cn } from '../../../shared/lib/cn'
 import { useBranchesQuery } from '../../branches/hooks/use-branches-query'
+import { useAuthUser } from '../../auth/hooks/use-permissions'
+import { canManageRoles } from '../../auth/types/auth'
 import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import {
   EMPLOYMENT_TYPE_OPTIONS,
@@ -162,6 +164,8 @@ function StaffAccountForm({
 }: UserFormProps) {
   const branchesQuery = useBranchesQuery()
   const rolesQuery = useStaffPermissionsQuery()
+  // The API refuses role changes from anyone who cannot manage roles.
+  const canEditRoles = canManageRoles(useAuthUser())
   const showTutorEmployment = entityLabel === 'Tutor'
 
   const roleOptions = (rolesQuery.data?.data ?? []).filter(
@@ -588,6 +592,7 @@ function StaffAccountForm({
                         type="checkbox"
                         className="size-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/40"
                         checked={checked}
+                        disabled={!canEditRoles}
                         onChange={(event) =>
                           toggleGroup(role.id, event.target.checked)
                         }

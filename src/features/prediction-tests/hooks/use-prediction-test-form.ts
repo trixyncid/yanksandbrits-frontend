@@ -18,6 +18,7 @@ import {
   createPredictionTest,
   emptyPredictionTestFormValues,
   updatePredictionTest,
+  uploadPredictionTestProof,
 } from '../api/prediction-tests-api'
 import { predictionTestQueryKeys } from '../api/prediction-test-query-keys'
 import {
@@ -27,6 +28,7 @@ import {
 import type {
   PredictionTestFormErrors,
   PredictionTestFormValues,
+  PredictionTestListItem,
 } from '../types/prediction-test'
 
 type UsePredictionTestFormOptions = {
@@ -144,48 +146,26 @@ export function usePredictionTestForm({
       return
     }
 
+    if (mode === 'edit' && !testId) {
+      return
+    }
+
     setIsSubmitting(true)
 
+    const apiOptions = {
+      omitPayment: isProgramReviewer,
+      includeGeneralEnglishTutor: canAssignGeneralEnglishTutor,
+      course,
+    }
+
+    let saved: PredictionTestListItem
     try {
-      const apiOptions = {
-        omitPayment: isProgramReviewer,
-        includeGeneralEnglishTutor: canAssignGeneralEnglishTutor,
-        course,
-      }
-
-      if (mode === 'create') {
-        const created = await createPredictionTest(payload, apiOptions)
-        await queryClient.invalidateQueries({
-          queryKey: predictionTestQueryKeys.all,
-        })
-        // Adding a test moves the prospect to Pre-Test.
-        await queryClient.invalidateQueries({
-          queryKey: prospectiveStudentQueryKeys.all,
-        })
-        invalidateNavBadges()
-        notify('success', {
-          title: 'Prediction test created',
-          description: `Prediction test for ${created.studentName} has been added.`,
-        })
-        void navigate({ to: '/prediction-tests' })
-        return
-      }
-
-      if (!testId) {
-        return
-      }
-
-      const updated = await updatePredictionTest(testId, payload, apiOptions)
-      await queryClient.invalidateQueries({
-        queryKey: predictionTestQueryKeys.all,
-      })
-      invalidateNavBadges()
-      notify('success', {
-        title: 'Prediction test updated',
-        description: `Prediction test for ${updated.studentName} has been saved.`,
-      })
-      void navigate({ to: '/prediction-tests' })
+      saved =
+        mode === 'create'
+          ? await createPredictionTest(payload, apiOptions)
+          : await updatePredictionTest(testId!, payload, apiOptions)
     } catch (error) {
+      setIsSubmitting(false)
       const fieldErrors = formErrorsFromApi(error)
       if (Object.keys(fieldErrors).length > 0) {
         setErrors((current) => ({ ...current, ...fieldErrors }))
@@ -197,6 +177,61 @@ export function usePredictionTestForm({
             : 'Unable to update prediction test',
         description: getApiErrorMessage(error),
       })
+      return
+    }
+
+    // The test is saved now; an upload failure must not look like a failed
+    // save, or the user resubmits and creates a duplicate test.
+    let uploadFailed = false
+    try {
+      if (!apiOptions.omitPayment) {
+        for (const file of payload.paymentProofFiles) {
+          await uploadPredictionTestProof(saved.id, file)
+        }
+      }
+    } catch {
+      uploadFailed = true
+    }
+
+    try {
+      await queryClient.invalidateQueries({
+        queryKey: predictionTestQueryKeys.all,
+      })
+      if (mode === 'create') {
+        // Adding a test moves the prospect to Pre-Test.
+        await queryClient.invalidateQueries({
+          queryKey: prospectiveStudentQueryKeys.all,
+        })
+      }
+      invalidateNavBadges()
+
+      if (uploadFailed) {
+        notify('warning', {
+          title: 'Prediction test saved, but a proof upload failed',
+          description: 'Please re-upload the proof.',
+        })
+        if (mode === 'create') {
+          void navigate({
+            to: '/prediction-tests/$testId/edit',
+            params: { testId: saved.id },
+          })
+        } else {
+          // Some files may have uploaded; make the user re-pick what failed.
+          setValues((current) => ({ ...current, paymentProofFiles: [] }))
+        }
+        return
+      }
+
+      notify('success', {
+        title:
+          mode === 'create'
+            ? 'Prediction test created'
+            : 'Prediction test updated',
+        description: `Prediction test for ${saved.studentName} has been ${
+          mode === 'create' ? 'added' : 'saved'
+        }.`,
+      })
+      void navigate({ to: '/prediction-tests' })
     } finally {
       setIsSubmitting(false)
     }

@@ -17,6 +17,7 @@ import { Input } from '../../../shared/components/ui/input'
 import { Label } from '../../../shared/components/ui/label'
 import { cn } from '../../../shared/lib/cn'
 import { formatCurrencyAmount } from '../../../shared/lib/currency'
+import { requestDeleteConfirm } from '../../../shared/lib/delete-confirm-store'
 import { notify } from '../../../shared/lib/notify'
 import { fetchPrograms } from '../../programs/api/programs-api'
 import {
@@ -197,28 +198,37 @@ export function TutorProgramSalaryDialog({
     }
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!salary || isDeleting) return
 
-    setIsDeleting(true)
-    try {
-      await deleteTutorProgramSalary(salary.id)
-      await queryClient.invalidateQueries({
-        queryKey: ['tutor-salary-class-based'],
-      })
-      notify('success', {
-        title: 'Program salary removed',
-        description: `${salary.programTitle ?? 'Program'} will use the tutor's base rates.`,
-      })
-      onOpenChange(false)
-    } catch (error) {
-      notify('error', {
-        title: 'Unable to remove program salary',
-        description: getApiErrorMessage(error),
-      })
-    } finally {
-      setIsDeleting(false)
-    }
+    requestDeleteConfirm({
+      title: 'Remove program salary?',
+      description: `${salary.programTitle ?? 'Program'} will go back to using the tutor's base rates. This cannot be undone.`,
+      confirmLabel: 'Remove',
+      onConfirm: () => {
+        void (async () => {
+          setIsDeleting(true)
+          try {
+            await deleteTutorProgramSalary(salary.id)
+            await queryClient.invalidateQueries({
+              queryKey: ['tutor-salary-class-based'],
+            })
+            notify('success', {
+              title: 'Program salary removed',
+              description: `${salary.programTitle ?? 'Program'} will use the tutor's base rates.`,
+            })
+            onOpenChange(false)
+          } catch (error) {
+            notify('error', {
+              title: 'Unable to remove program salary',
+              description: getApiErrorMessage(error),
+            })
+          } finally {
+            setIsDeleting(false)
+          }
+        })()
+      },
+    })
   }
 
   const editNextRate = toAmount(values.salaryPerSession) + additionalAmount
@@ -423,7 +433,7 @@ export function TutorProgramSalaryDialog({
                   variant="secondary"
                   size="sm"
                   className="text-rose-600 ring-0 hover:bg-rose-50 hover:text-rose-700"
-                  onClick={() => void handleDelete()}
+                  onClick={handleDelete}
                   disabled={isSubmitting || isDeleting}
                 >
                   <Trash2 className="size-3.5" />

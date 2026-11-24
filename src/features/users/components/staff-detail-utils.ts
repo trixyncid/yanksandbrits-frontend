@@ -1,18 +1,18 @@
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 
 import { deriveStaffPosition, type UserDetail } from '../api/users-api'
 import type { StaffEntityConfig } from '../lib/staff-entity-config'
 
 export function formatStaffDate(value: string | null | undefined) {
   if (!value) return '—'
-  const date = new Date(value)
+  const date = parseISO(value)
   if (Number.isNaN(date.getTime())) return '—'
   return format(date, 'MMM d, yyyy')
 }
 
 export function formatStaffDateTime(value: string | null | undefined) {
   if (!value) return '—'
-  const date = new Date(value)
+  const date = parseISO(value)
   if (Number.isNaN(date.getTime())) return '—'
   return format(date, 'MMM d, yyyy · h:mm a')
 }

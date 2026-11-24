@@ -9,7 +9,7 @@ import {
   emptyPaidLeaveFormValues,
   updatePaidLeave,
 } from '../api/paid-leaves-api'
-import { paidLeaveQueryKeys } from '../api/paid-leave-query-keys'
+import { invalidatePaidLeaveQueries } from '../api/paid-leave-query-keys'
 import { paidLeaveFormSchema } from '../schema/paid-leave-form-schema'
 import type {
   PaidLeaveFormErrors,
@@ -82,9 +82,7 @@ export function usePaidLeaveForm({
     try {
       if (mode === 'create') {
         const created = await createPaidLeave(values)
-        await queryClient.invalidateQueries({
-          queryKey: paidLeaveQueryKeys.all,
-        })
+        await invalidatePaidLeaveQueries(queryClient)
         notify('success', {
           title: 'Paid leave recorded',
           description: `Leave for ${created.staffName} has been added.`,
@@ -98,9 +96,7 @@ export function usePaidLeaveForm({
       }
 
       const updated = await updatePaidLeave(leaveId, values)
-      await queryClient.invalidateQueries({
-        queryKey: paidLeaveQueryKeys.all,
-      })
+      await invalidatePaidLeaveQueries(queryClient)
       notify('success', {
         title: 'Paid leave updated',
         description: `Leave for ${updated.staffName} has been saved.`,

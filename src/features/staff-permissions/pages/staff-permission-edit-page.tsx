@@ -96,9 +96,17 @@ function StaffPermissionEditForm({
   })
 
   function handleDelete() {
+    // The API refuses to delete a role that still has members.
+    if (group.memberCount > 0) {
+      notify('warning', {
+        title: `${group.name} is still in use`,
+        description: `Move its ${group.memberCount} ${group.memberCount === 1 ? 'person' : 'people'} to another role before deleting it.`,
+      })
+      return
+    }
     requestDeleteConfirm({
       title: `Delete the ${group.name} role?`,
-      description: `This removes ${group.name} from ${group.memberCount} ${group.memberCount === 1 ? 'person' : 'people'}. Anyone who only had this role will lose that access. This cannot be undone.`,
+      description: `${group.name} has no members. This cannot be undone.`,
       onConfirm: () => {
         void (async () => {
           try {

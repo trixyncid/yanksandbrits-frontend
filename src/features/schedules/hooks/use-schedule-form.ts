@@ -41,6 +41,15 @@ export function useScheduleForm({
   const [errors, setErrors] = useState<ScheduleFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Staff day board, tutor portal day/month views and student timetables all read sessions.
+  function invalidateScheduleViews() {
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: scheduleQueryKeys.days() }),
+      queryClient.invalidateQueries({ queryKey: ['tutor-portal', 'schedules'] }),
+      queryClient.invalidateQueries({ queryKey: ['student-schedule'] }),
+    ])
+  }
+
   function updateField<K extends keyof ScheduleFormValues>(
     field: K,
     value: ScheduleFormValues[K],
@@ -116,9 +125,7 @@ export function useScheduleForm({
       if (mode === 'create') {
         await createClassSchedule(values)
         await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: scheduleQueryKeys.days(),
-          }),
+          invalidateScheduleViews(),
           queryClient.invalidateQueries({ queryKey: studentQueryKeys.all }),
         ])
         notify('success', {
@@ -135,9 +142,7 @@ export function useScheduleForm({
 
       await updateClassSchedule(scheduleId, values)
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: scheduleQueryKeys.days(),
-        }),
+        invalidateScheduleViews(),
         queryClient.invalidateQueries({
           queryKey: scheduleQueryKeys.detail(scheduleId),
         }),
@@ -176,9 +181,7 @@ export function useScheduleForm({
           try {
             await deleteClassSchedule(scheduleId)
             await Promise.all([
-              queryClient.invalidateQueries({
-                queryKey: scheduleQueryKeys.days(),
-              }),
+              invalidateScheduleViews(),
               queryClient.invalidateQueries({
                 queryKey: studentQueryKeys.all,
               }),

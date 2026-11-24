@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 import { BarChart3, Filter, GraduationCap, History, Megaphone, Wallet } from 'lucide-react'
 
 import {
@@ -31,7 +32,7 @@ function formatDate(value: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(parseISO(value)) // local midnight; new Date('YYYY-MM-DD') is UTC
 }
 
 function rate(part: number, whole: number) {

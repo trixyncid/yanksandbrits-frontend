@@ -1,4 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { parseISO } from 'date-fns'
 import { Smartphone } from 'lucide-react'
 
 import { DataTableColumnHeader } from '../../../shared/components/data-table'
@@ -17,7 +18,7 @@ function formatEnrollmentDate(value: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(parseISO(value))
 }
 
 export const studentListColumns: ColumnDef<StudentListItem>[] = [

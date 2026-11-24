@@ -19,6 +19,7 @@ import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { notify } from '../../../shared/lib/notify'
 import { useClassroomsQuery } from '../../classrooms/hooks/use-classrooms-query'
+import { toScheduleDateTime } from '../../schedules/api/schedules-api'
 import {
   assignTraining,
   scheduleTrainingSessions,
@@ -238,10 +239,7 @@ export function ScheduleSessionsDialog({
   const dates = day && weekCount > 0 ? Array.from({ length: Math.min(weekCount, 12) }, (_, i) => addWeeks(day, i)) : []
 
   function at(date: Date, time: string) {
-    const [hours, minutes] = time.split(':').map(Number)
-    const value = new Date(date)
-    value.setHours(hours, minutes, 0, 0)
-    return value.toISOString()
+    return toScheduleDateTime(format(date, 'yyyy-MM-dd'), time)
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

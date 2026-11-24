@@ -82,9 +82,6 @@ export function useBookkeepingForm({
     try {
       if (mode === 'create') {
         const created = await createBookkeeping(values)
-        await queryClient.invalidateQueries({
-          queryKey: bookkeepingQueryKeys.all,
-        })
         notify('success', {
           title: 'Bookkeeping created',
           description: 'The payroll period has been added.',
@@ -101,9 +98,6 @@ export function useBookkeepingForm({
       }
 
       const updated = await updateBookkeeping(bookkeepingId, values)
-      await queryClient.invalidateQueries({
-        queryKey: bookkeepingQueryKeys.all,
-      })
       notify('success', {
         title: 'Bookkeeping updated',
         description: 'Changes to this payroll period have been saved.',
@@ -121,6 +115,10 @@ export function useBookkeepingForm({
         description: getApiErrorMessage(error),
       })
     } finally {
+      // Also after a timeout: an update may still have saved and recalculated.
+      await queryClient.invalidateQueries({
+        queryKey: bookkeepingQueryKeys.all,
+      })
       setIsSubmitting(false)
     }
   }

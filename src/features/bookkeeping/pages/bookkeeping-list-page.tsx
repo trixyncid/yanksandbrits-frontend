@@ -84,7 +84,6 @@ export default function BookkeepingListPage() {
     setIsUpdatingSalary(true)
     try {
       await updateOpenPeriodSalaries()
-      await query.refetch()
       notify('success', {
         title: 'Salaries updated',
         description: 'Open-period salary calculations have been refreshed.',
@@ -95,6 +94,8 @@ export default function BookkeepingListPage() {
         description: getApiErrorMessage(error),
       })
     } finally {
+      // Also after a timeout: the server may have finished updating.
+      await query.refetch()
       setIsUpdatingSalary(false)
     }
   }

@@ -226,7 +226,8 @@ function scheduleToPayload(
     tutor: Number(tutorId),
     main_salary: Number(values.mainSalary) || 0,
     salary_per_session: Number(values.salaryPerSession) || 0,
-    overtime_multiplier: Number(values.overtimeMultiplier) || 0,
+    // Indonesian keyboards type 1,5; Number('1,5') is NaN and would save 0.
+    overtime_multiplier: Number(values.overtimeMultiplier.replace(',', '.')) || 0,
     trainer_fee: Number(values.trainerFee) || 0,
     monday_in: nullIfEmpty(values.mondayIn),
     monday_out: nullIfEmpty(values.mondayOut),

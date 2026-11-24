@@ -4,6 +4,8 @@ import { useState } from 'react'
 
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { notify } from '../../../shared/lib/notify'
+import { useAuthUser } from '../../auth/hooks/use-permissions'
+import { canManageRoles } from '../../auth/types/auth'
 import { useStaffPermissionsQuery } from '../../staff-permissions/hooks/use-staff-permissions-query'
 import { userQueryKeys } from '../api/user-query-keys'
 import {
@@ -35,13 +37,15 @@ export function useUserForm({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const rolesQuery = useStaffPermissionsQuery()
+  const canEditRoles = canManageRoles(useAuthUser())
   const [values, setValues] = useState<UserFormValues>(initialValues)
   const [errors, setErrors] = useState<UserFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Pre-select the entity's default role on create while no role is chosen.
+  // Pre-select the entity's default role on create while no role is chosen
+  // (only for role managers: the API refuses roles from anyone else).
   const defaultRole =
-    mode === 'create' && entity.defaultRoleCode
+    mode === 'create' && canEditRoles && entity.defaultRoleCode
       ? rolesQuery.data?.data.find(
           (item) => item.code === entity.defaultRoleCode,
         )

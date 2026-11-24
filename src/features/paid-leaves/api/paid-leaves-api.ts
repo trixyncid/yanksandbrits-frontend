@@ -171,7 +171,7 @@ export async function createPaidLeave(
     ? await httpClient.post<ApiSuccessEnvelope<PaidLeaveDto>>(
         adminPath('/paid-leaves'),
         toFormDataPayload(values),
-        { headers: multipartHeaders },
+        { headers: multipartHeaders, timeout: 60000 },
       )
     : await httpClient.post<ApiSuccessEnvelope<PaidLeaveDto>>(
         adminPath('/paid-leaves'),
@@ -194,7 +194,7 @@ export async function updatePaidLeave(
     await httpClient.patch(
       adminPath(`/paid-leaves/${id}`),
       toFormDataPayload(values),
-      { headers: multipartHeaders },
+      { headers: multipartHeaders, timeout: 60000 },
     )
   } else {
     await httpClient.patch(adminPath(`/paid-leaves/${id}`), toJsonPayload(values))

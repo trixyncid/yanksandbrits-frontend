@@ -2,6 +2,7 @@ import { httpClient } from '../../../shared/api/http-client'
 import { fetchAllPages } from '../../../shared/api/pagination'
 import { adminPath } from '../../../shared/api/paths'
 import type { ApiSuccessEnvelope } from '../../../shared/api/types'
+import { parseCurrencyValue } from '../../../shared/lib/currency'
 
 export type EmploymentType = 'FT' | 'PT'
 export type WorkingDaysPerWeek = 5 | 6
@@ -73,7 +74,7 @@ export async function createTutorSalaryBonusTier(values: {
     max_sessions: values.maxSessions.trim()
       ? Number(values.maxSessions)
       : null,
-    bonus_amount: Number(values.bonusAmount) || 0,
+    bonus_amount: parseCurrencyValue(values.bonusAmount),
   })
   return mapTier(data.data)
 }
@@ -99,7 +100,7 @@ export async function updateTutorSalaryBonusTier(
     max_sessions: values.maxSessions.trim()
       ? Number(values.maxSessions)
       : null,
-    bonus_amount: Number(values.bonusAmount) || 0,
+    bonus_amount: parseCurrencyValue(values.bonusAmount),
   })
   return mapTier(data.data)
 }

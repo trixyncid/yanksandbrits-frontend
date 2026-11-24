@@ -3,17 +3,21 @@ import { CalendarPlus } from 'lucide-react'
 
 import { PageHeader } from '../../../shared/components/page'
 import { AdminShell } from '../../admin/components/admin-shell'
+import { useAuthUser, useIsManager } from '../../auth/hooks/use-permissions'
 import { emptyPaidLeaveFormValues } from '../api/paid-leaves-api'
 import { PaidLeaveForm } from '../components/paid-leave-form'
 import { usePaidLeaveForm } from '../hooks/use-paid-leave-form'
 
 export default function PaidLeaveCreatePage() {
   const { userId } = useSearch({ strict: false }) as { userId?: string }
+  const authUser = useAuthUser()
+  const isManager = useIsManager()
   const form = usePaidLeaveForm({
     mode: 'create',
     initialValues: {
       ...emptyPaidLeaveFormValues,
-      userId: userId ?? '',
+      // The API records a non-manager's leave for themselves, whoever is picked.
+      userId: isManager ? (userId ?? '') : String(authUser?.id ?? ''),
     },
   })
 

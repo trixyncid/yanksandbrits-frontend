@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getApiErrorMessage } from '../../../shared/api/errors'
 import { PageBackdrop } from '../../../shared/components/page'
 import { Button } from '../../../shared/components/ui/button'
+import { CurrencyInput } from '../../../shared/components/ui/currency-input'
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,17 @@ export function TutorSalaryBonusTierDialog({
       notify('error', {
         title: 'Min sessions required',
         description: 'Enter the minimum session count for this tier.',
+      })
+      return
+    }
+    const isWholeNumber = (value: string) => /^\d+$/.test(value.trim())
+    if (
+      !isWholeNumber(values.minSessions) ||
+      (values.maxSessions.trim() && !isWholeNumber(values.maxSessions))
+    ) {
+      notify('error', {
+        title: 'Invalid session count',
+        description: 'Min and max sessions must be whole numbers.',
       })
       return
     }
@@ -174,17 +186,16 @@ export function TutorSalaryBonusTierDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="bonus-amount">Bonus amount (IDR)</Label>
-              <Input
+              <CurrencyInput
                 id="bonus-amount"
-                inputMode="numeric"
                 value={values.bonusAmount}
-                onChange={(event) =>
+                onValueChange={(digits) =>
                   setValues((current) => ({
                     ...current,
-                    bonusAmount: event.target.value,
+                    bonusAmount: digits,
                   }))
                 }
-                placeholder="e.g. 250000"
+                placeholder="e.g. 250.000"
               />
               <p className="text-xs text-slate-500">
                 Paid on top of salary when the tutor's sessions fall in this

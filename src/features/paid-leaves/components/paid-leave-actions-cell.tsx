@@ -8,7 +8,7 @@ import { notify } from '../../../shared/lib/notify'
 import { Can } from '../../auth/components/can'
 import { RowActionButton } from '../../users/components/people-ui'
 import { deletePaidLeave } from '../api/paid-leaves-api'
-import { paidLeaveQueryKeys } from '../api/paid-leave-query-keys'
+import { invalidatePaidLeaveQueries } from '../api/paid-leave-query-keys'
 import type { PaidLeaveListItem } from '../types/paid-leave'
 
 function formatShortDate(value: string) {
@@ -71,9 +71,7 @@ export function PaidLeaveActionsCell({
                 void (async () => {
                   try {
                     await deletePaidLeave(leave.id)
-                    await queryClient.invalidateQueries({
-                      queryKey: paidLeaveQueryKeys.all,
-                    })
+                    await invalidatePaidLeaveQueries(queryClient)
                     notify('success', {
                       title: 'Paid leave deleted',
                       description: `${leave.staffName}'s leave record has been removed.`,

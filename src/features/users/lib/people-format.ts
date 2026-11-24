@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 /** Formatting helpers shared by the people pages. */
 
 export function personInitials(name: string) {
@@ -12,7 +13,7 @@ export function formatPeopleDate(
   withTime = false,
 ) {
   if (!value) return '—'
-  const date = new Date(value)
+  const date = parseISO(value)
   if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -25,7 +26,7 @@ export function formatPeopleDate(
 /** "3 days ago" style text for last-login columns. */
 export function formatRelativeLogin(value: string | null | undefined) {
   if (!value) return 'Never signed in'
-  const date = new Date(value)
+  const date = parseISO(value)
   if (Number.isNaN(date.getTime())) return 'Never signed in'
   const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000)
   if (diffDays <= 0) return 'Today'

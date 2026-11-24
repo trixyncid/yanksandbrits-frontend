@@ -15,6 +15,7 @@ import { Label } from '../../../shared/components/ui/label'
 import { Select } from '../../../shared/components/ui/select'
 import { Textarea } from '../../../shared/components/ui/textarea'
 import { cn } from '../../../shared/lib/cn'
+import { useIsManager } from '../../auth/hooks/use-permissions'
 import { PersonAvatar } from '../../users/components/people-ui'
 import { useCounsellorOptionsQuery } from '../../users/hooks/use-user-options'
 import type {
@@ -147,6 +148,8 @@ export function PaidLeaveForm({
   onDelete,
 }: PaidLeaveFormProps) {
   const staffQuery = useCounsellorOptionsQuery()
+  // The API ignores person and status changes from non-managers (always pending, own leave).
+  const isManager = useIsManager()
   // Freelancers have no paid leave, so they can't be picked (an existing
   // record keeps showing its saved name).
   const staff = (staffQuery.data ?? []).filter(
@@ -187,7 +190,7 @@ export function PaidLeaveForm({
                 containerClassName="w-full sm:w-full"
                 value={values.userId}
                 onChange={(event) => onChange('userId', event.target.value)}
-                disabled={staffQuery.isLoading}
+                disabled={staffQuery.isLoading || !isManager}
               >
                 <option value="">
                   {staffQuery.isLoading ? 'Loading people...' : 'Select a person...'}
@@ -296,7 +299,11 @@ export function PaidLeaveForm({
           <FormSectionCard
             icon={ClipboardCheck}
             title="Decision"
-            description="Only approved leave counts against their balance."
+            description={
+              isManager
+                ? 'Only approved leave counts against their balance.'
+                : 'A manager approves leave. Yours stays pending until then.'
+            }
             delayClassName="delay-75"
           >
             <div
@@ -313,9 +320,10 @@ export function PaidLeaveForm({
                     type="button"
                     role="radio"
                     aria-checked={selected}
+                    disabled={!isManager}
                     onClick={() => onChange('status', choice.value)}
                     className={cn(
-                      'flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left transition',
+                      'flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left transition disabled:cursor-not-allowed',
                       selected
                         ? 'bg-ink text-white'
                         : 'bg-canvas text-slate-600 hover:bg-canvas-deep',
